@@ -1,0 +1,183 @@
+<template id="log-console-template">
+  <div style="width:100%;background:var(--surface-base);border:1px solid var(--border-default);border-radius:var(--radius-xl);overflow:hidden;box-shadow:var(--shadow-sm);font-family:'JetBrains Mono',monospace;">
+
+    <!-- HEADER DO TERMINAL -->
+    <div style="background:var(--surface-overlay);padding:0.75rem 1rem;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
+
+      <div style="display:flex;align-items:center;gap:1.5rem;">
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <span style="width:8px;height:8px;background:var(--brand-emerald);border-radius:50%;animation:log-pulse 1.5s infinite;display:inline-block;"></span>
+          <span class="t-label-sm" style="font-weight:700;text-transform:uppercase;letter-spacing:0.18em;color:var(--text-muted);">Orchestrator Terminal v2.0</span>
+        </div>
+        <div style="display:none;" class="log-cols-hint">
+          <span class="t-label-sm" style="color:var(--text-muted);opacity:0.5;">Time &nbsp; Service &nbsp; Status &nbsp; Summary</span>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <span class="t-label-sm" style="color:var(--text-muted);">Últimos {{ formattedLogs.length }} registros</span>
+
+        <button @click="refreshLogs"
+          style="display:inline-flex;align-items:center;gap:0.35rem;background:var(--brand-indigo-light);color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);padding:0.25rem 0.75rem;border-radius:var(--radius-full);font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;"
+          onmouseover="this.style.background='var(--brand-indigo)';this.style.color='#fff'"
+          onmouseout="this.style.background='var(--brand-indigo-light)';this.style.color='var(--brand-indigo)'">
+          <i data-lucide="refresh-cw" style="width:12px;height:12px;display:block;"></i>
+          <span>Atualizar</span>
+        </button>
+
+        <button @click="limparLogs"
+          style="display:inline-flex;align-items:center;gap:0.35rem;background:var(--brand-rose-light);color:var(--brand-rose);border:1px solid rgba(225,29,72,0.2);padding:0.25rem 0.75rem;border-radius:var(--radius-full);font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;"
+          onmouseover="this.style.background='var(--brand-rose)';this.style.color='#fff'"
+          onmouseout="this.style.background='var(--brand-rose-light)';this.style.color='var(--brand-rose)'">
+          <i data-lucide="trash-2" style="width:12px;height:12px;display:block;"></i>
+          <span>Limpar Logs</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ÁREA DOS LOGS -->
+    <div class="log-scrollbar" style="height:20rem;overflow-y:auto;overflow-x:auto;padding:1rem;display:flex;flex-direction:column;gap:0.25rem;" ref="scrollContainer">
+
+      <div v-for="(log, idx) in formattedLogs" :key="idx"
+        :style="getRowStyle(log.status)"
+        style="display:flex;align-items:flex-start;gap:1rem;padding:0.35rem 0.75rem;border-left-width:2px;border-left-style:solid;border-radius:0 var(--radius-xs) var(--radius-xs) 0;white-space:nowrap;font-size:0.68rem;">
+
+        <span style="color:var(--brand-indigo);flex-shrink:0;width:5rem;">{{ log.timestamp }}</span>
+
+        <span style="font-weight:700;flex-shrink:0;width:7rem;overflow:hidden;text-overflow:ellipsis;color:var(--text-muted);">{{ log.service }}</span>
+
+        <span :style="getBadgeStyle(log.status)"
+          style="flex-shrink:0;width:6rem;padding:0.1rem 0.5rem;border-radius:var(--radius-xs);font-size:0.6rem;font-weight:700;text-align:center;text-transform:uppercase;letter-spacing:0.08em;">
+          {{ log.status }}
+        </span>
+
+        <span style="font-weight:600;flex-shrink:0;min-width:12rem;color:var(--text-primary);">{{ log.message }}</span>
+
+        <span v-if="log.context"
+          :title="log.context"
+          style="color:var(--brand-amber);font-style:italic;overflow:hidden;text-overflow:ellipsis;max-width:30rem;cursor:help;">
+          | {{ log.context }}
+        </span>
+      </div>
+
+      <div v-if="formattedLogs.length === 0"
+        style="color:var(--text-muted);font-style:italic;padding:1rem;">
+        Aguardando atividade do sistema...
+      </div>
+    </div>
+  </div>
+</template>
+
+<style>
+  @keyframes log-pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+  @media (min-width: 768px) {
+    .log-cols-hint { display: flex !important; }
+  }
+</style>
+
+<script>
+window.LogConsole = {
+  props: { 
+    logs: { type: Array, default: () => [] }
+  },
+  template: '#log-console-template',
+
+  mounted() {
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  },
+  
+  computed: {
+    formattedLogs() {
+      if (!this.logs || this.logs.length === 0) return [];
+      
+      const recentLogs = this.logs.slice(-100);
+
+      return recentLogs.map(l => {
+        let rawTime = '---';
+        if (l.timestampLog instanceof Date) {
+          rawTime = l.timestampLog.toLocaleString('pt-BR');
+        } else if (l.timestampLog) {
+          rawTime = String(l.timestampLog);
+        }
+        let shortTime = rawTime.includes(' ') ? rawTime.split(' ')[1] : rawTime;
+
+        return {
+          timestamp: shortTime,
+          service:   l.servico          || 'SYSTEM',
+          status:    l.status           || 'INFO',
+          message:   l.mensagemResumo   || '',
+          context:   l.contextoDetalhado || ''
+        };
+      });
+    }
+  },
+
+  watch: {
+    formattedLogs() {
+      this.$nextTick(() => {
+        const container = this.$refs.scrollContainer;
+        if (container) container.scrollTop = container.scrollHeight;
+      });
+    }
+  },
+
+  methods: {
+    getRowStyle(status) {
+      const st = String(status).toUpperCase();
+      if (st.includes('ERRO') || st.includes('FALHA'))
+        return 'border-left-color:var(--brand-rose);background:var(--brand-rose-light);';
+      if (st.includes('SUCESSO') || st.includes('OK'))
+        return 'border-left-color:var(--brand-emerald);background:var(--brand-emerald-light);';
+      if (st.includes('AVISO') || st.includes('WARNING'))
+        return 'border-left-color:var(--brand-amber);background:var(--brand-amber-light);';
+      if (st.includes('INICIO'))
+        return 'border-left-color:var(--brand-indigo);background:var(--brand-indigo-light);';
+      return 'border-left-color:var(--border-default);background:var(--surface-overlay);';
+    },
+
+    getBadgeStyle(status) {
+      const st = String(status).toUpperCase();
+      if (st.includes('ERRO') || st.includes('FALHA'))
+        return 'background:var(--brand-rose);color:#fff;';
+      if (st.includes('SUCESSO') || st.includes('OK'))
+        return 'background:var(--brand-emerald);color:#fff;';
+      if (st.includes('AVISO') || st.includes('WARNING'))
+        return 'background:var(--brand-amber);color:#fff;';
+      if (st.includes('INICIO'))
+        return 'background:var(--brand-indigo);color:#fff;';
+      return 'background:var(--text-muted);color:#fff;';
+    },
+
+    refreshLogs() {
+      console.log("🔥 Disparando Refresh via Console...");
+      this.logs.splice(0, this.logs.length); 
+      this.$emit('refresh'); 
+      if (typeof lucide !== 'undefined') {
+        setTimeout(() => lucide.createIcons(), 100);
+      }
+    },
+
+    async limparLogs() {
+      this.logs.splice(0, this.logs.length); 
+      
+      if (typeof google !== 'undefined') {
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res && res.success) {
+              setTimeout(() => { this.$emit('refresh'); }, 800);
+            } else {
+              alert("Erro ao limpar logs: " + (res.error || res.message));
+            }
+          })
+          .withFailureHandler((err) => {
+            alert("Falha de conexão: " + err);
+          })
+          .apiLimparAba('Logs', 1, 'HISTÓRICO DE LOGS FOI LIMPO PELO USUÁRIO');
+      }
+    }
+  }
+};
+</script>

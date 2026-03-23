@@ -1,0 +1,319 @@
+<template id="dash-liquidity-map-template">
+  <div class="w-full h-full flex flex-col md:flex-row gap-4 p-4">
+    
+    <div class="flex-1 flex flex-col h-full premium-card overflow-hidden relative">
+      
+      <div class="flex flex-col sm:flex-row justify-between items-center p-4 border-b gap-4" style="background: var(--surface-overlay); border-color: var(--border-subtle);">
+        <h3 class="t-title flex items-center gap-2">
+          <i data-lucide="layers" class="w-5 h-5" style="color: var(--brand-indigo);"></i> Mapa de Liquidez
+        </h3>
+        
+        <div class="flex items-center gap-3">
+          <select 
+            v-model="filtroAtivo" 
+            @change="atualizarGrafico"
+            class="input-base py-1.5 text-sm w-auto"
+            style="min-width: 120px;"
+          >
+            <option v-for="ativo in ativos" :key="ativo" :value="ativo">{{ ativo }}</option>
+          </select>
+
+          <div class="flex shadow-sm rounded-md" role="group">
+            <button 
+              @click="setTipo('CALL')"
+              type="button" 
+              class="px-4 py-1.5 text-sm font-bold border rounded-l-md transition-colors"
+              :style="filtroTipo === 'CALL' 
+                ? 'background: var(--brand-indigo); color: white; border-color: var(--brand-indigo);' 
+                : 'background: var(--surface-base); color: var(--text-secondary); border-color: var(--border-default);'"
+            >
+              CALL
+            </button>
+            <button 
+              @click="setTipo('PUT')"
+              type="button" 
+              class="px-4 py-1.5 text-sm font-bold border-t border-b border-r rounded-r-md transition-colors"
+              :style="filtroTipo === 'PUT' 
+                ? 'background: var(--brand-rose); color: white; border-color: var(--brand-rose);' 
+                : 'background: var(--surface-base); color: var(--text-secondary); border-color: var(--border-default);'"
+            >
+              PUT
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-1 relative w-full h-full p-2" style="background: var(--surface-base);">
+
+       <div v-if="dadosFiltrados.length === 0" class="absolute inset-0 flex items-center justify-center z-20" style="background: var(--surface-base); color: var(--text-muted);">
+         Nenhum dado encontrado para este filtro.
+        </div>
+
+         <div id="liquidityPlotDiv" class="w-full h-full"></div>
+      </div>
+    </div>
+
+    <div class="w-full md:w-[350px] lg:w-[400px] flex flex-col gap-4 shrink-0 overflow-y-auto hide-scrollbar">
+      
+      <div class="premium-card p-5">
+        <h4 class="t-label mb-3 flex items-center gap-2">
+          <i data-lucide="book-open" class="w-4 h-4"></i> Como ler este grafico
+        </h4>
+        <div class="t-body space-y-3">
+          <p>Imagine que o mercado e um campo de batalha. As barras mostram onde os "tubaroes" (grandes investidores) montaram suas trincheiras de defesa.</p>
+          <ul class="list-disc pl-4 space-y-1" style="color: var(--text-tertiary); font-size: 12px;">
+            <li><span style="color: var(--brand-indigo); font-weight: bold;">Barras Azuis (Compradores):</span> Formam um <b>piso</b>. Se a acao cair, tem muita gente querendo comprar aqui, o que ajuda a frear a queda.</li>
+            <li><span style="color: var(--brand-rose); font-weight: bold;">Barras Vermelhas (Vendedores):</span> Formam um <b>teto</b>. Tem muita gente querendo vender aqui, o que dificulta a alta da acao.</li>
+            <li><span style="color: #FBBF24; font-weight: bold;">Linha Amarela:</span> E onde o preco da acao esta agora.</li>
+          </ul>
+          <div class="mt-4 p-3 rounded text-xs" style="background: var(--surface-overlay); border-left: 4px solid var(--brand-indigo);">
+            <strong>Tatica de Guerra:</strong> Vai vender uma PUT? Escolha um Strike (preco) que tenha uma enorme barra azul na frente. Ela vai atuar como um "escudo" te protegendo se a acao comecar a cair.
+          </div>
+        </div>
+      </div>
+
+      <div class="premium-card p-5 flex-1 flex flex-col" style="border-top: 4px solid var(--brand-indigo);">
+        <div class="flex justify-between items-center mb-4">
+          <h4 class="t-label flex items-center gap-2" style="color: var(--brand-indigo);">
+            <i data-lucide="sparkles" class="w-4 h-4"></i> Insight Gemini AI
+          </h4>
+          <span v-if="loadingIA" class="text-xs animate-pulse" style="color: var(--brand-indigo); font-weight: bold;">Analisando...</span>
+        </div>
+        
+        <div class="flex-1 card-inner p-4 text-sm overflow-y-auto mb-4 custom-scrollbar" style="color: var(--text-secondary);">
+          <div v-if="!insightIA && !loadingIA" class="h-full flex flex-col items-center justify-center text-center opacity-60">
+            <i data-lucide="bot" class="w-10 h-10 mb-2"></i>
+            <p>Clique no botao abaixo para pedir a Inteligencia Artificial uma leitura desta cadeia de opcoes.</p>
+          </div>
+          <div v-else-if="loadingIA" class="h-full flex items-center justify-center">
+            <svg class="animate-spin h-8 w-8" style="color: var(--brand-indigo);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+          <div v-else v-html="insightIA" class="space-y-2"></div>
+        </div>
+
+        <button 
+          @click="solicitarLeituraIA"
+          :disabled="loadingIA || !dadosFiltrados.length"
+          class="btn-action w-full"
+          :class="(loadingIA || !dadosFiltrados.length) ? 'btn-action-ghost opacity-50 cursor-not-allowed' : 'btn-action-primary'"
+        >
+          <i data-lucide="zap" class="w-4 h-4"></i> Gerar Leitura Inteligente
+        </button>
+      </div>
+
+    </div>
+  </div>
+</template>
+
+<script>
+window.DashLiquidityMap = {
+  template: '#dash-liquidity-map-template',
+  props: {
+    opcoesBrutas: { type: Array, default: () => [] },
+    ativos: { type: Array, default: () => [] }
+  },
+  setup(props) {
+    const { ref, computed, onMounted, onUnmounted, nextTick, watch } = Vue;
+
+    const filtroAtivo = ref(props.ativos.length > 0 ? props.ativos[0] : '');
+    const filtroTipo = ref('PUT');
+    const loadingIA = ref(false);
+    const insightIA = ref('');
+    let debounceTimer = null;
+
+    const dadosFiltrados = computed(() => {
+      if (!filtroAtivo.value) return [];
+      const limpos = props.opcoesBrutas.filter(op => 
+        op.TICKER === filtroAtivo.value && 
+        (op.CATEGORY || '').toUpperCase() === filtroTipo.value
+      );
+      return limpos.sort((a, b) => parseFloat(a.STRIKE) - parseFloat(b.STRIKE));
+    });
+
+    const setTipo = (tipo) => {
+      filtroTipo.value = tipo;
+      atualizarGrafico();
+      insightIA.value = ''; 
+    };
+
+    const getCssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+    const atualizarGrafico = () => {
+      const el = document.getElementById('liquidityPlotDiv');
+      if (!el) return;
+
+      const dados = dadosFiltrados.value;
+      
+      if (dados.length === 0) return;
+
+      // Retornamos a estrategia de Labels (que garante o espacamento Categorizado perfeito)
+      const xLabels = [];
+      const strikesArr = [];
+      const yBid = [];
+      const yAsk = [];
+      let spotValue = 0;
+
+      dados.forEach(d => {
+        const strike = parseFloat(d.STRIKE || 0);
+        const delta = parseFloat(d.DELTA || 0);
+        spotValue = parseFloat(d.SPOT || spotValue); 
+        
+        strikesArr.push(strike);
+        xLabels.push('R$ ' + (strike.toFixed(2)) + '<br>(D ' + (delta.toFixed(2)) + ')');
+        yBid.push(parseFloat(d.BID_VOL || 0));
+        yAsk.push(parseFloat(d.ASK_VOL || 0));
+      });
+
+      const colorBid = getCssVar('--brand-indigo') || '#4F46E5';
+      const colorAsk = getCssVar('--brand-rose') || '#E11D48';
+      const colorText = getCssVar('--text-secondary') || '#888';
+      const colorGrid = getCssVar('--border-subtle') || '#333';
+
+      const traceBid = {
+        x: xLabels, y: yBid,
+        name: 'Fila de Compra (BID)',
+        type: 'bar',
+        marker: { color: colorBid, opacity: 0.8 },
+        hovertemplate: '<b>%{x}</b><br>Volume BID: %{y}<extra></extra>'
+      };
+
+      const traceAsk = {
+        x: xLabels, y: yAsk,
+        name: 'Fila de Venda (ASK)',
+        type: 'bar',
+        marker: { color: colorAsk, opacity: 0.8 },
+        hovertemplate: '<b>%{x}</b><br>Volume ASK: %{y}<extra></extra>'
+      };
+
+      const layout = {
+        barmode: 'stack',
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        margin: { t: 20, r: 20, b: 60, l: 60 },
+        font: { color: colorText },
+        xaxis: { 
+          type: 'category', //  Forca o Plotly a espacar as colunas de forma bonita e igual
+          tickangle: -45, 
+          gridcolor: colorGrid, 
+          zerolinecolor: colorGrid 
+        },
+        yaxis: { title: 'Volume de Contratos', gridcolor: colorGrid, zerolinecolor: colorGrid },
+        hovermode: 'x unified',
+        legend: { orientation: 'h', y: 1.1, x: 0.5, xanchor: 'center', font: { color: colorText } }
+      };
+
+      //  A MAGICA: Interpolacao Fracionada para o SPOT
+      if (spotValue > 0 && strikesArr.length > 1) {
+        let spotPos = 0;
+        
+        if (spotValue <= strikesArr[0]) {
+          // Se o spot for menor que o primeiro strike, joga a linha para a esquerda
+          const gap = strikesArr[1] - strikesArr[0];
+          spotPos = gap === 0 ? 0 : 0 - (strikesArr[0] - spotValue) / gap;
+        } 
+        else if (spotValue >= strikesArr[strikesArr.length - 1]) {
+          // Se for maior que o ultimo strike, joga para a direita
+          const last = strikesArr.length - 1;
+          const gap = strikesArr[last] - strikesArr[last - 1];
+          spotPos = gap === 0 ? last : last + (spotValue - strikesArr[last]) / gap;
+        } 
+        else {
+          // Acha exatamente em qual "buraco" entre duas colunas o Spot se encontra
+          for (let i = 0; i < strikesArr.length - 1; i++) {
+            if (spotValue >= strikesArr[i] && spotValue <= strikesArr[i+1]) {
+              const gap = strikesArr[i+1] - strikesArr[i];
+              spotPos = gap === 0 ? i : i + (spotValue - strikesArr[i]) / gap;
+              break;
+            }
+          }
+        }
+
+        layout.shapes = [{
+          type: 'line',
+          xref: 'x', // Fixa o desenho em relacao ao Eixo X (Categorizado)
+          yref: 'paper', // O Eixo Y ocupa todo o grafico do fundo ao topo
+          x0: spotPos, x1: spotPos,
+          y0: 0, y1: 1,
+          line: { color: '#FBBF24', width: 2, dash: 'dash' }
+        }];
+        
+        layout.annotations = [{
+          xref: 'x',
+          yref: 'paper',
+          x: spotPos, y: 1.05,
+          text: 'SPOT R$ ' + (spotValue.toFixed(2)),
+          showarrow: false,
+          font: { color: '#FBBF24', size: 10, weight: 'bold' }
+        }];
+      }
+
+      Plotly.react(el, [traceBid, traceAsk], layout, { responsive: true, displayModeBar: false });
+    };
+
+    const handleResize = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const el = document.getElementById('liquidityPlotDiv');
+        if (el && el.data) Plotly.Plots.resize(el);
+      }, 200);
+    };
+
+    onMounted(() => {
+      if (filtroAtivo.value) setTimeout(atualizarGrafico, 100); 
+      window.addEventListener('resize', handleResize);
+      window.addEventListener('themechange', atualizarGrafico);
+    });
+
+    onUnmounted(() => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('themechange', atualizarGrafico);
+    });
+
+    const solicitarLeituraIA = () => {
+      if (dadosFiltrados.value.length === 0) return;
+      loadingIA.value = true;
+      insightIA.value = '';
+
+      const ranking = dadosFiltrados.value.map(d => ({
+        strike: d.STRIKE,
+        volumeTotal: (parseFloat(d.BID_VOL)||0) + (parseFloat(d.ASK_VOL)||0)
+      })).sort((a,b) => b.volumeTotal - a.volumeTotal).slice(0, 3);
+
+      const payloadParaAPI = {
+        ativo: filtroAtivo.value,
+        spot: dadosFiltrados.value[0].SPOT,
+        tipo: filtroTipo.value,
+        strikesMaisLiquidos: ranking
+      };
+
+      if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+          .withSuccessHandler((resposta) => {
+            insightIA.value = resposta;
+            loadingIA.value = false;
+          })
+          .withFailureHandler((erro) => {
+            insightIA.value = '<span style="color: var(--brand-rose);">Erro ao contatar a IA: ' + (erro.message) + '</span>';
+            loadingIA.value = false;
+          })
+          .apiGerarInsightLiquidez(payloadParaAPI); 
+      }
+    };
+
+    return {
+      filtroAtivo, filtroTipo, setTipo, ativos: props.ativos,
+      atualizarGrafico, dadosFiltrados,
+      loadingIA, insightIA, solicitarLeituraIA
+    };
+  }
+};
+</script>
+
+<style scoped>
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: var(--surface-bg); }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 10px; }
+</style>

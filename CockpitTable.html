@@ -1,0 +1,528 @@
+<template id="cockpit-table-template">
+  <div
+    class="rounded-[var(--radius-xl)] overflow-hidden flex flex-col transition-all"
+    style="background: var(--surface-base); border: 1px solid var(--border-subtle); box-shadow: var(--shadow-sm);"
+  >
+
+    <!-- ================================================================
+         SKELETON
+         ================================================================ -->
+    <div v-if="isLoading" class="p-6 space-y-3 animate-pulse">
+      <div v-for="n in 6" :key="'skel-row-'+n" class="flex items-center gap-4">
+        <div class="h-3.5 rounded w-1/4" style="background: var(--surface-overlay);"></div>
+        <div class="h-3.5 rounded w-1/2" style="background: var(--surface-sunken);"></div>
+        <div class="h-3.5 rounded w-1/4" style="background: var(--surface-overlay);"></div>
+      </div>
+    </div>
+
+    <!-- ================================================================
+         DESKTOP — Tabela
+         ================================================================ -->
+    <div v-else-if="!isMobile" class="overflow-auto" style="max-height: 600px;">
+      <table class="w-full text-left border-separate border-spacing-0">
+
+        <!-- Cabeçalho fixo -->
+        <thead class="sticky top-0 z-30">
+          <tr style="background: var(--surface-base); backdrop-filter: blur(12px);">
+            <th
+              v-for="col in columns"
+              :key="col.key"
+              :title="col.desc"
+              class="px-4 py-4 whitespace-nowrap cursor-help transition-colors duration-[var(--duration-fast)]"
+              style="font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+                     color: var(--text-muted); border-bottom: 1px solid var(--border-subtle);"
+              onmouseover="this.style.color='var(--brand-indigo)'"
+              onmouseout="this.style.color='var(--text-muted)'"
+            >
+              {{ col.label }}
+            </th>
+          </tr>
+        </thead>
+
+        <!-- Grupos de estratégia -->
+        <tbody v-for="(group, groupName) in groupedData" :key="groupName">
+
+          <!-- Linha de grupo (sumário) -->
+          <tr
+            @click="toggleGroup(groupName)"
+            class="cursor-pointer transition-colors duration-[var(--duration-fast)]"
+            style="background: var(--brand-indigo-light);"
+            onmouseover="this.style.background='var(--brand-indigo-muted)'"
+            onmouseout="this.style.background='var(--brand-indigo-light)'"
+          >
+            <td
+              v-for="(col, index) in columns"
+              :key="'sum-'+index"
+              class="px-4 py-3 whitespace-nowrap"
+              style="border-bottom: 1px solid var(--brand-indigo-muted);"
+            >
+              <!-- Célula 0: nome do grupo -->
+              <div v-if="index === 0" class="flex items-center gap-2">
+                <span
+                  class="transition-transform duration-[var(--duration-fast)]"
+                  :class="{'rotate-90': isExpanded(groupName)}"
+                  style="color: var(--brand-indigo); font-size: 10px;"
+                >▶</span>
+                <span style="font-size: 12px; font-weight: 700; color: var(--brand-indigo);
+                             text-transform: uppercase; letter-spacing: 0.08em;">
+                  {{ groupName }}
+                </span>
+                <span
+                  class="px-2 py-0.5 rounded-[var(--radius-full)]"
+                  style="font-size: 9px; font-weight: 700;
+                         background: var(--surface-base); color: var(--brand-indigo);
+                         border: 1px solid var(--brand-indigo-muted);"
+                >
+                  {{ group.rows.length }} pos
+                </span>
+              </div>
+              <!-- Células numéricas: totais do grupo -->
+              <div
+                v-else-if="['currency','numero','percentage'].includes(col.type)"
+                style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700;
+                       color: var(--brand-indigo);"
+              >
+                {{ formatGroupSum(group.totals[col.key], col.type, col.key) }}
+              </div>
+            </td>
+          </tr>
+
+          <!-- Linhas de detalhe -->
+          <tr
+            v-if="isExpanded(groupName)"
+            v-for="(row, idx) in group.rows"
+            :key="row.tradeId || idx"
+            class="transition-colors duration-[var(--duration-fast)]"
+            onmouseover="this.style.background='var(--surface-overlay)'"
+            onmouseout="this.style.background='transparent'"
+          >
+            <td
+              v-for="col in columns"
+              :key="col.key"
+              class="px-4 py-2.5 whitespace-nowrap"
+              style="font-size: 12px; border-bottom: 1px solid var(--border-subtle);"
+            >
+              <span v-html="renderCell(row[col.key], col.type, col.key)"></span>
+            </td>
+          </tr>
+
+        </tbody>
+
+        <!-- Rodapé fixo: totais do portfólio -->
+        <tfoot class="sticky bottom-0 z-20">
+          <tr style="background: var(--surface-base); backdrop-filter: blur(12px);
+                     box-shadow: 0 -8px 20px -5px rgba(0,0,0,0.06);">
+            <td
+              v-for="(col, index) in columns"
+              :key="'total-'+index"
+              class="px-4 py-4 whitespace-nowrap"
+              style="border-top: 2px solid var(--border-default);"
+            >
+              <div v-if="index === 0" class="flex items-center gap-2">
+                <span
+                  class="w-2.5 h-2.5 rounded-full shrink-0"
+                  style="background: var(--brand-emerald); box-shadow: 0 0 0 2px var(--surface-base);"
+                ></span>
+                <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+                             text-transform: uppercase; color: var(--text-secondary);">
+                  Total Portfólio
+                </span>
+              </div>
+              <div
+                v-else-if="['currency','numero','percentage'].includes(col.type)"
+                style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700;
+                       color: var(--text-primary);"
+              >
+                {{ formatGroupSum(portfolioTotals[col.key], col.type, col.key) }}
+              </div>
+            </td>
+          </tr>
+        </tfoot>
+
+      </table>
+    </div>
+
+    <!-- ================================================================
+         MOBILE — Cards verticais
+         ================================================================ -->
+    <div
+      v-else
+      class="flex flex-col divide-y h-full overflow-y-auto relative"
+      style="max-height: 75vh; divide-color: var(--border-subtle);"
+    >
+
+      <div
+        v-for="(group, groupName) in groupedData"
+        :key="'mob-grp-'+groupName"
+        class="flex flex-col"
+      >
+
+        <!-- Header do grupo mobile -->
+        <div
+          @click="toggleGroup(groupName)"
+          class="p-6 flex justify-between items-center sticky top-0 z-10"
+          style="background: var(--surface-base); backdrop-filter: blur(12px);
+                 border-bottom: 1px solid var(--border-subtle);
+                 box-shadow: 0 6px 15px -5px rgba(0,0,0,0.08);"
+        >
+          <div class="flex items-center gap-4">
+            <span
+              class="transition-transform duration-[var(--duration-std)]"
+              :class="{'rotate-90': isExpanded(groupName)}"
+              style="color: var(--brand-indigo); font-size: 14px;"
+            >▶</span>
+            <div class="flex flex-col">
+              <span style="font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800;
+                           color: var(--text-primary); letter-spacing: -0.02em; text-transform: uppercase;">
+                {{ groupName }}
+              </span>
+              <span
+                class="mt-1 px-2.5 py-1 rounded-[var(--radius-sm)] w-fit"
+                style="font-size: 11px; font-weight: 600;
+                       background: var(--surface-overlay); color: var(--text-muted);"
+              >
+                {{ group.rows.length }} posições
+              </span>
+            </div>
+          </div>
+          <div class="text-right flex flex-col">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700;
+                         color: var(--text-primary); letter-spacing: -0.03em;">
+              {{ formatGroupSum(group.totals['plTotalValor'], 'currency', 'plTotalValor') }}
+            </span>
+            <span
+              style="font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; margin-top: 2px;"
+              :style="getPlStyle(group.totals['plTotalPct'])"
+            >
+              {{ formatGroupSum(group.totals['plTotalPct'], 'percentage', 'plTotalPct') }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Cards de posição mobile -->
+        <div v-if="isExpanded(groupName)" style="background: var(--surface-sunken); padding: 12px 16px 16px;">
+          <div
+            v-for="(row, idx) in group.rows"
+            :key="'mob-row-'+idx"
+            class="mb-3 p-6 rounded-[var(--radius-xl)] flex flex-col gap-5"
+            style="background: var(--surface-base); border: 1px solid var(--border-subtle);
+                   box-shadow: var(--shadow-sm);"
+          >
+
+            <!-- Topo: ticker + P/L -->
+            <div class="flex justify-between items-start">
+              <div class="flex flex-col gap-1.5">
+                <div class="flex items-center gap-3">
+                  <span style="font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800;
+                               color: var(--text-primary); letter-spacing: -0.04em;">
+                    {{ row.tickerAtivo || '--' }}
+                  </span>
+                  <span
+                    class="px-2.5 py-1 rounded-[var(--radius-sm)]"
+                    style="font-size: 11px; font-weight: 700; border-width: 1.5px; border-style: solid;"
+                    :style="getMoneynessStyle(row.moneynessCode)"
+                  >
+                    {{ row.moneynessCode || 'N/A' }}
+                  </span>
+                </div>
+                <span style="font-size: 12px; font-weight: 700; color: var(--text-muted);
+                             letter-spacing: 0.08em; text-transform: uppercase;">
+                  {{ row.simboloOpcao || '--' }}
+                </span>
+              </div>
+
+              <div class="text-right flex flex-col pt-1 gap-1">
+                <span
+                  style="font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; letter-spacing: -0.03em;"
+                  :style="getPlStyle(row.plTotalPct)"
+                >
+                  {{ formatCell(row.plTotalPct, 'percentage') }}
+                </span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600;
+                             color: var(--text-muted);">
+                  {{ formatCell(row.plTotalValor, 'currency') }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Grade de métricas -->
+            <div
+              class="grid grid-cols-3 gap-3 pt-4"
+              style="border-top: 2px solid var(--surface-sunken);"
+            >
+              <div class="flex flex-col gap-1">
+                <span style="font-size: 10px; font-weight: 700; text-transform: uppercase;
+                             letter-spacing: 0.1em; color: var(--text-muted);">DTE / Venc.</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px;
+                             font-weight: 700; color: var(--text-secondary);">
+                  {{ row.dteCorridos }}d
+                  <br>
+                  <span style="color: var(--text-muted); font-size: 11px; font-weight: 600;">
+                    {{ formatCell(row.dataVencimento, 'data') }}
+                  </span>
+                </span>
+              </div>
+              <div class="flex flex-col gap-1 text-center">
+                <span style="font-size: 10px; font-weight: 700; text-transform: uppercase;
+                             letter-spacing: 0.1em; color: var(--text-muted);">Qtd / Strike</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px;
+                             font-weight: 700; color: var(--text-secondary);">
+                  {{ formatCell(row.quantidade, 'numero') }}
+                  <br>
+                  <span style="color: var(--text-muted); font-size: 11px;">@ {{ formatCell(row.strike, 'currency') }}</span>
+                </span>
+              </div>
+              <div class="flex flex-col gap-1 text-right">
+                <span style="font-size: 10px; font-weight: 700; text-transform: uppercase;
+                             letter-spacing: 0.1em; color: var(--text-muted);">Nocional</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px;
+                             font-weight: 700; color: var(--text-secondary);">
+                  {{ formatCell(row.nocional, 'currency') }}
+                </span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Rodapé mobile: totais -->
+      <div
+        class="sticky bottom-0 z-20 p-6 flex justify-between items-center"
+        style="background: var(--surface-base); backdrop-filter: blur(16px);
+               border-top: 2px solid var(--border-default);
+               box-shadow: 0 -10px 30px -5px rgba(0,0,0,0.08);"
+      >
+        <div class="flex items-center gap-3">
+          <span
+            class="w-3.5 h-3.5 rounded-full shrink-0"
+            style="background: var(--brand-emerald); box-shadow: 0 0 0 2px var(--surface-base);"
+          ></span>
+          <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+                       text-transform: uppercase; color: var(--text-secondary);">
+            Portfólio
+          </span>
+        </div>
+        <div class="flex flex-col items-end gap-0.5">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 700;
+                       color: var(--text-primary); letter-spacing: -0.03em;">
+            {{ formatGroupSum(portfolioTotals['plTotalValor'], 'currency', 'plTotalValor') }}
+          </span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600;
+                       color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em;">
+            Exp: {{ formatGroupSum(portfolioTotals['nocional'], 'currency', 'nocional') }}
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================================================================
+         RODAPÉ INFORMATIVO
+         ================================================================ -->
+    <div
+      class="px-6 py-3 flex justify-between items-center"
+      style="background: var(--surface-sunken); border-top: 1px solid var(--border-subtle);"
+    >
+      <span class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full" style="background: var(--brand-emerald);"></span>
+        <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+                     text-transform: uppercase; color: var(--text-muted);">
+          Ativos em Risco
+        </span>
+      </span>
+      <span style="font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+                   text-transform: uppercase; color: var(--text-muted);">
+        {{ totalFilteredItems }} Operações
+      </span>
+    </div>
+
+  </div>
+</template>
+
+<script>
+// Formatação delegada ao window.Formatador (Presentation Utilities Layer)
+
+window.CockpitTable = {
+  props: {
+    data:               Array,
+    isMobile:           { type: Boolean, default: false },
+    isLoading:          { type: Boolean, default: false },
+    statsPreCalculados: Object
+  },
+  template: '#cockpit-table-template',
+
+  data() {
+    return {
+      expandedGroups: {},
+      columns: [
+        { key: 'estrategiaId',   label: 'Estratégia', type: 'texto',      desc: 'Nome ou ID do grupo estratégico.' },
+        { key: 'tickerAtivo',    label: 'Ativo',      type: 'texto',      desc: 'Código do ativo objeto na B3.' },
+        { key: 'simboloOpcao',   label: 'Opção',      type: 'texto',      desc: 'Código do contrato de opção.' },
+        { key: 'tipoOpcao',      label: 'Tipo',       type: 'texto',      desc: 'CALL (alta) ou PUT (baixa).' },
+        { key: 'direcaoTrade',   label: 'Direção',    type: 'texto',      desc: 'COMPRA ou VENDA.' },
+        { key: 'dataVencimento', label: 'Venc.',      type: 'data',       desc: 'Data de expiração do contrato.' },
+        { key: 'dteCorridos',    label: 'DTE',        type: 'numero',     desc: 'Dias corridos até o vencimento.' },
+        { key: 'strike',         label: 'Strike',     type: 'currency',   desc: 'Preço de exercício acordado.' },
+        { key: 'spotPrice',      label: 'Spot',       type: 'currency',   desc: 'Preço atual da ação no mercado.' },
+        { key: 'quantidade',     label: 'Qtd',        type: 'numero',     desc: 'Número de contratos.' },
+        { key: 'premioMedio',    label: 'PM',         type: 'currency',   desc: 'Preço médio de entrada.' },
+        { key: 'premioAtual',    label: 'P. Atual',   type: 'currency',   desc: 'Preço de mercado da opção.' },
+        { key: 'moneynessCode',  label: 'Moneyness',  type: 'texto',      desc: 'OTM / ATM / ITM.' },
+        { key: 'nocional',       label: 'Nocional',   type: 'currency',   desc: 'Exposição total (Strike × Qtd).' },
+        { key: 'ganhoMaximo',    label: 'Ganho Máx.', type: 'currency',   desc: 'Lucro máximo possível.' },
+        { key: 'plTotalValor',   label: 'P/L R$',     type: 'currency',   desc: 'P/L aberto em reais.' },
+        { key: 'plTotalPct',     label: 'P/L %',      type: 'percentage', desc: 'Rentabilidade sobre o nocional.' },
+        { key: 'delta',          label: 'Delta',      type: 'numero',     desc: 'Sensibilidade ao preço do ativo.' },
+        { key: 'poe',            label: 'POE',        type: 'percentage', desc: 'Probabilidade de expirar OTM.' }
+      ]
+    };
+  },
+
+  computed: {
+    activeData() {
+      return this.statsPreCalculados?.listaAtivas || [];
+    },
+
+    groupedData() {
+      if (!this.activeData.length) return {};
+      const groups = this.activeData.reduce((acc, row) => {
+        const g = row.estrategiaId || 'SEM ESTRATÉGIA';
+        if (!acc[g]) acc[g] = { rows: [], totals: {} };
+        acc[g].rows.push(row);
+        return acc;
+      }, {});
+      Object.keys(groups).forEach(gName => {
+        this.columns.forEach(col => {
+          if (['currency','numero','percentage'].includes(col.type)) {
+            groups[gName].totals[col.key] = this.getGroupSum(groups[gName].rows, col.key);
+          }
+        });
+      });
+      return groups;
+    },
+
+    portfolioTotals() {
+      if (!this.activeData.length) return {};
+      const totals = {};
+      this.columns.forEach(col => {
+        if (['currency','numero','percentage'].includes(col.type)) {
+          totals[col.key] = this.getGroupSum(this.activeData, col.key);
+        }
+      });
+      return totals;
+    },
+
+    totalFilteredItems() {
+      return this.activeData.length;
+    }
+  },
+
+  methods: {
+    toggleGroup(name) { this.expandedGroups[name] = !this.isExpanded(name); },
+    isExpanded(name)  { return this.expandedGroups[name] !== false; },
+
+    getGroupSum(rows, key) {
+      const naoSomaveis = ['dteCorridos','strike','premioMedio','premioAtual','spotPrice','delta','poe'];
+      if (naoSomaveis.includes(key)) return null;
+      if (key === 'plTotalPct') {
+        const nocTotal = rows.reduce((t, r) => t + (Number(r.nocional) || 0), 0);
+        const plTotal  = rows.reduce((t, r) => t + (Number(r.plTotalValor) || 0), 0);
+        return nocTotal > 0 ? (plTotal / nocTotal) * 100 : 0;
+      }
+      return rows.reduce((total, row) => {
+        let val = row[key];
+        if (typeof val === 'string') val = parseFloat(val.replace(/[^\d.-]/g, ''));
+        return total + (isNaN(val) ? 0 : Number(val));
+      }, 0);
+    },
+
+    // ── Formatação — delegada ao Formatador global ─────────────────────
+    // Exposto via mixin para uso seguro nos templates Vue (sem window.X)
+    ...window.Formatador.mixin(),
+
+    formatCell(value, type) {
+      if (value === undefined || value === null || value === '' || Number.isNaN(value)) return '--';
+      const tipoMap = {
+        data: 'data', currency: 'currency', moeda: 'currency',
+        numero: 'numero', number: 'numero', percentage: 'pct', texto: 'texto',
+      };
+      const tipo = tipoMap[type] || 'texto';
+      // percentage no CockpitTable sempre com 2 casas decimais
+      if (tipo === 'pct') return window.Formatador.pct(value, 2);
+      return this.fmtAuto(value, tipo);
+    },
+
+    formatGroupSum(value, type, key) {
+      if (value === null) return '';
+      if (key === 'plTotalPct') return Number(value).toFixed(2).replace('.', ',') + '%';
+      return this.formatCell(value, type);
+    },
+
+    // ── Helpers de estilo inline (dark-mode safe) ──────────────────────
+
+    getPlStyle(value) {
+      const n = Number(value) || 0;
+      return n >= 0
+        ? 'color: var(--brand-emerald);'
+        : 'color: var(--brand-rose);';
+    },
+
+    getMoneynessStyle(code) {
+      const v = String(code || '').toUpperCase();
+      if (v.includes('OTM')) return 'color: var(--brand-emerald); background: var(--brand-emerald-light); border-color: var(--brand-emerald-muted);';
+      if (v.includes('ITM')) return 'color: var(--brand-rose);   background: var(--brand-rose-light);   border-color: var(--brand-rose-muted);';
+      if (v.includes('ATM')) return 'color: var(--brand-amber); background: var(--brand-amber-light); border-color: var(--brand-amber-muted);';
+      return 'color: var(--text-muted); background: var(--surface-overlay); border-color: var(--border-subtle);';
+    },
+
+    // renderCell: retorna HTML com estilo inline — substitui getCellClass
+    renderCell(value, type, colKey) {
+      const formatted = this.formatCell(value, type);
+      const col = String(colKey).toUpperCase();
+
+      // Moneyness — badge colorido
+      if (col.includes('MONEYNESS')) {
+        const style = this.getMoneynessStyle(value);
+        return `<span style="font-size: 11px; font-weight: 700; padding: 2px 8px;
+                             border-radius: var(--radius-sm); border: 1px solid;
+                             ${style}">${formatted}</span>`;
+      }
+
+      // Tipo da opção
+      if (col === 'TIPOOPCAO') {
+        const v = String(value || '').toUpperCase();
+        const s = v === 'CALL'
+          ? 'color: var(--brand-indigo); background: var(--brand-indigo-light); border-color: var(--brand-indigo-muted);'
+          : 'color: var(--brand-amber);  background: var(--brand-amber-light);  border-color: var(--brand-amber-muted);';
+        return `<span style="font-size: 11px; font-weight: 700; padding: 2px 8px;
+                             border-radius: var(--radius-sm); border: 1px solid; ${s}">${formatted}</span>`;
+      }
+
+      // P/L colorido
+      if (col.includes('PL') && (type === 'currency' || type === 'percentage')) {
+        const style = this.getPlStyle(value);
+        return `<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px;
+                             font-weight: 700; ${style}">${formatted}</span>`;
+      }
+
+      // Moeda / número genérico
+      if (type === 'currency' || type === 'numero' || type === 'number') {
+        return `<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px;
+                             font-weight: 600; color: var(--text-secondary);">${formatted}</span>`;
+      }
+
+      // Percentage genérica
+      if (type === 'percentage') {
+        return `<span style="font-family: 'JetBrains Mono', monospace; font-size: 12px;
+                             font-weight: 600; color: var(--text-tertiary);">${formatted}</span>`;
+      }
+
+      // Texto padrão
+      return `<span style="font-size: 12px; font-weight: 600;
+                           color: var(--text-primary);">${formatted}</span>`;
+    }
+  }
+};
+</script>

@@ -1,0 +1,182 @@
+<template id="page-variacoes-template">
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+
+    <!-- Controles -->
+    <div class="premium-card" style="display:flex;flex-wrap:wrap;align-items:center;gap:1rem;padding:1rem 1.5rem;">
+      <div style="display:flex;flex-direction:column;gap:0.25rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Tipo</label>
+        <div style="display:flex;gap:0.375rem;">
+          <button v-for="t in ['TODOS','CALL','PUT']" :key="t" @click="filtroTipo = t"
+                  style="padding:0.375rem 0.875rem;border-radius:99px;font-size:0.7rem;font-weight:700;cursor:pointer;border:1px solid;transition:all 0.15s;"
+                  :style="filtroTipo === t
+                    ? (t==='CALL' ? 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);'
+                      : t==='PUT' ? 'background:var(--brand-amber);color:#fff;border-color:var(--brand-amber);'
+                      : 'background:var(--text-primary);color:var(--surface-base);border-color:var(--text-primary);')
+                    : 'background:var(--surface-base);color:var(--text-secondary);border-color:var(--border-default);'">
+            {{ t }}
+          </button>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:0.25rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Sentido</label>
+        <div style="display:flex;gap:0.375rem;">
+          <button v-for="s in [{k:'TODOS',l:'Todos'},{k:'ALTA',l:'Alta'},{k:'BAIXA',l:'Baixa'}]" :key="s.k"
+                  @click="filtroSentido = s.k"
+                  style="padding:0.375rem 0.875rem;border-radius:99px;font-size:0.7rem;font-weight:700;cursor:pointer;border:1px solid;transition:all 0.15s;"
+                  :style="filtroSentido === s.k
+                    ? (s.k==='ALTA' ? 'background:var(--brand-emerald);color:#fff;border-color:var(--brand-emerald);'
+                      : s.k==='BAIXA' ? 'background:var(--brand-rose);color:#fff;border-color:var(--brand-rose);'
+                      : 'background:var(--text-primary);color:var(--surface-base);border-color:var(--text-primary);')
+                    : 'background:var(--surface-base);color:var(--text-secondary);border-color:var(--border-default);'">
+            {{ s.l }}
+          </button>
+        </div>
+      </div>
+
+      <div style="margin-left:auto;font-size:0.75rem;color:var(--text-muted);">
+        <span style="font-weight:700;color:var(--text-primary);">{{ linhasFiltradas.length }}</span> opcoes
+      </div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="premium-card" style="overflow:hidden;">
+      <div v-if="linhasFiltradas.length === 0" style="padding:4rem 2rem;text-align:center;color:var(--text-muted);">
+        Nenhuma opcao encontrada com os filtros atuais.
+      </div>
+      <div v-else style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:separate;border-spacing:0;min-width:660px;">
+          <thead>
+            <tr style="background:var(--surface-overlay);">
+              <th v-for="col in colunas" :key="col.key"
+                  @click="ordenarPor(col.key)"
+                  style="padding:0.625rem 0.875rem;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;border-bottom:1px solid var(--border-subtle);cursor:pointer;white-space:nowrap;"
+                  :style="(col.align === 'right' ? 'text-align:right;' : col.align === 'center' ? 'text-align:center;' : 'text-align:left;') + (ordemChave === col.key ? 'color:var(--brand-indigo);' : 'color:var(--text-muted);')">
+                {{ col.label }}<span v-if="ordemChave === col.key" style="margin-left:3px;">{{ ordemAsc ? '^' : 'v' }}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(linha, idx) in linhasFiltradas" :key="linha.OPTION_TICKER || idx"
+                style="transition:background 0.1s;"
+                :style="idx % 2 === 0 ? 'background:var(--surface-base);' : 'background:var(--surface-sunken);'"
+                onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="">
+
+              <td style="padding:0.625rem 0.875rem;border-bottom:1px solid var(--border-subtle);">
+                <div style="display:flex;flex-direction:column;gap:2px;">
+                  <span style="font-size:0.8rem;font-weight:800;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ linha.OPTION_TICKER }}</span>
+                  <span style="font-size:0.7rem;color:var(--text-muted);">{{ linha.TICKER }}</span>
+                </div>
+              </td>
+
+              <td style="padding:0.625rem 0.5rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.65rem;font-weight:800;padding:2px 7px;border-radius:99px;"
+                      :style="linha.CATEGORY === 'CALL'
+                        ? 'background:var(--brand-indigo-light);color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);'
+                        : 'background:var(--brand-amber-light);color:var(--brand-amber);border:1px solid var(--brand-amber-muted);'">
+                  {{ linha.CATEGORY }}
+                </span>
+              </td>
+
+              <!-- Variacao -- destaque com cor -->
+              <td style="padding:0.625rem 0.875rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                <div style="display:flex;align-items:center;justify-content:flex-end;gap:4px;">
+                  <i :data-lucide="Number(linha.VARIATION) >= 0 ? 'trending-up' : 'trending-down'"
+                     style="width:14px;height:14px;"
+                     :style="Number(linha.VARIATION) >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'"></i>
+                  <span style="font-size:1rem;font-weight:900;font-family:'JetBrains Mono',monospace;"
+                        :style="Number(linha.VARIATION) >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'">
+                    {{ Number(linha.VARIATION) >= 0 ? '+' : '' }}{{ fmtPct(linha.VARIATION) }}
+                  </span>
+                </div>
+              </td>
+
+              <td style="padding:0.625rem 0.875rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.8rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ fmt(linha.STRIKE) }}</span>
+              </td>
+
+              <td style="padding:0.625rem 0.875rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.8rem;font-weight:600;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;">{{ fmtPct(linha.PROFIT_RATE_IF_EXERCISED) }}</span>
+              </td>
+
+              <td style="padding:0.625rem 0.875rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.8rem;font-weight:600;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;">{{ fmtPct(linha.VE_OVER_STRIKE) }}</span>
+              </td>
+
+              <td style="padding:0.625rem 0.875rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.8rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                      :style="Number(linha.DTE_CALENDAR) <= 7 ? 'color:var(--brand-rose);' : Number(linha.DTE_CALENDAR) <= 21 ? 'color:var(--brand-amber);' : 'color:var(--text-secondary);'">
+                  {{ linha.DTE_CALENDAR }}d
+                </span>
+              </td>
+
+              <td style="padding:0.625rem 0.875rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.75rem;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">{{ linha.EXPIRY }}</span>
+              </td>
+
+              <td style="padding:0.625rem 0.875rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.75rem;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">{{ fmtCompact(linha.VOLUME_FIN) }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</template>
+
+<script>
+window.PageVariacoes = {
+  template: '#page-variacoes-template',
+  props: {
+    dados:    { type: Array,   default: () => [] },
+    isMobile: { type: Boolean, default: false }
+  },
+  setup(props) {
+    const { ref, computed, nextTick } = Vue;
+
+    const filtroTipo    = ref('TODOS');
+    const filtroSentido = ref('TODOS');
+    const ordemChave    = ref('VARIATION');
+    const ordemAsc      = ref(false);
+
+    const fmt = (v) => { const n = parseFloat(v); return isNaN(n) ? '--' : 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+    const fmtPct = (v) => { const n = parseFloat(v); return isNaN(n) ? '--' : n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%'; };
+    const fmtCompact = (v) => { const n = parseFloat(v); if (isNaN(n) || n === 0) return '--'; if (n >= 1e6) return 'R$ ' + (n/1e6).toFixed(1) + 'M'; if (n >= 1e3) return 'R$ ' + (n/1e3).toFixed(0) + 'k'; return 'R$ ' + n.toFixed(0); };
+
+    const linhasFiltradas = computed(() => {
+      let lista = [...props.dados];
+      if (filtroTipo.value !== 'TODOS') lista = lista.filter(r => r.CATEGORY === filtroTipo.value);
+      if (filtroSentido.value === 'ALTA')  lista = lista.filter(r => parseFloat(r.VARIATION) >= 0);
+      if (filtroSentido.value === 'BAIXA') lista = lista.filter(r => parseFloat(r.VARIATION) < 0);
+      lista.sort((a, b) => {
+        const va = parseFloat(a[ordemChave.value]) || 0;
+        const vb = parseFloat(b[ordemChave.value]) || 0;
+        return ordemAsc.value ? va - vb : vb - va;
+      });
+      nextTick(() => { if (window.lucide) window.lucide.createIcons(); });
+      return lista;
+    });
+
+    const ordenarPor = (chave) => {
+      if (ordemChave.value === chave) ordemAsc.value = !ordemAsc.value;
+      else { ordemChave.value = chave; ordemAsc.value = false; }
+    };
+
+    const colunas = [
+      { key: 'OPTION_TICKER',            label: 'Opcao',        align: 'left' },
+      { key: 'CATEGORY',                 label: 'Tipo',         align: 'center' },
+      { key: 'VARIATION',                label: 'Variacao',     align: 'right' },
+      { key: 'STRIKE',                   label: 'Strike',       align: 'right' },
+      { key: 'PROFIT_RATE_IF_EXERCISED', label: 'Taxa Lucro',   align: 'right' },
+      { key: 'VE_OVER_STRIKE',           label: 'VE/Strike',    align: 'right' },
+      { key: 'DTE_CALENDAR',             label: 'DTE',          align: 'center' },
+      { key: 'EXPIRY',                   label: 'Vencimento',   align: 'center' },
+      { key: 'VOLUME_FIN',               label: 'Vol. Fin.',    align: 'right' },
+    ];
+
+    return { filtroTipo, filtroSentido, ordemChave, ordemAsc, linhasFiltradas, ordenarPor, colunas, fmt, fmtPct, fmtCompact };
+  }
+};
+</script>

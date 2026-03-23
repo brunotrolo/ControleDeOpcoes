@@ -1,0 +1,374 @@
+<script>
+window.Agregador = {
+
+  processarSumario(db) {
+    if (!db || !db.cockpit || db.cockpit.length === 0) return this._gerarCuboVazio();
+
+    // 1. DADOS TOTAIS (Necessário para a Estratégia da Roda ler o passado)
+    const cockpitFull = db.cockpit;
+
+    // 2. DADOS ATIVOS (Necessário para os gráficos de Risco atuais)
+    const tradesAtivos = cockpitFull.filter(t => {
+      const statusLimpo = String(t.status || '').toUpperCase().trim();
+      const ativaFlag = t.isAtiva === true;
+      return ativaFlag || statusLimpo === 'ATIVO';
+    });
+
+    const tradesComRisco = this._enriquecerDados(tradesAtivos, db.calcGreeks);
+
+    return {
+      meta: { timestamp: new Date().toISOString(), status: 'CALCULATED' },
+      
+      // === NOVO MÓDULO: GESTÃO DE CUSTÓDIA (WHEEL STRATEGY) ===
+      custodiaWheel:            this._calcularWheelStrategy(cockpitFull),
+      
+      // === MÓDULOS DE RISCO TRADICIONAIS ===
+      resumoGlobal:             this._calcularMetricasGlobais(tradesComRisco),
+      distribuicaoVencimentos:  this._calcularVencimentos(tradesComRisco),
+      concentracaoRisco:        this._calcularConcentracao(tradesComRisco),
+      moneynessStats:           this._calcularMoneyness(tradesComRisco),
+      moneynessPorTipo:         this._calcularMoneynessPorTipo(tradesComRisco),
+      resultadoStats:           this._calcularResultados(tradesComRisco),
+      vencimentosDteStats:      this._calcularVencimentosDTE(tradesComRisco),
+      performanceStats:         this._calcularResultados(tradesComRisco),
+      listaAtivas:              tradesComRisco
+    };
+  },
+
+  // =========================================================================
+  // MOTOR DA ESTRATÉGIA WHEEL (A RODA) - FASES 1 E 2
+  // =========================================================================
+  _calcularWheelStrategy(todasOperacoes) {
+    if (!todasOperacoes || todasOperacoes.length === 0) return [];
+
+    const cofres = {};
+    const getNum = (val) => Math.abs(parseFloat(String(val).replace(/[R$\s,]/g, '').replace(',', '.')) || 0);
+    const getStr = (val) => String(val || '').toUpperCase().trim();
+    
+    const parseData = (d) => {
+      if (d instanceof Date) return d;
+      if (!d) return new Date(0);
+      const str = String(d).split(' ')[0];
+      if (str.includes('-')) return new Date(str); 
+      if (str.includes('/')) {
+        const pts = str.split('/');
+        return new Date(pts[2], pts[1] - 1, pts[0]);
+      }
+      return new Date(0);
+    };
+
+    // PASSO 1: Criar os cofres baseados em PUTs EXERCIDAS
+    todasOperacoes.forEach(t => {
+      const tipo = getStr(t.tipoOpcao || t.optionType);
+      const side = getStr(t.direcaoTrade || t.side);
+      const status = getStr(t.status);
+      const ticker = getStr(t.tickerAtivo || t.ticker);
+
+      if (tipo.includes('PUT') && side.includes('V') && status === 'EXERCIDA') {
+        if (!cofres[ticker]) {
+          cofres[ticker] = {
+            ticker: ticker,
+            dataZeroNascimento: null,
+            quantidadeAcoesAtuais: 0,
+            custoTotalAlocado: 0,
+            somaPremiosDinheiro: 0, // Soma total em R$ (Qtd * EntryPrice)
+            detalhamento: []
+          };
+        }
+        
+        const qtd = getNum(t.quantidade);
+        const strike = getNum(t.strike);
+        const premioUnitario = getNum(t.premioMedio || t.entryPrice);
+        const dataExp = parseData(t.dataVencimento || t.expiry);
+
+        cofres[ticker].quantidadeAcoesAtuais += qtd;
+        cofres[ticker].custoTotalAlocado += (qtd * strike);
+        cofres[ticker].somaPremiosDinheiro += (qtd * premioUnitario);
+        cofres[ticker].detalhamento.push(t);
+
+        // Define a Data Zero como o vencimento mais antigo
+        if (!cofres[ticker].dataZeroNascimento || dataExp < cofres[ticker].dataZeroNascimento) {
+          cofres[ticker].dataZeroNascimento = dataExp;
+        }
+      }
+    });
+
+    // PASSO 2: Adicionar prêmios de CALLs e ajustar estoque
+    todasOperacoes.forEach(t => {
+      const ticker = getStr(t.tickerAtivo || t.ticker);
+      const tipo = getStr(t.tipoOpcao || t.optionType);
+      const side = getStr(t.direcaoTrade || t.side);
+      const cofre = cofres[ticker];
+
+      if (cofre && tipo.includes('CALL') && side.includes('V')) {
+        const dataTrade = parseData(t.dataTrade || t.tradeDate || t.dataVencimento);
+        
+        if (dataTrade >= cofre.dataZeroNascimento) {
+          const qtd = getNum(t.quantidade);
+          const premioUnitario = getNum(t.premioMedio || t.entryPrice);
+          const status = getStr(t.status);
+
+          cofre.somaPremiosDinheiro += (qtd * premioUnitario);
+          cofre.detalhamento.push(t);
+
+          if (status === 'EXERCIDA') {
+            cofre.quantidadeAcoesAtuais -= qtd;
+            const custoProporcional = (cofre.custoTotalAlocado / (cofre.quantidadeAcoesAtuais + qtd)) * qtd;
+            cofre.custoTotalAlocado -= custoProporcional;
+          }
+        }
+      }
+    });
+
+    // PASSO 3: Consolidação Final
+    const resultado = [];
+    Object.keys(cofres).forEach(ticker => {
+      const cofre = cofres[ticker];
+      if (cofre.quantidadeAcoesAtuais > 0) {
+        
+        // 1. CAIXA REAL
+        cofre.premiosRecebidos = cofre.detalhamento.reduce((acc, op) => {
+           const premio = Math.abs(parseFloat(String(op.premioMedio || op.entryPrice).replace(/[R$\s,]/g, '').replace(',', '.')) || 0);
+           const qtd = Math.abs(parseFloat(op.quantidade) || 0);
+           return acc + (premio * qtd);
+        }, 0);
+
+        // 2. MÉDIA E PM REAL ÚNICO -> Risco Remanescente / Ações
+        const riscoRemanescente = cofre.custoTotalAlocado - cofre.premiosRecebidos;
+        cofre.pmContabil = riscoRemanescente / cofre.quantidadeAcoesAtuais; 
+        cofre.breakevenReal = cofre.pmContabil;
+
+        // 3. PRÊMIO DA CAMPANHA
+        cofre.premiosAcumuladosPorAcao = cofre.detalhamento.reduce((acc, op) => {
+           return acc + (Math.abs(parseFloat(String(op.premioMedio || op.entryPrice).replace(/[R$\s,]/g, '').replace(',', '.')) || 0));
+        }, 0);
+
+        // 4. ROC E TERMÔMETRO
+        cofre.yieldEstrategia = (cofre.premiosRecebidos / cofre.custoTotalAlocado) * 100;
+        cofre.progressoCampanha = cofre.yieldEstrategia;
+        
+        // Cotação Atual
+        cofre.spotPriceAtivo = 0;
+        if (cofre.detalhamento.length > 0) {
+           cofre.spotPriceAtivo = parseFloat(String(cofre.detalhamento[0].spotPrice).replace(/[R$\s,]/g, '').replace(',', '.')) || 0;
+        }
+
+        resultado.push(cofre);
+      }
+    });
+
+    return resultado;
+  },
+
+  // =========================================================================
+  // MÉTODOS ORIGINAIS MANTIDOS INTACTOS
+  // =========================================================================
+
+  _calcularMetricasGlobais(trades) {
+    if (!trades || trades.length === 0) return {};
+
+    const resumo = { totalOps: trades.length };
+
+    const camposNumericos = [
+      'nocional', 'plTotalValor', 'plTotalUnitario',
+      'ganhoMaximo', 'perdaMaxima',
+      'premioMedio', 'premioAtual',
+      'delta', 'gamma', 'vega', 'theta', 'rho'
+    ];
+
+    camposNumericos.forEach(chave => { resumo[chave] = 0; });
+    trades.forEach(t => {
+      camposNumericos.forEach(chave => { resumo[chave] += (parseFloat(t[chave]) || 0); });
+    });
+
+    resumo.plTotalPct = resumo.nocional > 0
+      ? (resumo.plTotalValor / resumo.nocional) * 100
+      : 0;
+
+    return resumo;
+  },
+
+  _calcularVencimentos(tradesAtivos) {
+    const mapaVencimentos = tradesAtivos.reduce((acc, trade) => {
+      let chaveData = 'N/A';
+      if (trade.dataVencimento instanceof Date) {
+        chaveData = trade.dataVencimento.toISOString().split('T')[0];
+      } else if (trade.dataVencimento) {
+        chaveData = String(trade.dataVencimento).split('T')[0];
+      }
+
+      if (!acc[chaveData]) {
+        acc[chaveData] = { dataVencimento: chaveData, dteMedioUteis: 0, nocional: 0, ganhoMaximo: 0, plAberto: 0, contagem: 0 };
+      }
+
+      acc[chaveData].contagem     += 1;
+      acc[chaveData].nocional     += (parseFloat(trade.nocional)     || 0);
+      acc[chaveData].ganhoMaximo  += (parseFloat(trade.ganhoMaximo)  || 0);
+      acc[chaveData].plAberto     += (parseFloat(trade.plTotalValor) || 0);
+      acc[chaveData].dteMedioUteis+= (parseFloat(trade.dteUteis)     || 0);
+
+      return acc;
+    }, {});
+
+    return Object.values(mapaVencimentos)
+      .map(v => { v.dteMedioUteis = Math.round(v.dteMedioUteis / v.contagem); return v; })
+      .sort((a, b) => new Date(a.dataVencimento) - new Date(b.dataVencimento));
+  },
+
+  _calcularConcentracao(trades) {
+    if (!trades || trades.length === 0) return [];
+
+    let totalGeral = 0;
+    const mapa = {};
+
+    trades.forEach(t => {
+      const ativo    = t.tickerAtivo || 'DESCONHECIDO';
+      const nocional = parseFloat(t.nocional) || 0;
+      if (!mapa[ativo]) mapa[ativo] = { nocional: 0, ops: 0 };
+      mapa[ativo].nocional += nocional;
+      mapa[ativo].ops      += 1;
+      totalGeral           += nocional;
+    });
+
+    return Object.keys(mapa)
+      .map(ativo => ({
+        ativo, nocional: mapa[ativo].nocional, qtdOps: mapa[ativo].ops,
+        pesoPct: totalGeral > 0 ? Math.round((mapa[ativo].nocional / totalGeral) * 100) : 0
+      }))
+      .sort((a, b) => b.nocional - a.nocional);
+  },
+
+  _calcularResultados(trades) {
+    const padrao = { lucro: 0, prejuizo: 0, breakeven: 0, total: 0, pctLucro: 0, pctPrejuizo: 0, pctBreakeven: 0, performanceKey: 'AGUARDANDO' };
+    if (!trades || trades.length === 0) return padrao;
+
+    let lucro = 0, prejuizo = 0, breakeven = 0;
+    trades.forEach(t => {
+      const pl = parseFloat(t.plTotalValor) || 0;
+      if      (pl >  0.01) lucro++;
+      else if (pl < -0.01) prejuizo++;
+      else                 breakeven++;
+    });
+
+    const total = lucro + prejuizo + breakeven;
+    if (total === 0) return padrao;
+
+    const pctLucro = Math.round((lucro / total) * 100);
+    return {
+      lucro, prejuizo, breakeven, total, pctLucro,
+      pctPrejuizo:  Math.round((prejuizo  / total) * 100),
+      pctBreakeven: Math.round((breakeven / total) * 100),
+      performanceKey: pctLucro >= 60 ? 'ALTA' : pctLucro >= 40 ? 'ESTAVEL' : 'CRITICA'
+    };
+  },
+
+  _calcularMoneyness(trades) {
+    if (!trades || trades.length === 0) return this._gerarMoneynessVazio();
+
+    let totalOtm = 0, totalAtm = 0, totalItm = 0;
+    trades.forEach(op => {
+      const val = String(op.moneynessCode || '').toUpperCase().trim();
+      if      (val.includes('OTM')) totalOtm++;
+      else if (val.includes('ITM')) totalItm++;
+      else                          totalAtm++;
+    });
+
+    const total = totalOtm + totalAtm + totalItm;
+    if (total === 0) return this._gerarMoneynessVazio();
+
+    return {
+      otm: totalOtm, atm: totalAtm, itm: totalItm, total,
+      otmPct: Math.round((totalOtm / total) * 100),
+      atmPct: Math.round((totalAtm / total) * 100),
+      itmPct: Math.round((totalItm / total) * 100),
+      statusKey: (totalOtm / total) >= 0.8 ? 'BLINDADO' : (totalOtm / total) >= 0.5 ? 'CONTROLADO' : 'ALERTA'
+    };
+  },
+
+  _calcularMoneynessPorTipo(trades) {
+    const padrao = { itm: 0, atm: 0, otm: 0, total: 0 };
+    if (!trades || trades.length === 0) return { call: { ...padrao }, put: { ...padrao }, totalOps: 0 };
+
+    const s = { call: { ...padrao }, put: { ...padrao }, totalOps: trades.length };
+
+    trades.forEach(t => {
+      const tipo  = String(t.tipoOpcao     || '').toUpperCase().trim();
+      const money = String(t.moneynessCode || '').toUpperCase();
+      const alvo  = tipo.includes('CALL') ? s.call : tipo.includes('PUT') ? s.put : null;
+      if (alvo) {
+        alvo.total++;
+        if      (money.includes('ITM')) alvo.itm++;
+        else if (money.includes('OTM')) alvo.otm++;
+        else                            alvo.atm++;
+      }
+    });
+
+    return s;
+  },
+
+  _calcularVencimentosDTE(trades) {
+    const padrao = { curto: 0, medio: 0, longo: 0, total: 0, pctCurto: 0, pctMedio: 0, pctLongo: 0 };
+    if (!trades || trades.length === 0) return padrao;
+
+    let curto = 0, medio = 0, longo = 0;
+    trades.forEach(t => {
+      const dte = parseInt(t.dteCorridos, 10);
+      if (!isNaN(dte)) {
+        if      (dte <= 15) curto++;
+        else if (dte <= 45) medio++;
+        else                 longo++;
+      }
+    });
+
+    const total = curto + medio + longo;
+    if (total === 0) return padrao;
+
+    return {
+      curto, medio, longo, total,
+      pctCurto:  Math.round((curto  / total) * 100),
+      pctMedio:  Math.round((medio  / total) * 100),
+      pctLongo:  Math.round((longo  / total) * 100)
+    };
+  },
+
+  _enriquecerDados(trades, greeks) {
+    return trades.map(t => {
+      const g    = greeks?.find(greek => greek.tradeId === t.tradeId);
+      const base = g ? { ...t, ...g } : { ...t };
+
+      const pm = parseFloat(base.premioMedio || 0);
+      const pa = parseFloat(base.premioAtual || 0);
+      base.lucroPct = pm > 0 ? parseFloat(((pm - pa) / pm * 100).toFixed(1)) : null;
+
+      const spot   = parseFloat(base.spotPrice || 0);
+      const strike = parseFloat(base.strike    || 0);
+
+      if (spot && strike) {
+        base.distanciaR$  = parseFloat((spot - strike).toFixed(2));
+        base.distanciaPct = parseFloat(((spot - strike) / strike * 100).toFixed(1));
+      } else {
+        base.distanciaR$  = null;
+        base.distanciaPct = null;
+      }
+
+      return base;
+    });
+  },
+
+  _gerarCuboVazio() {
+    return {
+      meta:                    { status: 'EMPTY' },
+      custodiaWheel:           [],
+      resumoGlobal:            { totalOps: 0, nocional: 0, plTotalValor: 0, plTotalPct: 0 },
+      moneynessStats:          this._gerarMoneynessVazio(),
+      distribuicaoVencimentos: [],
+      concentracaoRisco:       [],
+      listaAtivas:             []
+    };
+  },
+
+  _gerarMoneynessVazio() {
+    return { otm: 0, atm: 0, itm: 0, total: 0, otmPct: 0, atmPct: 0, itmPct: 0, statusKey: 'ALERTA' };
+  }
+};
+</script>

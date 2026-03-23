@@ -1,0 +1,619 @@
+<template id="necton-import-template">
+  <div style="max-width:95%;margin:0 auto;padding-bottom:4rem;padding-top:1.5rem;display:flex;flex-direction:column;gap:2rem;">
+
+    <!-- HEADER -->
+    <div class="premium-card" style="padding:1.5rem 2rem;display:flex;align-items:center;gap:1.25rem;">
+      <div style="padding:0.75rem;background:var(--brand-indigo-light);color:var(--brand-indigo);border-radius:var(--radius-lg);border:1px solid var(--brand-indigo-muted);flex-shrink:0;">
+        <i data-lucide="download-cloud" style="width:24px;height:24px;display:block;"></i>
+      </div>
+      <div>
+        <h2 class="t-title" style="color:var(--text-primary);">Importador Necton</h2>
+        <p class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.2em;margin-top:0.2rem;">Motor de ingestão em massa e gestão de ordens</p>
+      </div>
+    </div>
+
+    <!-- INGESTÃO -->
+    <div class="premium-card" style="padding:2rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border-subtle);">
+        <div style="display:flex;align-items:center;gap:1rem;">
+          <div style="width:3rem;height:3rem;border-radius:var(--radius-lg);background:var(--brand-indigo-light);display:flex;align-items:center;justify-content:center;color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);flex-shrink:0;">
+            <i data-lucide="clipboard-paste" style="width:22px;height:22px;display:block;"></i>
+          </div>
+          <div>
+            <h3 class="t-subtitle" style="color:var(--text-primary);">Ingestão de Dados</h3>
+            <p class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.18em;margin-top:0.2rem;">Ctrl+V da Necton para iniciar</p>
+          </div>
+        </div>
+        <div v-if="parsedData.length > 0"
+          style="padding:0.35rem 1rem;background:var(--brand-emerald-light);color:var(--brand-emerald);border:1px solid rgba(5,150,105,0.25);border-radius:var(--radius-full);animation:necton-pulse 1.5s infinite;">
+          <span class="t-label-sm" style="font-weight:700;text-transform:uppercase;letter-spacing:0.15em;">{{ parsedData.length }} Linhas Prontas</span>
+        </div>
+      </div>
+
+      <textarea v-model="rawText"
+        placeholder="Cole as colunas aqui (Ativo, Status, Tipo, Dir, Qtd...)"
+        style="width:100%;height:8rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:1.25rem;font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-secondary);resize:none;box-shadow:inset 0 1px 4px rgba(0,0,0,0.04);box-sizing:border-box;"
+        onfocus="this.style.borderColor='var(--brand-indigo)';this.style.background='var(--surface-base)'"
+        onblur="this.style.borderColor='var(--border-default)';this.style.background='var(--surface-sunken)'"
+      ></textarea>
+
+      <div style="margin-top:1.5rem;display:flex;flex-wrap:wrap;gap:0.75rem;justify-content:flex-end;">
+        <button v-if="rawText.length > 0 || parsedData.length > 0"
+          @click="limpar" :disabled="isSaving"
+          class="btn-action"
+          style="background:var(--surface-base);border:1px solid var(--border-default);color:var(--text-tertiary);">
+          Limpar
+        </button>
+        <button v-if="parsedData.length === 0"
+          @click="parseData" :disabled="rawText.length === 0"
+          class="btn-action btn-action-primary">
+          Analisar Dados
+        </button>
+        <button v-if="parsedData.length > 0"
+          @click="salvar" :disabled="isSaving"
+          style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.25rem;border-radius:var(--radius-md);border:none;background:var(--brand-emerald);color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer;box-shadow:var(--shadow-md);"
+          onmouseover="if(!this.disabled)this.style.background='#047857'"
+          onmouseout="this.style.background='var(--brand-emerald)'">
+          <span v-if="isSaving" style="display:inline-block;width:1rem;height:1rem;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:necton-spin 0.7s linear infinite;"></span>
+          {{ isSaving ? 'Salvando...' : 'Gravar na Planilha' }}
+        </button>
+      </div>
+
+      <!-- PRÉ-VISUALIZAÇÃO -->
+      <div v-if="parsedData.length > 0"
+        style="margin-top:2rem;border:1px solid var(--border-default);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface-base);box-shadow:var(--shadow-sm);">
+        <div style="background:var(--surface-overlay);border-bottom:1px solid var(--border-subtle);padding:0.75rem 1.25rem;display:flex;justify-content:space-between;align-items:center;">
+          <span class="t-label-sm" style="font-weight:700;text-transform:uppercase;letter-spacing:0.18em;color:var(--text-tertiary);">Pré-visualização da Inserção</span>
+          <span class="t-label-sm" style="color:var(--text-muted);">Revise os dados antes de gravar</span>
+        </div>
+        <div class="log-scrollbar" style="overflow-x:auto;max-height:24rem;">
+          <table style="width:100%;border-collapse:collapse;white-space:nowrap;">
+            <thead>
+              <tr style="position:sticky;top:0;background:var(--surface-base);box-shadow:0 1px 0 var(--border-subtle);z-index:10;">
+                <th v-for="h in ['Ativo','Status','Tipo','Dir.','Qtd.Oferta','Qtd.Aparente','Qtd.Exec','Qtd.Rest','P.Limite','Disp.Baixo','Disp.Cima','P.Médio','Último','Data','—']"
+                  :key="h" class="t-label-sm"
+                  style="padding:0.75rem 1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);text-align:left;">
+                  {{ h }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, idx) in parsedData" :key="idx" class="necton-preview-row">
+                <td style="padding:0.6rem 1rem;font-weight:700;color:var(--text-primary);" class="t-value-sm">{{ row[0] }}</td>
+                <td style="padding:0.6rem 1rem;" class="t-label-sm">{{ row[1] }}</td>
+                <td style="padding:0.6rem 1rem;" class="t-label-sm">{{ row[2] }}</td>
+                <td style="padding:0.6rem 1rem;text-align:center;">
+                  <span :style="row[3]==='C' ? 'background:var(--brand-emerald-light);color:var(--brand-emerald);border:1px solid rgba(5,150,105,0.25);' : 'background:var(--brand-rose-light);color:var(--brand-rose);border:1px solid rgba(225,29,72,0.2);'"
+                    style="padding:0.15rem 0.5rem;border-radius:var(--radius-xs);font-size:0.7rem;font-weight:700;">
+                    {{ row[3] }}
+                  </span>
+                </td>
+                <td v-for="n in [4,5,6,7,8,9,10,11,12,13]" :key="n"
+                  style="padding:0.6rem 1rem;text-align:right;color:var(--text-tertiary);" class="t-value-sm font-mono-data">{{ row[n] }}</td>
+                <td style="padding:0.6rem 1rem;text-align:center;">
+                  <button @click="removerLinhaPreview(idx)" class="necton-del-btn"
+                    style="padding:0.25rem;border-radius:var(--radius-xs);border:none;background:transparent;color:var(--text-muted);cursor:pointer;"
+                    title="Remover desta importação">
+                    <i data-lucide="x" style="width:16px;height:16px;display:block;"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTÓRICO -->
+    <div class="premium-card" style="padding:2rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border-subtle);">
+        <div style="display:flex;align-items:center;gap:1rem;">
+          <div style="width:3rem;height:3rem;border-radius:var(--radius-lg);background:var(--brand-indigo-light);display:flex;align-items:center;justify-content:center;color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);flex-shrink:0;">
+            <i data-lucide="history" style="width:22px;height:22px;display:block;"></i>
+          </div>
+          <div>
+            <h3 class="t-subtitle" style="color:var(--text-primary);">Histórico de Operações</h3>
+            <p class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.18em;margin-top:0.2rem;">
+              {{ historyFiltrado.length }} registro{{ historyFiltrado.length !== 1 ? 's' : '' }}
+              <span v-if="historyFiltrado.length !== history.length" style="color:var(--brand-amber);"> (filtrado de {{ history.length }})</span>
+            </p>
+          </div>
+        </div>
+        <button @click="$emit('refresh')" class="btn-action"
+          style="background:var(--surface-base);border:1px solid var(--border-default);color:var(--text-muted);padding:0.5rem 0.75rem;"
+          title="Atualizar Histórico">
+          <i data-lucide="refresh-cw" style="width:16px;height:16px;display:block;"></i>
+        </button>
+      </div>
+
+      <!-- Barra de filtros -->
+      <div style="display:flex;flex-wrap:wrap;gap:0.625rem;margin-bottom:1.25rem;align-items:center;">
+        <select v-model="filtro.ticker" class="input-base" style="font-size:0.75rem;padding:0.375rem 0.75rem;min-width:130px;">
+          <option value="">Todos os ativos</option>
+          <option v-for="t in tickersUnicos" :key="t" :value="t">{{ t }}</option>
+        </select>
+        <div style="display:flex;border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--border-default);">
+          <button v-for="op in ['','CALL','PUT']" :key="op" @click="filtro.category = op"
+            style="padding:0.375rem 0.75rem;font-size:0.72rem;font-weight:700;border:none;cursor:pointer;transition:all 0.15s;"
+            :style="filtro.category === op
+              ? op==='CALL' ? 'background:var(--brand-indigo);color:#fff;'
+              : op==='PUT'  ? 'background:var(--brand-amber);color:#fff;'
+              : 'background:var(--brand-indigo);color:#fff;'
+              : 'background:var(--surface-base);color:var(--text-muted);'">
+            {{ op === '' ? 'C+P' : op }}
+          </button>
+        </div>
+        <div style="display:flex;border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--border-default);">
+          <button v-for="op in ['','V','C']" :key="op" @click="filtro.direcao = op"
+            style="padding:0.375rem 0.75rem;font-size:0.72rem;font-weight:700;border:none;cursor:pointer;transition:all 0.15s;"
+            :style="filtro.direcao === op
+              ? op==='V' ? 'background:var(--brand-rose);color:#fff;'
+              : op==='C' ? 'background:var(--brand-emerald);color:#fff;'
+              : 'background:var(--brand-indigo);color:#fff;'
+              : 'background:var(--surface-base);color:var(--text-muted);'">
+            {{ op === '' ? 'V+C' : op === 'V' ? 'Venda' : 'Compra' }}
+          </button>
+        </div>
+        <select v-model="filtro.statusOp" class="input-base" style="font-size:0.75rem;padding:0.375rem 0.75rem;min-width:120px;">
+          <option value="">Todos status</option>
+          <option v-for="s in statusUnicos" :key="s" :value="s">{{ s }}</option>
+        </select>
+        <button v-if="temFiltroAtivo" @click="limparFiltros"
+          style="font-size:0.72rem;font-weight:700;padding:0.375rem 0.75rem;border-radius:var(--radius-md);border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;gap:0.375rem;">
+          <i data-lucide="x" style="width:12px;height:12px;display:block;"></i> Limpar
+        </button>
+      </div>
+
+      <div v-if="isLoadingHistory" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4rem 0;">
+        <div style="width:2rem;height:2rem;border:3px solid var(--brand-indigo-light);border-top-color:var(--brand-indigo);border-radius:50%;animation:necton-spin 0.7s linear infinite;margin-bottom:1rem;"></div>
+        <span class="t-label-sm" style="color:var(--brand-indigo);font-weight:700;text-transform:uppercase;letter-spacing:0.2em;">Sincronizando...</span>
+      </div>
+
+      <div v-else-if="history.length === 0"
+        style="text-align:center;padding:4rem 0;background:var(--surface-base);border:1px dashed var(--border-default);border-radius:var(--radius-lg);">
+        <span style="font-size:3rem;display:block;margin-bottom:1rem;opacity:0.4;">📭</span>
+        <h4 class="t-subtitle" style="color:var(--text-primary);">Nenhum registro encontrado</h4>
+        <p class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.18em;margin-top:0.5rem;">A aba Necton_Import está vazia.</p>
+      </div>
+
+      <div v-else class="log-scrollbar" style="overflow-x:auto;border-radius:var(--radius-lg);border:1px solid var(--border-default);">
+        <table style="width:100%;border-collapse:collapse;white-space:nowrap;">
+          <thead>
+            <tr style="background:var(--surface-overlay);border-bottom:1px solid var(--border-subtle);">
+              <th v-for="col in colunasTabela" :key="col.key"
+                @click="col.sortable ? setSortCol(col.key) : null"
+                class="t-label-sm"
+                :style="'padding:1rem 1.25rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);white-space:nowrap;text-align:' + (col.right ? 'right' : 'left') + ';' + (col.sortable ? 'cursor:pointer;user-select:none;' : '')">
+                {{ col.label }}
+                <span v-if="sortCol === col.key" style="margin-left:3px;opacity:0.7;">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in historyFiltrado" :key="item.linhaReal" class="necton-hist-row"
+              style="border-bottom:1px solid var(--border-subtle);">
+              <td style="padding:0.75rem 1.25rem;color:var(--text-muted);" class="t-label-sm">#{{ item.linhaReal }}</td>
+              <td style="padding:0.75rem 1.25rem;font-weight:700;color:var(--text-primary);" class="t-value-sm font-mono-data">{{ item.ativo }}</td>
+              <td style="padding:0.75rem 1.25rem;">
+                <div style="display:flex;align-items:center;gap:0.5rem;">
+                  <span class="t-label-sm" style="font-weight:700;text-transform:uppercase;color:var(--text-tertiary);border:1px solid var(--border-default);padding:0.1rem 0.4rem;border-radius:var(--radius-xs);background:var(--surface-base);">{{ item.tipo }}</span>
+                  <span :style="item.direcao==='C' ? 'color:var(--brand-emerald);background:var(--brand-emerald-light);border:1px solid rgba(5,150,105,0.25);' : 'color:var(--brand-rose);background:var(--brand-rose-light);border:1px solid rgba(225,29,72,0.2);'"
+                    style="padding:0.1rem 0.5rem;border-radius:var(--radius-xs);font-size:0.7rem;font-weight:700;">
+                    {{ item.direcao }}
+                  </span>
+                </div>
+              </td>
+              <td style="padding:0.75rem 1.25rem;font-weight:700;color:var(--text-primary);text-align:right;" class="t-value-sm font-mono-data">{{ item.qtd }}</td>
+              <td style="padding:0.75rem 1.25rem;font-weight:700;color:var(--text-primary);text-align:right;" class="t-value-sm font-mono-data">{{ item.preco }}</td>
+              <td style="padding:0.75rem 1.25rem;font-weight:700;text-align:right;" class="t-value-sm font-mono-data"
+                :style="String(item.totalPremio).startsWith('-') ? 'color:var(--brand-rose);' : 'color:var(--brand-emerald);'">
+                {{ item.totalPremio }}
+              </td>
+              <td style="padding:0.75rem 1.25rem;font-weight:700;color:var(--text-primary);" class="t-value-sm font-mono-data">{{ item.ticker }}</td>
+              <td style="padding:0.75rem 1.25rem;color:var(--text-secondary);" class="t-label-sm font-mono-data">{{ item.expiry }}</td>
+              <td style="padding:0.75rem 1.25rem;font-weight:700;color:var(--text-primary);text-align:right;" class="t-value-sm font-mono-data">{{ item.strike }}</td>
+              <td style="padding:0.75rem 1.25rem;">
+                <span style="font-size:0.72rem;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid;"
+                  :style="item.category==='CALL' ? 'background:var(--brand-indigo-light);color:var(--brand-indigo);border-color:var(--brand-indigo-muted);' : 'background:var(--brand-amber-light);color:var(--brand-amber);border-color:var(--brand-amber-muted);'">
+                  {{ item.category }}
+                </span>
+              </td>
+              <td style="padding:0.5rem 1.25rem;">
+                <div style="position:relative;display:inline-block;">
+                  <select
+                    :value="item.statusOp"
+                    @change="salvarStatusOp(item, $event.target.value)"
+                    :disabled="salvandoStatus === item.linhaReal"
+                    style="font-size:0.72rem;font-weight:700;padding:3px 22px 3px 8px;border-radius:99px;border:1px solid;cursor:pointer;appearance:none;-webkit-appearance:none;"
+                    :style="item.statusOp==='ATIVO'
+                      ? 'background:var(--brand-emerald-light);color:var(--brand-emerald);border-color:var(--brand-emerald-muted);'
+                      : item.statusOp==='ENCERRADO'
+                        ? 'background:var(--surface-overlay);color:var(--text-muted);border-color:var(--border-subtle);'
+                        : 'background:var(--brand-amber-light);color:var(--brand-amber);border-color:var(--brand-amber-muted);'">
+                    <option value="ATIVO">ATIVO</option>
+                    <option value="ENCERRADO">ENCERRADO</option>
+                    <option value="EXERCIDA">EXERCIDA</option>
+                  </select>
+                  <div v-if="salvandoStatus === item.linhaReal"
+                    style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:var(--surface-overlay);border-radius:99px;">
+                    <div style="width:10px;height:10px;border:2px solid var(--brand-indigo-light);border-top-color:var(--brand-indigo);border-radius:50%;animation:necton-spin 0.7s linear infinite;"></div>
+                  </div>
+                </div>
+              </td>
+              <td style="padding:0.75rem 1.25rem;color:var(--text-tertiary);" class="t-label-sm">{{ item.data }}</td>
+              <td style="padding:0.75rem 1.25rem;text-align:center;">
+                <button @click="confirmarExclusao(item.linhaReal, item.ativo)"
+                  :disabled="isDeleting === item.linhaReal" class="necton-del-btn"
+                  style="padding:0.4rem;border-radius:var(--radius-sm);border:none;background:transparent;color:var(--text-muted);cursor:pointer;"
+                  title="Excluir Registro da Planilha">
+                  <div v-if="isDeleting === item.linhaReal"
+                    style="width:1rem;height:1rem;border:2px solid var(--brand-rose-light);border-top-color:var(--brand-rose);border-radius:50%;animation:necton-spin 0.7s linear infinite;"></div>
+                  <div v-show="isDeleting !== item.linhaReal">
+                    <i data-lucide="trash-2" style="width:16px;height:16px;display:block;"></i>
+                  </div>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MODAL — estrutura idêntica à versão estável, sem teleport -->
+    <transition name="fade">
+      <div v-if="modalExclusao.isOpen"
+        style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;background:rgba(15,17,23,0.45);backdrop-filter:blur(6px);">
+        <div style="background:var(--surface-base);border-radius:var(--radius-xl);box-shadow:var(--shadow-xl);border:1px solid var(--border-default);width:100%;max-width:22rem;overflow:hidden;text-align:center;">
+          <div style="padding:2rem;">
+            <div style="width:4rem;height:4rem;background:var(--brand-rose-light);color:var(--brand-rose);border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;box-shadow:0 0 0 6px var(--brand-rose-muted);">
+              <i data-lucide="alert-triangle" style="width:28px;height:28px;display:block;"></i>
+            </div>
+            <h3 class="t-subtitle" style="color:var(--text-primary);margin-bottom:0.5rem;">Excluir Operação?</h3>
+            <p class="t-body" style="color:var(--text-tertiary);line-height:1.6;margin-bottom:0.75rem;">
+              Você está apagando a operação de
+              <strong style="color:var(--brand-indigo);">{{ modalExclusao.ativo }}</strong>
+              na linha {{ modalExclusao.linhaReal }}.
+            </p>
+            <span class="t-label-sm" style="display:block;background:var(--brand-rose-light);color:var(--brand-rose);font-weight:700;text-transform:uppercase;letter-spacing:0.18em;padding:0.4rem 1rem;border-radius:var(--radius-sm);">
+              Ação irreversível
+            </span>
+          </div>
+          <div style="display:flex;gap:0.75rem;padding:1rem 1.25rem;background:var(--surface-overlay);border-top:1px solid var(--border-subtle);">
+            <button @click="fecharModal" class="btn-action"
+              style="flex:1;background:var(--surface-base);border:1px solid var(--border-default);color:var(--text-tertiary);">
+              Cancelar
+            </button>
+            <button @click="executarExclusao"
+              style="flex:1;padding:0.6rem 1rem;border-radius:var(--radius-md);border:none;background:var(--brand-rose);color:#fff;font-weight:700;font-size:0.85rem;cursor:pointer;box-shadow:var(--shadow-md);"
+              onmouseover="this.style.background='#be123c'"
+              onmouseout="this.style.background='var(--brand-rose)'">
+              Sim, Excluir
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+  </div>
+</template>
+
+<style>
+  @keyframes necton-spin  { to { transform: rotate(360deg); } }
+  @keyframes necton-pulse { 0%,100% { opacity:1; } 50% { opacity:0.65; } }
+  .necton-preview-row:hover { background: var(--surface-overlay); }
+  .necton-preview-row:hover .necton-del-btn,
+  .necton-hist-row:hover    .necton-del-btn { color: var(--brand-rose) !important; background: var(--brand-rose-light) !important; }
+  .necton-hist-row:hover { background: var(--surface-overlay); }
+</style>
+
+<script>
+
+window.NectonImport = {
+  template: '#necton-import-template',
+  props: {
+    data: { type: Array, default: () => [] } 
+  },
+  data() {
+    return {
+      rawText: '',
+      parsedData: [],
+      isSaving: false,
+      isDeleting: null,
+      salvandoStatus: null,
+      modalExclusao: { isOpen: false, linhaReal: null, ativo: null },
+      filtro: { ticker: '', category: '', direcao: '', statusOp: '' },
+      sortCol: 'linhaReal',
+      sortDir: 'desc',
+      colunasTabela: [
+        { key: 'linhaReal',   label: 'Linha',      sortable: true  },
+        { key: 'ativo',       label: 'Ativo',      sortable: true  },
+        { key: 'tipoDir',     label: 'Tipo / Dir', sortable: false },
+        { key: 'qtd',         label: 'Qtd',        sortable: true,  right: true },
+        { key: 'preco',       label: 'Preço',      sortable: false, right: true },
+        { key: 'totalPremio', label: 'Total',      sortable: false, right: true },
+        { key: 'ticker',      label: 'Ticker',     sortable: true  },
+        { key: 'expiry',      label: 'Vencimento', sortable: true  },
+        { key: 'strike',      label: 'Strike',     sortable: true,  right: true },
+        { key: 'category',    label: 'Categoria',  sortable: true  },
+        { key: 'statusOp',    label: 'Status Op',  sortable: true  },
+        { key: 'data',        label: 'Data',       sortable: true  },
+        { key: 'acao',        label: 'Ação',       sortable: false },
+      ]
+    };
+  },
+  computed: {
+    history() {
+      if (!this.data || this.data.length === 0) return [];
+      
+      return this.data.map((item, index) => {
+        let dataFormatada = '---';
+        if (item.timestampOrdem instanceof Date) {
+            dataFormatada = item.timestampOrdem.toLocaleString('pt-BR');
+        } else if (item.timestampOrdem) {
+            dataFormatada = String(item.timestampOrdem);
+        }
+
+        const fmt = window.Formatador;
+        return {
+          linhaReal:    item.linhaRealExcel || (index + 2),
+          ativo:        item.simboloOpcao   || '---',
+          status:       item.orderStatus    || '---',
+          tipo:         item.orderType      || '---',
+          direcao:      item.direcaoTrade   || '---',
+          qtd:          item.quantidade     || item.quantidadeOferta || 0,
+          preco:        fmt ? fmt.campo('premioAtual', item.premioAtual) : item.premioAtual,
+          data:         dataFormatada,
+          // Novos campos
+          totalPremio:  fmt ? fmt.campo('plTotalValor', item.premioTotalOrdem) : item.premioTotalOrdem,
+          ticker:       item.tickerAtivo    || '---',
+          expiry:       fmt ? fmt.data(item.dataVencimento) : '---',
+          strike:       fmt ? fmt.campo('strike', item.strike) : item.strike,
+          category:     item.categoria      || '---',
+          statusOp:     item.statusOp       || '---'
+        };
+      });
+    },
+    isLoadingHistory() {
+      return false;
+    },
+    tickersUnicos() {
+      return [...new Set(this.history.map(i => i.ticker).filter(Boolean))].sort();
+    },
+    statusUnicos() {
+      return [...new Set(this.history.map(i => i.statusOp).filter(Boolean))].sort();
+    },
+    temFiltroAtivo() {
+      return this.filtro.ticker || this.filtro.category || this.filtro.direcao || this.filtro.statusOp;
+    },
+    historyFiltrado() {
+      let lista = this.history;
+      if (this.filtro.ticker)   lista = lista.filter(i => i.ticker   === this.filtro.ticker);
+      if (this.filtro.category) lista = lista.filter(i => i.category === this.filtro.category);
+      if (this.filtro.direcao)  lista = lista.filter(i => i.direcao  === this.filtro.direcao);
+      if (this.filtro.statusOp) lista = lista.filter(i => i.statusOp === this.filtro.statusOp);
+      const col = this.sortCol;
+      const dir = this.sortDir === 'asc' ? 1 : -1;
+      return [...lista].sort((a, b) => {
+        const va = a[col], vb = b[col];
+        if (va == null) return 1; if (vb == null) return -1;
+        const na = parseFloat(String(va).replace(/[^0-9.,-]/g,'').replace(',','.'));
+        const nb = parseFloat(String(vb).replace(/[^0-9.,-]/g,'').replace(',','.'));
+        if (!isNaN(na) && !isNaN(nb)) return (na - nb) * dir;
+        return String(va).localeCompare(String(vb), 'pt-BR') * dir;
+      });
+    }
+  },
+  mounted() {
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  },
+  // 🚀 A SOLUÇÃO DO BOTÃO INVISÍVEL ESTÁ AQUI:
+  updated() {
+    if (typeof lucide !== 'undefined') {
+      this.$nextTick(() => lucide.createIcons());
+    }
+  },
+  methods: {
+    parseData() {
+      if (!this.rawText || this.rawText.trim() === '') {
+        this.parsedData = [];
+        return;
+      }
+
+      // 🔧 FIX Quantidade: remove separador de milhar BR (ponto) antes de enviar
+      // "1.500" da Necton → "1500" (o GAS recebe como número inteiro limpo)
+      const sanitizarQtd = (val) => {
+        if (!val || val === '-') return val;
+        const s = String(val).trim();
+        // Padrão milhar BR: dígitos + ponto + exatamente 3 dígitos
+        return s.replace(/^(\d{1,3})(\.\d{3})+$/, m => m.replace(/\./g, ''));
+      };
+
+      // 🔧 FIX Preço: normaliza vírgula decimal BR para ponto (ex: "0,15" → "0.15")
+      // Evita que o GAS interprete como texto ou erro
+      const sanitizarPreco = (val) => {
+        if (!val || val === '-') return val;
+        const s = String(val).trim();
+        // Formato BR com vírgula decimal: "0,15" → 0.15
+        if (/^\d+,\d+$/.test(s)) return parseFloat(s.replace(',', '.'));
+        return s;
+      };
+
+      // 🔧 FIX Data/Hora: converte "dd/mm/yyyy hh:mm" para objeto Date real
+      // O GAS recebe um Date nativo e armazena com data+hora preservadas
+      // Evita a conversão automática do Sheets que descarta a hora
+      const sanitizarData = (val) => {
+        if (!val || val === '-') return val;
+        const s = String(val).trim();
+        // Formato Necton: "19/03/2026 16:07" ou "19/03/2026 16:07:00"
+        const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
+        if (m) {
+          // Retorna string ISO que o GAS converte para Date com hora correta
+          const [, dia, mes, ano, hh, mm, ss] = m;
+          return `${ano}-${mes}-${dia}T${hh}:${mm}:${ss || '00'}`;
+        }
+        return s;
+      };
+
+      const rawLines = this.rawText.split('\n');
+      const lines = rawLines.map(l => l.trim()).filter(l => l.length > 0);
+      const validData = [];
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        if (line.includes('\t')) {
+          const numCols = line.split('\t').map(c => c.trim());
+          if (numCols.length >= 8 && i >= 4) {
+            let direcao = lines[i - 1].trim().toUpperCase();
+            let tipo    = lines[i - 2].replace(/\t/g, '').trim();
+            let status  = lines[i - 3].trim();
+            let ativo   = lines[i - 4].trim().toUpperCase();
+
+            const row = [
+              ativo,                       // OPTION_TICKER
+              status,                      // ORDER_STATUS
+              tipo,                        // ORDER_TYPE
+              direcao,                     // SIDE
+              sanitizarQtd(numCols[0]),    // QTY_OFFER
+              numCols[1],                  // QTY_DISPLAY
+              sanitizarQtd(numCols[2]),    // QUANTITY
+              sanitizarQtd(numCols[3]),    // QTY_REMAINING
+              sanitizarPreco(numCols[4]),  // LIMIT_PRICE
+              numCols[5],                  // DISP_LOW
+              numCols[6],                  // DISP_HIGH
+              sanitizarPreco(numCols[7]),  // ENTRY_PRICE
+              sanitizarPreco(numCols[8]),  // LAST_PREMIUM
+              sanitizarData(numCols[9]),   // ORDER_DATE — ISO com hora real
+              ''                           // ACTIONS
+            ];
+
+            if (ativo !== 'ATIVO') validData.push(row);
+          }
+        }
+      }
+      this.parsedData = validData;
+    },
+
+    removerLinhaPreview(index) {
+      this.parsedData.splice(index, 1);
+    },
+
+    limpar() {
+      this.rawText = '';
+      this.parsedData = [];
+    },
+
+    salvar() {
+      if (this.parsedData.length === 0) return;
+      this.isSaving = true;
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (!res || !res.success) {
+            this.isSaving = false;
+            alert("Erro ao salvar: " + (res.error || res.message));
+            return;
+          }
+
+          // ✅ Gravação OK — dispara AtualizarNecton_Menu automaticamente
+          google.script.run
+            .withSuccessHandler(() => {
+              this.isSaving = false;
+              this.limpar();
+              this.$emit('refresh');
+            })
+            .withFailureHandler((err) => {
+              this.isSaving = false;
+              // Dados foram gravados mas a atualização falhou — avisa sem bloquear
+              alert('Dados gravados, mas a atualização automática falhou: ' + err + '\nAtualize manualmente.');
+              this.limpar();
+              this.$emit('refresh');
+            })
+            .AtualizarNecton_Menu();
+        })
+        .withFailureHandler((err) => {
+          this.isSaving = false;
+          alert("Falha de conexão com o servidor: " + err);
+        })
+        .apiAdicionarLinhas('Necton_Import', this.parsedData);
+    },
+
+    setSortCol(col) {
+      if (this.sortCol === col) {
+        this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        this.sortCol = col;
+        this.sortDir = 'asc';
+      }
+    },
+
+    limparFiltros() {
+      this.filtro = { ticker: '', category: '', direcao: '', statusOp: '' };
+    },
+
+    salvarStatusOp(item, novoStatus) {
+      if (!novoStatus || novoStatus === item.statusOp) return;
+      this.salvandoStatus = item.linhaReal;
+      // STATUS_OP = coluna 23 da aba NECTON_IMPORT
+      const COL_STATUS_OP = 23;
+      if (typeof google !== 'undefined') {
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.salvandoStatus = null;
+            if (res && res.success) {
+              item.statusOp = novoStatus;
+            } else {
+              alert('Erro ao atualizar status: ' + (res?.error || 'desconhecido'));
+            }
+          })
+          .withFailureHandler((err) => {
+            this.salvandoStatus = null;
+            alert('Falha ao atualizar status: ' + err);
+          })
+          .apiSetCellValue('Necton_Import', item.linhaReal, COL_STATUS_OP, novoStatus);
+      }
+    },
+
+    confirmarExclusao(linhaReal, ativo) {
+      this.modalExclusao = { isOpen: true, linhaReal, ativo };
+    },
+
+    fecharModal() {
+      this.modalExclusao = { isOpen: false, linhaReal: null, ativo: null };
+    },
+
+    executarExclusao() {
+      // 🚀 FIX: Trava matemática que evita enviar comandos "null" para o Sheets
+      const linhaAlvo = parseInt(this.modalExclusao.linhaReal, 10);
+      const ativoAlvo = String(this.modalExclusao.ativo);
+      
+      this.isDeleting = linhaAlvo;
+      this.fecharModal(); 
+      
+      if (isNaN(linhaAlvo) || linhaAlvo < 1) {
+          alert("Erro de segurança: Número de linha inválido.");
+          this.isDeleting = null;
+          return;
+      }
+      
+      google.script.run
+        .withSuccessHandler((res) => {
+          if (res && res.success) {
+            this.$emit('refresh'); 
+          } else {
+            alert(res.error || "Erro ao excluir a linha.");
+          }
+          this.isDeleting = null; 
+        })
+        .withFailureHandler((err) => {
+          alert("Falha de conexão com a planilha: " + err);
+          this.isDeleting = null; 
+        })
+        .apiExcluirLinhaSegura('Necton_Import', linhaAlvo, ativoAlvo); 
+    }
+  }
+};
+
+</script>

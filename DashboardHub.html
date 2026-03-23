@@ -1,0 +1,546 @@
+<template id="dashboard-hub-template">
+  <div class="w-full h-full relative overflow-hidden">
+    
+    <div v-if="!activeChart" class="w-full h-full flex flex-col gap-6 overflow-y-auto pb-10 animate-fade-in hide-scrollbar">
+      
+      <div class="premium-card p-6 shrink-0" style="border-top: 4px solid var(--brand-indigo);">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+          
+          <div>
+            <h2 class="t-display text-xl flex items-center gap-2">
+              <i data-lucide="radar" style="color: var(--brand-indigo);"></i> Radar de Convergencia 4D
+            </h2>
+            <p class="t-body mt-1 text-xs">
+              Cruza automaticamente Liquidez, Skew, Risco e Tempo para encontrar o <b>Strike de Ouro</b>.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <select v-model="radarAtivo" class="input-base py-2 text-sm w-32">
+              <option v-for="ativo in listaAtivosUnicos" :key="ativo" :value="ativo">{{ ativo }}</option>
+            </select>
+
+            <div class="flex shadow-sm rounded-md" role="group">
+              <button @click="radarTipo = 'CALL'" type="button" class="px-4 py-2 text-sm font-bold border rounded-l-md transition-colors"
+                :style="radarTipo === 'CALL' ? 'background: var(--brand-indigo); color: white; border-color: var(--brand-indigo);' : 'background: var(--surface-base); color: var(--text-secondary); border-color: var(--border-default);'">
+                CALL
+              </button>
+              <button @click="radarTipo = 'PUT'" type="button" class="px-4 py-2 text-sm font-bold border-t border-b border-r rounded-r-md transition-colors"
+                :style="radarTipo === 'PUT' ? 'background: var(--brand-rose); color: white; border-color: var(--brand-rose);' : 'background: var(--surface-base); color: var(--text-secondary); border-color: var(--border-default);'">
+                PUT
+              </button>
+            </div>
+
+            <button @click="acionarRadar" :disabled="loadingRadar || !radarAtivo" 
+              class="btn-action btn-action-primary" style="min-width: 150px;">
+              <i data-lucide="zap" class="w-4 h-4"></i> Buscar Strike
+            </button>
+          </div>
+        </div>
+
+        <div class="card-inner p-4 text-sm overflow-y-auto custom-scrollbar" style="color: var(--text-secondary); min-height: 140px;">
+          
+          <div v-if="!resultadoRadar && !loadingRadar" class="h-full flex flex-col items-center justify-center text-center opacity-60 py-4">
+            <i data-lucide="radar" class="w-10 h-10 mb-2"></i>
+            <p>Clique no botao acima para cruzar os 4 graficos e pedir a Inteligencia Artificial o Strike de Ouro.</p>
+          </div>
+          
+          <div v-else-if="loadingRadar" class="h-full flex flex-col items-center justify-center py-4">
+            <svg class="animate-spin h-8 w-8 mb-2" style="color: var(--brand-indigo);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="font-bold" style="color: var(--brand-indigo);">Cruzando as 4 dimensoes...</p>
+          </div>
+          
+          <div v-else v-html="resultadoRadar" class="space-y-2 py-2" style="color: var(--text-primary);"></div>
+          
+        </div>
+      </div>
+
+      <!-- Grid de acesso aos 4 graficos -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 shrink-0">
+
+        <!-- 1. Mapa de Liquidez -->
+        <div @click="abrirGrafico('dash-liquidity-map')"
+          style="cursor:pointer;border-radius:var(--radius-xl);border:1px solid var(--border-subtle);overflow:hidden;box-shadow:var(--shadow-sm);background:var(--surface-base);transition:border-color 0.2s,box-shadow 0.2s;"
+          onmouseover="this.style.borderColor='var(--brand-indigo)';this.style.boxShadow='0 0 0 3px var(--brand-indigo-muted)'"
+          onmouseout="this.style.borderColor='var(--border-subtle)';this.style.boxShadow='var(--shadow-sm)'">
+          <!-- Faixa colorida -->
+          <div style="height:4px;background:var(--brand-indigo);"></div>
+          <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:0.875rem;">
+            <!-- Header -->
+            <div style="display:flex;align-items:center;gap:0.625rem;">
+              <div style="padding:0.4rem;background:var(--brand-indigo-light);border-radius:var(--radius-md);border:1px solid var(--brand-indigo-muted);flex-shrink:0;">
+                <i data-lucide="layers" style="width:16px;height:16px;color:var(--brand-indigo);display:block;"></i>
+              </div>
+              <div>
+                <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--brand-indigo);">1 -- Mapa de Liquidez</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px;">Muros de protecao institucionais</div>
+              </div>
+              <i data-lucide="arrow-right" style="width:16px;height:16px;color:var(--text-muted);margin-left:auto;display:block;"></i>
+            </div>
+            <!-- Preview -->
+            <div style="display:flex;gap:1px;background:var(--border-subtle);border-radius:var(--radius-md);overflow:hidden;">
+              <div style="flex:1;padding:0.625rem 0.875rem;background:var(--surface-base);display:flex;flex-direction:column;gap:3px;">
+                <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Strike + Liquido</span>
+                <span style="font-size:1rem;font-weight:700;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;">{{ previewLiquidez.strike }}</span>
+              </div>
+              <div style="flex:1;padding:0.625rem 0.875rem;background:var(--surface-base);display:flex;flex-direction:column;gap:3px;">
+                <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Volume Total</span>
+                <span style="font-size:1rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ previewLiquidez.volume }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Sorriso de Volatilidade -->
+        <div @click="abrirGrafico('dash-volatility-skew')"
+          style="cursor:pointer;border-radius:var(--radius-xl);border:1px solid var(--border-subtle);overflow:hidden;box-shadow:var(--shadow-sm);background:var(--surface-base);transition:border-color 0.2s,box-shadow 0.2s;"
+          onmouseover="this.style.borderColor='var(--brand-amber)';this.style.boxShadow='0 0 0 3px var(--brand-amber-muted)'"
+          onmouseout="this.style.borderColor='var(--border-subtle)';this.style.boxShadow='var(--shadow-sm)'">
+          <div style="height:4px;background:var(--brand-amber);"></div>
+          <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:0.875rem;">
+            <div style="display:flex;align-items:center;gap:0.625rem;">
+              <div style="padding:0.4rem;background:var(--brand-amber-light);border-radius:var(--radius-md);border:1px solid var(--brand-amber-muted);flex-shrink:0;">
+                <i data-lucide="smile" style="width:16px;height:16px;color:var(--brand-amber);display:block;"></i>
+              </div>
+              <div>
+                <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--brand-amber);">2 -- Sorriso de Volatilidade</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px;">Onde o mercado paga seguro caro</div>
+              </div>
+              <i data-lucide="arrow-right" style="width:16px;height:16px;color:var(--text-muted);margin-left:auto;display:block;"></i>
+            </div>
+            <div style="display:flex;gap:1px;background:var(--border-subtle);border-radius:var(--radius-md);overflow:hidden;">
+              <div style="flex:1;padding:0.625rem 0.875rem;background:var(--surface-base);display:flex;flex-direction:column;gap:3px;">
+                <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">IV ATM PUT</span>
+                <span style="font-size:1rem;font-weight:700;color:var(--brand-amber);font-family:'JetBrains Mono',monospace;">{{ previewSkew.ivAtm }}</span>
+              </div>
+              <div style="flex:1;padding:0.625rem 0.875rem;background:var(--surface-base);display:flex;flex-direction:column;gap:3px;">
+                <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Skew (Ala PUT)</span>
+                <span style="font-size:1rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ previewSkew.skew }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Risco vs Retorno -->
+        <div @click="abrirGrafico('dash-risk-return')"
+          style="cursor:pointer;border-radius:var(--radius-xl);border:1px solid var(--border-subtle);overflow:hidden;box-shadow:var(--shadow-sm);background:var(--surface-base);transition:border-color 0.2s,box-shadow 0.2s;"
+          onmouseover="this.style.borderColor='var(--brand-emerald)';this.style.boxShadow='0 0 0 3px var(--brand-emerald-muted)'"
+          onmouseout="this.style.borderColor='var(--border-subtle)';this.style.boxShadow='var(--shadow-sm)'">
+          <div style="height:4px;background:var(--brand-emerald);"></div>
+          <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:0.875rem;">
+            <div style="display:flex;align-items:center;gap:0.625rem;">
+              <div style="padding:0.4rem;background:var(--brand-emerald-light);border-radius:var(--radius-md);border:1px solid var(--brand-emerald-muted);flex-shrink:0;">
+                <i data-lucide="crosshair" style="width:16px;height:16px;color:var(--brand-emerald);display:block;"></i>
+              </div>
+              <div>
+                <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--brand-emerald);">3 -- Risco vs Retorno</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px;">Delta x Taxa de lucro</div>
+              </div>
+              <i data-lucide="arrow-right" style="width:16px;height:16px;color:var(--text-muted);margin-left:auto;display:block;"></i>
+            </div>
+            <div style="display:flex;gap:1px;background:var(--border-subtle);border-radius:var(--radius-md);overflow:hidden;">
+              <div style="flex:1;padding:0.625rem 0.875rem;background:var(--brand-emerald-light);display:flex;flex-direction:column;gap:3px;">
+                <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--brand-emerald);">Melhor Taxa</span>
+                <span style="font-size:1rem;font-weight:700;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;">{{ previewRisco.taxa }}</span>
+              </div>
+              <div style="flex:1;padding:0.625rem 0.875rem;background:var(--surface-base);display:flex;flex-direction:column;gap:3px;">
+                <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Delta</span>
+                <span style="font-size:1rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ previewRisco.delta }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Curva Estrutural -->
+        <div @click="abrirGrafico('dash-gamma-theta')"
+          style="cursor:pointer;border-radius:var(--radius-xl);border:1px solid var(--border-subtle);overflow:hidden;box-shadow:var(--shadow-sm);background:var(--surface-base);transition:border-color 0.2s,box-shadow 0.2s;"
+          onmouseover="this.style.borderColor='var(--brand-rose)';this.style.boxShadow='0 0 0 3px var(--brand-rose-muted)'"
+          onmouseout="this.style.borderColor='var(--border-subtle)';this.style.boxShadow='var(--shadow-sm)'">
+          <div style="height:4px;background:var(--brand-rose);"></div>
+          <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:0.875rem;">
+            <div style="display:flex;align-items:center;gap:0.625rem;">
+              <div style="padding:0.4rem;background:var(--brand-rose-light);border-radius:var(--radius-md);border:1px solid var(--brand-rose-muted);flex-shrink:0;">
+                <i data-lucide="hourglass" style="width:16px;height:16px;color:var(--brand-rose);display:block;"></i>
+              </div>
+              <div>
+                <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--brand-rose);">4 -- Curva Estrutural</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px;">Theta vs Gamma por strike</div>
+              </div>
+              <i data-lucide="arrow-right" style="width:16px;height:16px;color:var(--text-muted);margin-left:auto;display:block;"></i>
+            </div>
+            <div style="display:flex;gap:1px;background:var(--border-subtle);border-radius:var(--radius-md);overflow:hidden;">
+              <div style="flex:1;padding:0.625rem 0.875rem;background:var(--surface-base);display:flex;flex-direction:column;gap:3px;">
+                <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Pico Gamma</span>
+                <span style="font-size:1rem;font-weight:700;color:var(--brand-rose);font-family:'JetBrains Mono',monospace;">{{ previewGamma.strike }}</span>
+              </div>
+              <div style="flex:1;padding:0.625rem 0.875rem;background:var(--surface-base);display:flex;flex-direction:column;gap:3px;">
+                <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Theta Diario</span>
+                <span style="font-size:1rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ previewGamma.theta }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Grid de graficos de portfolio -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
+
+        <!-- 5. Theta Decay -->
+        <div @click="abrirGrafico('dash-theta-decay')"
+          style="cursor:pointer;border-radius:var(--radius-xl);border:1px solid var(--border-subtle);overflow:hidden;box-shadow:var(--shadow-sm);background:var(--surface-base);transition:border-color 0.2s,box-shadow 0.2s;"
+          onmouseover="this.style.borderColor='var(--brand-indigo)';this.style.boxShadow='0 0 0 3px var(--brand-indigo-muted)'"
+          onmouseout="this.style.borderColor='var(--border-subtle)';this.style.boxShadow='var(--shadow-sm)'">
+          <div style="height:4px;background:var(--brand-indigo);"></div>
+          <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:0.875rem;">
+            <div style="display:flex;align-items:center;gap:0.625rem;">
+              <div style="padding:0.4rem;background:var(--brand-indigo-light);border-radius:var(--radius-md);border:1px solid var(--brand-indigo-muted);flex-shrink:0;">
+                <i data-lucide="trending-down" style="width:16px;height:16px;color:var(--brand-indigo);display:block;"></i>
+              </div>
+              <div>
+                <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--brand-indigo);">5 -- Theta Decay</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px;">Quando recomprar cada posicao</div>
+              </div>
+              <i data-lucide="arrow-right" style="width:16px;height:16px;color:var(--text-muted);margin-left:auto;display:block;"></i>
+            </div>
+            <div style="display:flex;gap:1px;background:var(--border-subtle);border-radius:var(--radius-md);overflow:hidden;">
+              <div style="flex:1;padding:0.625rem 0.875rem;background:var(--surface-base);display:flex;flex-direction:column;gap:3px;">
+                <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Posicoes ativas</span>
+                <span style="font-size:1rem;font-weight:700;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;">{{ previewPortfolio.totalAtivas }}</span>
+              </div>
+              <div style="flex:1;padding:0.625rem 0.875rem;background:var(--surface-base);display:flex;flex-direction:column;gap:3px;">
+                <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Prox. gatilho</span>
+                <span style="font-size:1rem;font-weight:700;color:var(--brand-amber);font-family:'JetBrains Mono',monospace;">{{ previewPortfolio.proxGatilho }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. Stress Test -->
+        <div @click="abrirGrafico('dash-stress-test')"
+          style="cursor:pointer;border-radius:var(--radius-xl);border:1px solid var(--border-subtle);overflow:hidden;box-shadow:var(--shadow-sm);background:var(--surface-base);transition:border-color 0.2s,box-shadow 0.2s;"
+          onmouseover="this.style.borderColor='var(--brand-rose)';this.style.boxShadow='0 0 0 3px var(--brand-rose-muted)'"
+          onmouseout="this.style.borderColor='var(--border-subtle)';this.style.boxShadow='var(--shadow-sm)'">
+          <div style="height:4px;background:var(--brand-rose);"></div>
+          <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:0.875rem;">
+            <div style="display:flex;align-items:center;gap:0.625rem;">
+              <div style="padding:0.4rem;background:var(--brand-rose-light);border-radius:var(--radius-md);border:1px solid var(--brand-rose-muted);flex-shrink:0;">
+                <i data-lucide="shield-alert" style="width:16px;height:16px;color:var(--brand-rose);display:block;"></i>
+              </div>
+              <div>
+                <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--brand-rose);">6 -- Stress Test</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px;">Impacto de quedas e altas no P/L</div>
+              </div>
+              <i data-lucide="arrow-right" style="width:16px;height:16px;color:var(--text-muted);margin-left:auto;display:block;"></i>
+            </div>
+            <div style="display:flex;gap:1px;background:var(--border-subtle);border-radius:var(--radius-md);overflow:hidden;">
+              <div style="flex:1;padding:0.625rem 0.875rem;background:var(--brand-rose-light);display:flex;flex-direction:column;gap:3px;">
+                <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--brand-rose);">P/L se -15%</span>
+                <span style="font-size:1rem;font-weight:700;color:var(--brand-rose);font-family:'JetBrains Mono',monospace;">{{ previewPortfolio.stressMinus15 }}</span>
+              </div>
+              <div style="flex:1;padding:0.625rem 0.875rem;background:var(--brand-emerald-light);display:flex;flex-direction:column;gap:3px;">
+                <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--brand-emerald);">P/L se +15%</span>
+                <span style="font-size:1rem;font-weight:700;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;">{{ previewPortfolio.stressPlus15 }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. Timeline Gantt -->
+        <div @click="abrirGrafico('dash-vencimentos-gantt')"
+          style="cursor:pointer;border-radius:var(--radius-xl);border:1px solid var(--border-subtle);overflow:hidden;box-shadow:var(--shadow-sm);background:var(--surface-base);transition:border-color 0.2s,box-shadow 0.2s;"
+          onmouseover="this.style.borderColor='var(--brand-amber)';this.style.boxShadow='0 0 0 3px var(--brand-amber-muted)'"
+          onmouseout="this.style.borderColor='var(--border-subtle)';this.style.boxShadow='var(--shadow-sm)'">
+          <div style="height:4px;background:var(--brand-amber);"></div>
+          <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:0.875rem;">
+            <div style="display:flex;align-items:center;gap:0.625rem;">
+              <div style="padding:0.4rem;background:var(--brand-amber-light);border-radius:var(--radius-md);border:1px solid var(--brand-amber-muted);flex-shrink:0;">
+                <i data-lucide="calendar-range" style="width:16px;height:16px;color:var(--brand-amber);display:block;"></i>
+              </div>
+              <div>
+                <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--brand-amber);">7 -- Timeline</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px;">Calendario de vencimentos</div>
+              </div>
+              <i data-lucide="arrow-right" style="width:16px;height:16px;color:var(--text-muted);margin-left:auto;display:block;"></i>
+            </div>
+            <div style="display:flex;gap:1px;background:var(--border-subtle);border-radius:var(--radius-md);overflow:hidden;">
+              <div style="flex:1;padding:0.625rem 0.875rem;background:var(--surface-base);display:flex;flex-direction:column;gap:3px;">
+                <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Prox. vencimento</span>
+                <span style="font-size:1rem;font-weight:700;color:var(--brand-amber);font-family:'JetBrains Mono',monospace;">{{ previewPortfolio.proxVencimento }}</span>
+              </div>
+              <div style="flex:1;padding:0.625rem 0.875rem;background:var(--surface-base);display:flex;flex-direction:column;gap:3px;">
+                <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Ciclos ativos</span>
+                <span style="font-size:1rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ previewPortfolio.ciclosAtivos }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+
+    <div v-else class="w-full h-full flex flex-col animate-fade-in z-10">
+      
+      <div class="flex items-center gap-4 mb-4 pb-4 shrink-0" style="border-bottom: 1px solid var(--border-subtle);">
+        <button @click="fecharGrafico()" class="btn-action btn-action-ghost">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i> Voltar ao Menu
+        </button>
+        <h2 class="t-title">Analise Aprofundada</h2>
+      </div>
+      
+      <div class="flex-1 w-full premium-card p-1 overflow-hidden">
+        <component :is="activeChart" :opcoes-brutas="opcoesBrutas" :ativos="listaAtivosUnicos" :stats-pre-calculados="statsPreCalculados"></component>
+      </div>
+
+    </div>
+
+  </div>
+</template>
+
+<script>
+window.DashboardHub = {
+  template: '#dashboard-hub-template',
+  props: {
+    opcoesBrutas:       { type: Array,  default: () => [] },
+    statsPreCalculados: { type: Object, default: () => ({}) },
+  },
+  setup(props) {
+    const { ref, computed, nextTick, onMounted, watch } = Vue;
+    const activeChart = ref(null);
+    
+    // Controles do Radar
+    const radarAtivo = ref('');
+    const radarTipo = ref('PUT');
+    const loadingRadar = ref(false);
+    const resultadoRadar = ref('');
+
+    const listaAtivosUnicos = computed(() => {
+      const tickers = new Set();
+      props.opcoesBrutas.forEach(op => {
+        if (op.TICKER && op.TICKER.trim() !== '') tickers.add(op.TICKER);
+      });
+      const arr = Array.from(tickers).sort();
+      if (arr.length > 0 && !radarAtivo.value) radarAtivo.value = arr[0];
+      return arr;
+    });
+
+    // -- Previews para os cards de navegacao --------------------------------
+    // Mostram o dado mais relevante de cada grafico sem precisar abri-lo
+
+    const previewLiquidez = computed(() => {
+      const ativo = radarAtivo.value || listaAtivosUnicos.value[0];
+      if (!ativo) return { strike: '--', volume: '--' };
+      const ops = props.opcoesBrutas.filter(op =>
+        op.TICKER === ativo && (op.CATEGORY || '').toUpperCase() === radarTipo.value
+      );
+      if (!ops.length) return { strike: '--', volume: '--' };
+      const melhor = ops.reduce((max, op) => {
+        const vol = (parseFloat(op.BID_VOL || 0) + parseFloat(op.ASK_VOL || 0));
+        return vol > (parseFloat(max.BID_VOL || 0) + parseFloat(max.ASK_VOL || 0)) ? op : max;
+      }, ops[0]);
+      const vol = parseFloat(melhor.BID_VOL || 0) + parseFloat(melhor.ASK_VOL || 0);
+      return {
+        strike: 'R$ ' + parseFloat(melhor.STRIKE || 0).toFixed(2).replace('.', ','),
+        volume: vol >= 1000 ? (vol / 1000).toFixed(1) + 'k' : Math.round(vol).toString()
+      };
+    });
+
+    const previewSkew = computed(() => {
+      const ativo = radarAtivo.value || listaAtivosUnicos.value[0];
+      if (!ativo) return { ivAtm: '--', skew: '--' };
+      const puts = props.opcoesBrutas.filter(op =>
+        op.TICKER === ativo && (op.CATEGORY || '').toUpperCase() === 'PUT' && parseFloat(op.IV_CALC || 0) > 0
+      );
+      if (!puts.length) return { ivAtm: '--', skew: '--' };
+      const spot = parseFloat(puts[0].SPOT || 0);
+      const atm = puts.reduce((prev, curr) =>
+        Math.abs(parseFloat(curr.STRIKE) - spot) < Math.abs(parseFloat(prev.STRIKE) - spot) ? curr : prev
+      , puts[0]);
+      const minPut = puts.reduce((min, p) => parseFloat(p.STRIKE) < parseFloat(min.STRIKE) ? p : min, puts[0]);
+      const ivAtm = parseFloat(atm.IV_CALC || 0) * 100;
+      const ivMin = parseFloat(minPut.IV_CALC || 0) * 100;
+      return {
+        ivAtm:  ivAtm.toFixed(1) + '%',
+        skew:   '+' + Math.abs(ivMin - ivAtm).toFixed(1) + '%'
+      };
+    });
+
+    const previewRisco = computed(() => {
+      const ativo = radarAtivo.value || listaAtivosUnicos.value[0];
+      if (!ativo) return { taxa: '--', delta: '--' };
+      const candidatas = props.opcoesBrutas.filter(op =>
+        op.TICKER === ativo &&
+        (op.CATEGORY || '').toUpperCase() === radarTipo.value &&
+        (op.MONEYNESS || '').toUpperCase() === 'OTM' &&
+        parseFloat(op.STRIKE || 0) > 0 &&
+        parseFloat(op.CLOSE || 0) > 0
+      );
+      if (!candidatas.length) return { taxa: '--', delta: '--' };
+      const melhor = candidatas.reduce((best, op) => {
+        const taxa = parseFloat(op.CLOSE || 0) / parseFloat(op.STRIKE || 1);
+        const bestTaxa = parseFloat(best.CLOSE || 0) / parseFloat(best.STRIKE || 1);
+        return taxa > bestTaxa ? op : best;
+      }, candidatas[0]);
+      const taxa = (parseFloat(melhor.CLOSE) / parseFloat(melhor.STRIKE)) * 100;
+      return {
+        taxa:  taxa.toFixed(2) + '%',
+        delta: (Math.abs(parseFloat(melhor.DELTA || 0)) * 100).toFixed(0) + '%'
+      };
+    });
+
+    const previewGamma = computed(() => {
+      const ativo = radarAtivo.value || listaAtivosUnicos.value[0];
+      if (!ativo) return { strike: '--', theta: '--' };
+      const ops = props.opcoesBrutas.filter(op =>
+        op.TICKER === ativo && (op.CATEGORY || '').toUpperCase() === radarTipo.value
+      );
+      if (!ops.length) return { strike: '--', theta: '--' };
+      const pico = ops.reduce((max, op) =>
+        parseFloat(op.GAMMA || 0) > parseFloat(max.GAMMA || 0) ? op : max
+      , ops[0]);
+      return {
+        strike: 'R$ ' + parseFloat(pico.STRIKE || 0).toFixed(2).replace('.', ','),
+        theta:  'R$ ' + Math.abs(parseFloat(pico.THETA || 0)).toFixed(3).replace('.', ',')
+      };
+    });
+
+    // Limpeza ao trocar dropdown/botoes
+    watch([radarAtivo, radarTipo], () => {
+      resultadoRadar.value = '';
+    });
+
+    const acionarRadar = () => {
+      loadingRadar.value = true;
+      resultadoRadar.value = '';
+
+      const candidatas = props.opcoesBrutas.filter(op => 
+        op.TICKER === radarAtivo.value && 
+        (op.CATEGORY || '').toUpperCase() === radarTipo.value &&
+        (op.MONEYNESS || '').toUpperCase() === 'OTM' &&
+        parseFloat(op.RETURN_ON_STRIKE || 0) > 0 &&
+        Math.abs(parseFloat(op.DELTA || 0)) < 0.35 && 
+        Math.abs(parseFloat(op.DELTA || 0)) > 0.05    
+      );
+
+      if (candidatas.length === 0) {
+        resultadoRadar.value = '<div style="color: var(--brand-rose); font-weight: bold; text-align: center;">Nenhum Strike sobreviveu ao filtro matematico (Nao ha opcoes seguras/liquidas OTM).</div>';
+        loadingRadar.value = false;
+        return;
+      }
+
+      candidatas.sort((a, b) => {
+        const scoreA = parseFloat(a.RETURN_ON_STRIKE) / Math.abs(parseFloat(a.DELTA));
+        const scoreB = parseFloat(b.RETURN_ON_STRIKE) / Math.abs(parseFloat(b.DELTA));
+        return scoreB - scoreA; 
+      });
+
+        const top3 = candidatas.slice(0, 3).map(d => {
+        const strikeVal = parseFloat(d.STRIKE || 0);
+        const premioVal = parseFloat(d.CLOSE || 0);
+        
+        const taxaReal = strikeVal > 0 ? ((premioVal / strikeVal) * 100).toFixed(2) : "0.00";
+
+        return {
+          opcao: d.OPTION_TICKER,
+          strike: d.STRIKE,
+          retorno: taxaReal,
+          delta: (Math.abs(parseFloat(d.DELTA)) * 100).toFixed(1),
+          spread: (parseFloat(d.SPREAD_PCT) * 100).toFixed(1),
+          volume: (parseFloat(d.BID_VOL) + parseFloat(d.ASK_VOL)),
+          premioRs: premioVal.toFixed(2)
+        };
+      });
+
+      const payloadParaAPI = {
+        ativo: radarAtivo.value,
+        tipo: radarTipo.value,
+        spot: candidatas[0].SPOT,
+        topStrikes: top3
+      };
+
+      if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+          .withSuccessHandler(resposta => { 
+            resultadoRadar.value = resposta; 
+            loadingRadar.value = false; 
+          })
+          .withFailureHandler(erro => { 
+            resultadoRadar.value = '<span style="color: var(--brand-rose);">Erro ao contatar a IA: ' + (erro.message) + '</span>'; 
+            loadingRadar.value = false; 
+          })
+          .apiGerarVereditoMaster(payloadParaAPI);
+      }
+    };
+
+    const abrirGrafico = (nomeComponente) => {
+      activeChart.value = nomeComponente;
+      nextTick(() => { if (window.lucide) window.lucide.createIcons(); });
+    };
+
+    const fecharGrafico = () => {
+      activeChart.value = null;
+      nextTick(() => { if (window.lucide) window.lucide.createIcons(); });
+    };
+
+    onMounted(() => { nextTick(() => { if (window.lucide) window.lucide.createIcons(); }); });
+
+
+    // Preview dos 3 novos graficos de portfolio
+    const previewPortfolio = computed(() => {
+      const lista = props.statsPreCalculados?.listaAtivas || [];
+      if (!lista.length) return { totalAtivas: '--', proxGatilho: '--', stressMinus15: '--', stressPlus15: '--', proxVencimento: '--', ciclosAtivos: '--' };
+
+      const totalAtivas = lista.length;
+
+      // Proximo gatilho de recompra (posicao mais proxima de 75%)
+      const comLucro = lista.map(op => {
+        const pm = parseFloat(op.premioMedio || 0);
+        const pa = parseFloat(op.premioAtual || 0);
+        return pm > 0 ? ((pm - pa) / pm) * 100 : 0;
+      }).filter(l => l < 75).sort((a, b) => b - a);
+      const proxGatilho = comLucro.length > 0 ? comLucro[0].toFixed(1) + '%' : 'Atingido';
+
+      // Stress -15% e +15% (delta x variacao spot x qtd)
+      const calcStress = (pct) => lista.reduce((s, op) => {
+        const delta = parseFloat(op.delta || 0);
+        const spot  = parseFloat(op.spotPrice || 0);
+        const qtd   = parseFloat(op.quantidade || 0);
+        const pl    = parseFloat(op.plTotalValor || 0);
+        const var_  = delta * (spot * pct / 100) * qtd * -1;
+        return s + pl + var_;
+      }, 0);
+
+      const fmtPL = (n) => {
+        const abs = Math.abs(n); const pre = n < 0 ? '-R$' : 'R$';
+        return abs >= 1000 ? pre + (abs/1000).toFixed(1) + 'k' : pre + abs.toFixed(0);
+      };
+
+      // Proximo vencimento
+      const sorted = [...lista].sort((a, b) => parseFloat(a.dteCorridos||999) - parseFloat(b.dteCorridos||999));
+      const proxDte = parseFloat(sorted[0]?.dteCorridos || 0);
+      const ciclos  = new Set(lista.map(op => op.dataVencimento)).size;
+
+      return {
+        totalAtivas: totalAtivas + ' pos.',
+        proxGatilho,
+        stressMinus15: fmtPL(calcStress(-15)),
+        stressPlus15:  fmtPL(calcStress(+15)),
+        proxVencimento: proxDte > 0 ? proxDte + 'd' : '--',
+        ciclosAtivos: ciclos + ' ciclo' + (ciclos !== 1 ? 's' : '')
+      };
+    });
+
+    return { activeChart, abrirGrafico, fecharGrafico, listaAtivosUnicos, radarAtivo, radarTipo, loadingRadar, resultadoRadar, acionarRadar, previewLiquidez, previewSkew, previewRisco, previewGamma, previewPortfolio };
+  }
+};
+</script>
+
+<style scoped>
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: var(--surface-bg); }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 10px; }
+</style>

@@ -1,0 +1,164 @@
+<template id="page-oplab-score-template">
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+
+    <!-- Controles -->
+    <div class="premium-card" style="display:flex;flex-wrap:wrap;align-items:center;gap:1rem;padding:1rem 1.5rem;">
+      <div style="display:flex;flex-direction:column;gap:0.25rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Score minimo</label>
+        <div style="display:flex;gap:0.375rem;">
+          <button v-for="s in [0,1,2,3,4,5]" :key="s" @click="filtroScoreMin = s"
+                  style="padding:0.375rem 0.75rem;border-radius:99px;font-size:0.7rem;font-weight:700;cursor:pointer;border:1px solid;transition:all 0.15s;font-family:'JetBrains Mono',monospace;"
+                  :style="filtroScoreMin === s
+                    ? 'background:var(--brand-amber);color:#fff;border-color:var(--brand-amber);'
+                    : 'background:var(--surface-base);color:var(--text-secondary);border-color:var(--border-default);'">
+            {{ s }}+
+          </button>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:0.25rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Setor</label>
+        <select v-model="filtroSetor"
+                style="padding:0.375rem 0.75rem;background:var(--surface-base);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.8rem;cursor:pointer;outline:none;"
+                onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+          <option value="">Todos os setores</option>
+          <option v-for="s in setoresDisponiveis" :key="s" :value="s">{{ s }}</option>
+        </select>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:0.25rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Busca</label>
+        <input v-model="busca" placeholder="Ticker ou empresa..."
+               style="padding:0.375rem 0.75rem;background:var(--surface-base);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.8rem;outline:none;width:180px;"
+               onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+      </div>
+
+      <div style="margin-left:auto;font-size:0.75rem;color:var(--text-muted);">
+        <span style="font-weight:700;color:var(--text-primary);">{{ linhasFiltradas.length }}</span> ativos
+      </div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="premium-card" style="overflow:hidden;">
+      <div v-if="linhasFiltradas.length === 0" style="padding:4rem 2rem;text-align:center;color:var(--text-muted);">
+        Nenhum ativo encontrado com os filtros atuais.
+      </div>
+      <div v-else style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:separate;border-spacing:0;min-width:780px;">
+          <thead>
+            <tr style="background:var(--surface-overlay);">
+              <th style="padding:0.625rem 0.75rem;text-align:left;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">#</th>
+              <th style="padding:0.625rem 1rem;text-align:left;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">Ativo</th>
+              <!-- Score total + sub-scores -->
+              <th style="padding:0.625rem 0.75rem;text-align:center;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--brand-amber);border-bottom:1px solid var(--border-subtle);">Score</th>
+              <th style="padding:0.625rem 0.75rem;text-align:center;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">EBIT</th>
+              <th style="padding:0.625rem 0.75rem;text-align:center;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">Receita</th>
+              <th style="padding:0.625rem 0.75rem;text-align:center;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">Caixa</th>
+              <th style="padding:0.625rem 0.75rem;text-align:center;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">Passivo</th>
+              <th style="padding:0.625rem 0.75rem;text-align:center;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">MM</th>
+              <th style="padding:0.625rem 0.75rem;text-align:right;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">Vol. Fin.</th>
+              <th style="padding:0.625rem 0.75rem;text-align:center;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">Data Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(linha, idx) in linhasFiltradas" :key="linha.TICKER"
+                style="transition:background 0.1s;"
+                :style="idx % 2 === 0 ? 'background:var(--surface-base);' : 'background:var(--surface-sunken);'"
+                onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="">
+
+              <td style="padding:0.625rem 0.75rem;border-bottom:1px solid var(--border-subtle);color:var(--text-muted);font-size:0.75rem;font-family:'JetBrains Mono',monospace;">{{ idx + 1 }}</td>
+
+              <td style="padding:0.625rem 1rem;border-bottom:1px solid var(--border-subtle);">
+                <div style="display:flex;flex-direction:column;gap:2px;">
+                  <span style="font-size:0.875rem;font-weight:800;color:var(--text-primary);">{{ linha.TICKER }}</span>
+                  <span style="font-size:0.65rem;color:var(--text-muted);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ linha.COMPANY_NAME }}</span>
+                  <span style="font-size:0.6rem;color:var(--text-muted);">{{ linha.SECTOR ? linha.SECTOR.substring(0, 24) : '' }}</span>
+                </div>
+              </td>
+
+              <!-- Score total com badge colorido -->
+              <td style="padding:0.625rem 0.75rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:1rem;font-weight:900;padding:4px 12px;border-radius:99px;font-family:'JetBrains Mono',monospace;"
+                      :style="scoreStyle(linha.SCORE_TOTAL)">
+                  {{ linha.SCORE_TOTAL }}
+                </span>
+              </td>
+
+              <!-- Sub-scores como bolinhas -->
+              <td v-for="sub in ['SCORE_EBIT_VAR','SCORE_REVENUE_VAR','SCORE_CASH_VAR','SCORE_CURRENT_LIAB','SCORE_MM_SIGNAL']"
+                  :key="sub" style="padding:0.625rem 0.75rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
+                <span style="display:inline-flex;width:1.25rem;height:1.25rem;border-radius:50%;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;"
+                      :style="String(linha[sub]) === '1'
+                        ? 'background:var(--brand-emerald-light);color:var(--brand-emerald);border:1px solid var(--brand-emerald-muted);'
+                        : 'background:var(--surface-overlay);color:var(--text-muted);border:1px solid var(--border-subtle);'">
+                  {{ String(linha[sub]) === '1' ? 'OK' : '--' }}
+                </span>
+              </td>
+
+              <td style="padding:0.625rem 0.75rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.75rem;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">{{ fmtCompact(linha.VOLUME_FIN) }}</span>
+              </td>
+
+              <td style="padding:0.625rem 0.75rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.7rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">{{ linha.SCORE_DATE }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</template>
+
+<script>
+window.PageOplabScore = {
+  template: '#page-oplab-score-template',
+  props: {
+    dados:    { type: Array,   default: () => [] },
+    isMobile: { type: Boolean, default: false }
+  },
+  setup(props) {
+    const { ref, computed } = Vue;
+
+    const filtroScoreMin = ref(0);
+    const filtroSetor    = ref('');
+    const busca          = ref('');
+
+    const fmtCompact = (v) => {
+      const n = parseFloat(v);
+      if (isNaN(n) || n === 0) return '--';
+      if (n >= 1e9) return 'R$ ' + (n / 1e9).toFixed(1) + 'B';
+      if (n >= 1e6) return 'R$ ' + (n / 1e6).toFixed(1) + 'M';
+      if (n >= 1e3) return 'R$ ' + (n / 1e3).toFixed(0) + 'k';
+      return 'R$ ' + n.toFixed(0);
+    };
+
+    const scoreStyle = (score) => {
+      const s = parseInt(score) || 0;
+      if (s >= 4) return 'background:var(--brand-emerald-light);color:var(--brand-emerald);border:1px solid var(--brand-emerald-muted);';
+      if (s >= 2) return 'background:var(--brand-amber-light);color:var(--brand-amber);border:1px solid var(--brand-amber-muted);';
+      if (s >= 1) return 'background:var(--surface-overlay);color:var(--text-secondary);border:1px solid var(--border-default);';
+      return 'background:var(--surface-sunken);color:var(--text-muted);border:1px solid var(--border-subtle);';
+    };
+
+    const setoresDisponiveis = computed(() => {
+      const s = new Set(props.dados.map(r => r.SECTOR).filter(Boolean));
+      return [...s].sort();
+    });
+
+    const linhasFiltradas = computed(() => {
+      let lista = [...props.dados];
+      lista = lista.filter(r => (parseInt(r.SCORE_TOTAL) || 0) >= filtroScoreMin.value);
+      if (filtroSetor.value) lista = lista.filter(r => r.SECTOR === filtroSetor.value);
+      if (busca.value.trim()) {
+        const b = busca.value.trim().toUpperCase();
+        lista = lista.filter(r => (r.TICKER||'').toUpperCase().includes(b) || (r.COMPANY_NAME||'').toUpperCase().includes(b));
+      }
+      return lista.sort((a, b) => (parseInt(b.SCORE_TOTAL)||0) - (parseInt(a.SCORE_TOTAL)||0));
+    });
+
+    return { filtroScoreMin, filtroSetor, busca, setoresDisponiveis, linhasFiltradas, scoreStyle, fmtCompact };
+  }
+};
+</script>

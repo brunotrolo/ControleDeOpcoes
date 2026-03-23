@@ -1,0 +1,275 @@
+<template id="dash-theta-decay-template">
+  <div class="w-full h-full flex flex-col md:flex-row gap-4 p-4">
+
+    <!-- Grafico principal -->
+    <div class="flex-1 flex flex-col h-full premium-card overflow-hidden relative">
+
+      <div class="flex flex-col sm:flex-row justify-between items-center p-4 border-b gap-4"
+        style="background:var(--surface-overlay);border-color:var(--border-subtle);">
+        <h3 class="t-title flex items-center gap-2">
+          <i data-lucide="clock-fading" class="w-5 h-5" style="color:var(--brand-indigo);"></i>
+          Decay do Premio (Theta Timeline)
+        </h3>
+        <div class="flex items-center gap-3">
+          <select v-model="filtroAtivo" @change="atualizarGrafico"
+            class="input-base py-1.5 text-sm w-auto" style="min-width:120px;">
+            <option value="">Todos</option>
+            <option v-for="t in tickersAtivos" :key="t" :value="t">{{ t }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex-1 relative w-full h-full p-2" style="background:var(--surface-base);">
+        <div v-if="posicoesFiltradas.length === 0"
+          class="absolute inset-0 flex items-center justify-center z-20"
+          style="background:var(--surface-base);color:var(--text-muted);">
+          Nenhuma posicao ativa encontrada.
+        </div>
+        <div id="thetaDecayPlotDiv" class="w-full h-full"></div>
+      </div>
+    </div>
+
+    <!-- Painel lateral -->
+    <div class="w-full md:w-[350px] lg:w-[400px] flex flex-col gap-4 shrink-0 overflow-y-auto hide-scrollbar">
+
+      <div class="premium-card p-5">
+        <h4 class="t-label mb-3 flex items-center gap-2">
+          <i data-lucide="book-open" class="w-4 h-4"></i> Como ler este grafico
+        </h4>
+        <div class="t-body space-y-3">
+          <p>Cada linha mostra como o premio de uma posicao vai <b>murchar naturalmente</b> com o passar do tempo, assumindo que o spot nao se move.</p>
+          <ul class="list-disc pl-4 space-y-1" style="color:var(--text-tertiary);font-size:12px;">
+            <li><span style="font-weight:bold;">Linha solida:</span> Projecao do premio ate o vencimento (Theta x dias).</li>
+            <li><span style="color:#FBBF24;font-weight:bold;">Linha amarela tracejada:</span> Seu ponto de recompra ideal (75% de lucro garantido).</li>
+            <li><span style="color:var(--brand-emerald);font-weight:bold;">Linha verde tracejada:</span> Recompra imediata recomendada (90% de lucro).</li>
+          </ul>
+          <div class="mt-4 p-3 rounded text-xs" style="background:var(--surface-overlay);border-left:4px solid var(--brand-indigo);">
+            <strong>Estrategia:</strong> Quando a linha da posicao cruzar a faixa amarela, <b>considere recomprar</b>. Na faixa verde, <b>recompra imediata</b> -- o risco nao compensa o premio restante.
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela de gatilhos -->
+      <div class="premium-card p-5 flex-1" style="border-top:4px solid var(--brand-indigo);">
+        <h4 class="t-label mb-4 flex items-center gap-2" style="color:var(--brand-indigo);">
+          <i data-lucide="target" class="w-4 h-4"></i> Gatilhos de Recompra
+        </h4>
+        <div class="flex flex-col gap-2">
+          <div v-for="pos in gatilhos" :key="pos.simbolo"
+            style="padding:0.75rem;border-radius:var(--radius-md);border:1px solid var(--border-subtle);background:var(--surface-base);">
+            <div class="flex justify-between items-center mb-1">
+              <span style="font-size:0.8rem;font-weight:700;color:var(--text-primary);">{{ pos.simbolo }}</span>
+              <span style="font-size:0.75rem;font-weight:700;padding:2px 8px;border-radius:99px;"
+                :style="pos.lucroPct >= 90 ? 'background:var(--brand-emerald-light);color:var(--brand-emerald);' :
+                         pos.lucroPct >= 75 ? 'background:var(--brand-amber-light);color:var(--brand-amber);' :
+                         'background:var(--surface-overlay);color:var(--text-muted);'">
+                {{ pos.lucroPct.toFixed(1) }}%
+              </span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.5rem;">
+              <div>
+                <div style="font-size:0.65rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;">Recompra 75%</div>
+                <div style="font-size:0.85rem;font-weight:700;color:var(--brand-amber);font-family:'JetBrains Mono',monospace;">
+                  {{ pos.gatilho75 !== null ? 'em ~' + pos.gatilho75 + 'd' : 'ja atingido' }}
+                </div>
+              </div>
+              <div>
+                <div style="font-size:0.65rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;">Recompra 90%</div>
+                <div style="font-size:0.85rem;font-weight:700;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;">
+                  {{ pos.gatilho90 !== null ? 'em ~' + pos.gatilho90 + 'd' : 'ja atingido' }}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-if="gatilhos.length === 0"
+            style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.85rem;">
+            Nenhuma posicao para exibir.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</template>
+
+<script>
+window.DashThetaDecay = {
+  template: '#dash-theta-decay-template',
+  props: {
+    statsPreCalculados: { type: Object, default: () => ({}) },
+    ativos:             { type: Array,  default: () => [] }
+  },
+  setup(props) {
+    const { ref, computed, onMounted, onUnmounted, watch } = Vue;
+
+    const filtroAtivo   = ref('');
+    let debounceTimer   = null;
+    const DIAS_PROJECAO = 60;
+
+    const posicoes = computed(() => {
+      return (props.statsPreCalculados?.listaAtivas || []).filter(op => {
+        const pm = parseFloat(op.premioMedio || 0);
+        const pa = parseFloat(op.premioAtual || 0);
+        const dte = parseFloat(op.dteCorridos || 0);
+        return pm > 0 && pa > 0 && dte > 0;
+      });
+    });
+
+    const tickersAtivos = computed(() => [...new Set(posicoes.value.map(op => op.tickerAtivo))].sort());
+
+    const posicoesFiltradas = computed(() => {
+      if (!filtroAtivo.value) return posicoes.value;
+      return posicoes.value.filter(op => op.tickerAtivo === filtroAtivo.value);
+    });
+
+    // Calcula gatilhos de recompra por posicao
+    const gatilhos = computed(() => {
+      return posicoesFiltradas.value.map(op => {
+        const pm      = parseFloat(op.premioMedio || 0);
+        const pa      = parseFloat(op.premioAtual || 0);
+        const theta   = Math.abs(parseFloat(op.theta || 0));
+        const dte     = parseFloat(op.dteCorridos || 0);
+        const lucro   = pm > 0 ? ((pm - pa) / pm) * 100 : 0;
+
+        // Premio alvo para 75% e 90% de lucro = pm * (1 - pct/100)
+        const alvo75 = pm * 0.25; // premio restante quando lucro = 75%
+        const alvo90 = pm * 0.10; // premio restante quando lucro = 90%
+
+        // Dias ate atingir o alvo: (pa - alvo) / theta_diario
+        const calcDias = (alvo) => {
+          if (pa <= alvo) return null; // ja atingiu
+          if (theta <= 0) return null;
+          const dias = Math.ceil((pa - alvo) / theta);
+          return Math.min(dias, dte);
+        };
+
+        return {
+          simbolo:   op.simboloOpcao || op.tickerAtivo,
+          lucroPct:  lucro,
+          gatilho75: calcDias(alvo75),
+          gatilho90: calcDias(alvo90),
+          pm, pa, theta, dte
+        };
+      }).sort((a, b) => b.lucroPct - a.lucroPct);
+    });
+
+    const getCssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+    const atualizarGrafico = () => {
+      const el = document.getElementById('thetaDecayPlotDiv');
+      if (!el || posicoesFiltradas.value.length === 0) return;
+
+      const colorText  = getCssVar('--text-secondary') || '#888';
+      const colorGrid  = getCssVar('--border-subtle')  || '#333';
+      const colorIndigo = getCssVar('--brand-indigo')  || '#4F46E5';
+
+      const PALETA = [
+        getCssVar('--brand-indigo')  || '#4F46E5',
+        getCssVar('--brand-amber')   || '#D97706',
+        getCssVar('--brand-rose')    || '#E11D48',
+        getCssVar('--brand-emerald') || '#10B981',
+        '#8B5CF6', '#EC4899', '#0EA5E9', '#F97316'
+      ];
+
+      const traces = [];
+
+      posicoesFiltradas.value.forEach((op, idx) => {
+        const pm    = parseFloat(op.premioMedio || 0);
+        const pa    = parseFloat(op.premioAtual || 0);
+        const theta = Math.abs(parseFloat(op.theta || 0));
+        const dte   = Math.ceil(parseFloat(op.dteCorridos || 0));
+        const cor   = PALETA[idx % PALETA.length];
+
+        if (pm <= 0 || dte <= 0) return;
+
+        // Projecao: premio decresce theta por dia a partir de hoje (dia 0)
+        const dias    = Array.from({ length: dte + 1 }, (_, i) => i);
+        const premios = dias.map(d => Math.max(0, pa - theta * d));
+
+        traces.push({
+          x: dias,
+          y: premios,
+          name: op.simboloOpcao || op.tickerAtivo,
+          type: 'scatter',
+          mode: 'lines',
+          line: { color: cor, width: 2.5 },
+          hovertemplate: '<b>' + (op.simboloOpcao) + '</b><br>Dia: %{x}<br>Premio: R$ %{y:.2f}<extra></extra>'
+        });
+
+        // Marcador do premio atual (dia 0)
+        traces.push({
+          x: [0], y: [pa],
+          mode: 'markers',
+          showlegend: false,
+          marker: { color: cor, size: 8, symbol: 'circle' },
+          hoverinfo: 'skip'
+        });
+      });
+
+      // Linhas de referencia de recompra (sobre o premio medio ponderado)
+      const pmMedio = posicoesFiltradas.value.reduce((s, op) => s + parseFloat(op.premioMedio || 0), 0) / posicoesFiltradas.value.length;
+      const maxDte  = Math.max(...posicoesFiltradas.value.map(op => parseFloat(op.dteCorridos || 0)));
+
+      const layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor:  'rgba(0,0,0,0)',
+        margin: { t: 20, r: 20, b: 50, l: 60 },
+        font:   { color: colorText },
+        xaxis:  { title: 'Dias ate vencimento', gridcolor: colorGrid, zerolinecolor: colorGrid },
+        yaxis:  { title: 'Valor do Premio (R$)', gridcolor: colorGrid, zerolinecolor: colorGrid, tickprefix: 'R$ ' },
+        hovermode: 'x unified',
+        legend: { orientation: 'h', y: 1.12, x: 0.5, xanchor: 'center', font: { color: colorText } },
+        shapes: [
+          // Faixa 75% (alvo de atencao)
+          {
+            type: 'rect', x0: 0, x1: maxDte, y0: 0, y1: pmMedio * 0.25,
+            fillcolor: 'rgba(251,191,36,0.08)', line: { width: 0 }
+          },
+          // Faixa 90% (recompra imediata)
+          {
+            type: 'rect', x0: 0, x1: maxDte, y0: 0, y1: pmMedio * 0.10,
+            fillcolor: 'rgba(16,185,129,0.10)', line: { width: 0 }
+          }
+        ],
+        annotations: [
+          {
+            x: maxDte * 0.95, y: pmMedio * 0.25,
+            text: '75% lucro', showarrow: false,
+            font: { color: '#FBBF24', size: 10, weight: 'bold' }, xanchor: 'right'
+          },
+          {
+            x: maxDte * 0.95, y: pmMedio * 0.10,
+            text: '90% lucro', showarrow: false,
+            font: { color: getCssVar('--brand-emerald'), size: 10, weight: 'bold' }, xanchor: 'right'
+          }
+        ]
+      };
+
+      Plotly.react(el, traces, layout, { responsive: true, displayModeBar: false });
+    };
+
+    const handleResize = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const el = document.getElementById('thetaDecayPlotDiv');
+        if (el && el.data) Plotly.Plots.resize(el);
+      }, 200);
+    };
+
+    watch(() => props.statsPreCalculados, atualizarGrafico, { deep: true });
+    watch(filtroAtivo, atualizarGrafico);
+
+    onMounted(() => {
+      setTimeout(atualizarGrafico, 150);
+      window.addEventListener('resize', handleResize);
+      window.addEventListener('themechange', atualizarGrafico);
+    });
+    onUnmounted(() => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('themechange', atualizarGrafico);
+    });
+
+    return { filtroAtivo, tickersAtivos, posicoesFiltradas, gatilhos, atualizarGrafico };
+  }
+};
+</script>

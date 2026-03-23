@@ -1,0 +1,284 @@
+<template id="dash-risk-return-template">
+  <div class="w-full h-full flex flex-col md:flex-row gap-4 p-4">
+    
+    <div class="flex-1 flex flex-col h-full premium-card overflow-hidden relative">
+      
+      <div class="flex flex-col sm:flex-row justify-between items-center p-4 border-b gap-4" style="background: var(--surface-overlay); border-color: var(--border-subtle);">
+        <h3 class="t-title flex items-center gap-2">
+          <i data-lucide="crosshair" class="w-5 h-5" style="color: var(--brand-emerald);"></i> Matriz Risco x Retorno
+        </h3>
+        
+        <div class="flex items-center gap-3">
+          <select 
+            v-model="filtroAtivo" 
+            @change="atualizarGrafico"
+            class="input-base py-1.5 text-sm w-auto"
+            style="min-width: 120px;"
+          >
+            <option v-for="ativo in ativos" :key="ativo" :value="ativo">{{ ativo }}</option>
+          </select>
+
+          <div class="flex shadow-sm rounded-md" role="group">
+            <button 
+              @click="setTipo('CALL')"
+              type="button" 
+              class="px-4 py-1.5 text-sm font-bold border rounded-l-md transition-colors"
+              :style="filtroTipo === 'CALL' 
+                ? 'background: var(--brand-indigo); color: white; border-color: var(--brand-indigo);' 
+                : 'background: var(--surface-base); color: var(--text-secondary); border-color: var(--border-default);'"
+            >
+              CALL
+            </button>
+            <button 
+              @click="setTipo('PUT')"
+              type="button" 
+              class="px-4 py-1.5 text-sm font-bold border-t border-b border-r rounded-r-md transition-colors"
+              :style="filtroTipo === 'PUT' 
+                ? 'background: var(--brand-rose); color: white; border-color: var(--brand-rose);' 
+                : 'background: var(--surface-base); color: var(--text-secondary); border-color: var(--border-default);'"
+            >
+              PUT
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-1 relative w-full h-full p-2" style="background: var(--surface-base);">
+
+        <div v-if="dadosFiltrados.length === 0" class="absolute inset-0 flex items-center justify-center z-20" style="background: var(--surface-base); color: var(--text-muted);">
+          Nenhum dado encontrado para este filtro.
+        </div>
+
+        <div id="riskPlotDiv" class="w-full h-full"></div>
+      </div>
+    </div>
+
+    <div class="w-full md:w-[350px] lg:w-[400px] flex flex-col gap-4 shrink-0 overflow-y-auto hide-scrollbar">
+      
+      <div class="premium-card p-5">
+        <h4 class="t-label mb-3 flex items-center gap-2">
+          <i data-lucide="book-open" class="w-4 h-4"></i> Como ler este grafico
+        </h4>
+        <div class="t-body space-y-3">
+          <p>Onde esta a melhor oportunidade da mesa? Aqui nos cruzamos a sua chance de perder dinheiro com o lucro que vai para o seu bolso.</p>
+          <ul class="list-disc pl-4 space-y-1" style="color: var(--text-tertiary); font-size: 12px;">
+            <li><span style="color: var(--text-primary); font-weight: bold;">Para Cima (Retorno):</span> Bolhas mais altas colocam mais dinheiro na sua conta.</li>
+            <li><span style="color: var(--text-primary); font-weight: bold;">Para a Direita (Risco):</span> Bolhas mais a direita tem grande chance de dar errado (ser exercido).</li>
+            <li><span style="color: var(--brand-emerald); font-weight: bold;">Cor (Qualidade):</span> Bolhas <b>Verdes</b> sao faceis de entrar e sair. Bolhas vermelhas tem um pedagio caro na corretora (Spread ruim).</li>
+          </ul>
+          <div class="mt-4 p-3 rounded text-xs" style="background: var(--surface-overlay); border-left: 4px solid var(--brand-emerald);">
+            <strong>Missao do Dia:</strong> Ignore a poluicao. Cace apenas as grandes bolhas esverdeadas que estao no <span style="color: var(--brand-emerald); font-weight: bold;">canto superior esquerdo</span>. Elas pagam muito bem e tem pouca chance de te dar dor de cabeca.
+          </div>
+        </div>
+      </div>
+
+      <div class="premium-card p-5 flex-1 flex flex-col" style="border-top: 4px solid var(--brand-emerald);">
+        <div class="flex justify-between items-center mb-4">
+          <h4 class="t-label flex items-center gap-2" style="color: var(--brand-emerald);">
+            <i data-lucide="sparkles" class="w-4 h-4"></i> Analista de Risco IA
+          </h4>
+          <span v-if="loadingIA" class="text-xs animate-pulse" style="color: var(--brand-emerald); font-weight: bold;">Avaliando...</span>
+        </div>
+        
+        <div class="flex-1 card-inner p-4 text-sm overflow-y-auto mb-4 custom-scrollbar" style="color: var(--text-secondary);">
+          <div v-if="!insightIA && !loadingIA" class="h-full flex flex-col items-center justify-center text-center opacity-60">
+            <i data-lucide="crosshair" class="w-10 h-10 mb-2"></i>
+            <p>Deixe a IA "pincar" a melhor oportunidade matematica desta matriz.</p>
+          </div>
+          <div v-else-if="loadingIA" class="h-full flex items-center justify-center">
+            <svg class="animate-spin h-8 w-8" style="color: var(--brand-emerald);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+          <div v-else v-html="insightIA" class="space-y-2"></div>
+        </div>
+
+        <button 
+          @click="solicitarLeituraIA"
+          :disabled="loadingIA || !dadosFiltrados.length"
+          class="btn-action w-full"
+          :class="(loadingIA || !dadosFiltrados.length) ? 'btn-action-ghost opacity-50 cursor-not-allowed' : 'btn-action-primary'"
+          style="background-color: var(--brand-emerald); color: white; border: none;"
+        >
+          <i data-lucide="zap" class="w-4 h-4"></i> Encontrar Melhor Opcao (IA)
+        </button>
+      </div>
+
+    </div>
+  </div>
+</template>
+
+<script>
+window.DashRiskReturn = {
+  template: '#dash-risk-return-template',
+  props: {
+    opcoesBrutas: { type: Array, default: () => [] },
+    ativos: { type: Array, default: () => [] }
+  },
+  setup(props) {
+    const { ref, computed, onMounted, onUnmounted } = Vue;
+    
+    const filtroAtivo = ref(props.ativos.length > 0 ? props.ativos[0] : '');
+    const filtroTipo = ref('PUT');
+    const loadingIA = ref(false);
+    const insightIA = ref('');
+    let debounceTimer = null;
+
+    const dadosFiltrados = computed(() => {
+      if (!filtroAtivo.value) return [];
+      return props.opcoesBrutas.filter(op => 
+        op.TICKER === filtroAtivo.value && 
+        (op.CATEGORY || '').toUpperCase() === filtroTipo.value &&
+        (op.MONEYNESS || '').toUpperCase() === 'OTM' && 
+        parseFloat(op.RETURN_ON_STRIKE || 0) > 0 &&
+        parseFloat(op.DELTA || 0) !== 0
+      );
+    });
+
+    const setTipo = (tipo) => {
+      filtroTipo.value = tipo;
+      atualizarGrafico();
+      insightIA.value = '';
+    };
+
+    const getCssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+    const atualizarGrafico = () => {
+      const el = document.getElementById('riskPlotDiv');
+      if (!el) return;
+
+      const dados = dadosFiltrados.value;
+      
+      if (dados.length === 0) return;
+
+      const xValues = dados.map(d => Math.abs(parseFloat(d.DELTA)) * 100); 
+      
+      //  CORRECAO MATEMATICA: Calculando o Retorno Real (Close / Strike)
+      const yValues = dados.map(d => {
+        const strike = parseFloat(d.STRIKE || 0);
+        const premio = parseFloat(d.CLOSE || 0);
+        return strike > 0 ? (premio / strike) * 100 : 0;
+      }); 
+
+      const textLabels = dados.map((d, i) => '<b>' + (d.OPTION_TICKER) + '</b><br>Strike: R$ ' + (parseFloat(d.STRIKE).toFixed(2)) + '<br>Premio: R$ ' + (parseFloat(d.CLOSE || 0).toFixed(2)) + '<br>Spread: ' + ((parseFloat(d.SPREAD_PCT)*100).toFixed(1)) + '%');
+      
+      const sizes = dados.map(d => {
+        let vol = parseFloat(d.VOLUME_QTY || 0);
+        let s = vol / 500; 
+        return Math.min(Math.max(s, 10), 40);
+      });
+
+      const colors = dados.map(d => parseFloat(d.SPREAD_PCT) * 100);
+
+      const colorText = getCssVar('--text-secondary') || '#888';
+      const colorGrid = getCssVar('--border-subtle') || '#333';
+      const colorEmerald = getCssVar('--brand-emerald') || '#10B981';
+      const colorEmeraldMuted = getCssVar('--brand-emerald-muted') || 'rgba(16, 185, 129, 0.12)';
+
+      const trace = {
+        x: xValues,
+        y: yValues,
+        text: textLabels,
+        mode: 'markers',
+        marker: {
+          size: sizes,
+          color: colors,
+          colorscale: 'RdYlGn', 
+          reversescale: true, 
+          showscale: true,
+          colorbar: { title: 'Spread (%)', tickfont: {color: colorText}, titlefont: {color: colorText} },
+          opacity: 0.8,
+          line: { width: 1, color: getCssVar('--surface-base') || '#fff' }
+        },
+        hovertemplate: '%{text}<br>Risco (Delta): %{x:.1f}%<br>Retorno Real: %{y:.2f}%<extra></extra>'
+      };
+
+      const layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        margin: { t: 30, r: 20, b: 50, l: 60 },
+        font: { color: colorText },
+        xaxis: { title: 'Risco Probabilidade de Exercicio / Delta (%)', gridcolor: colorGrid, zerolinecolor: colorGrid },
+        yaxis: { title: 'Taxa de Retorno Real (%)', gridcolor: colorGrid, zerolinecolor: colorGrid },
+        hovermode: 'closest',
+        shapes: [{
+          type: 'rect',
+          x0: 0, x1: 30, // ZONA ALVO: Delta ate 30
+          y0: 1.5, y1: Math.max(...yValues) * 1.1, // ZONA ALVO: Retorno acima de 1.5%
+          fillcolor: colorEmeraldMuted, 
+          line: { width: 1, color: colorEmerald, dash: 'dot' }
+        }],
+        annotations: [{
+          x: 15, y: Math.max(...yValues),
+          text: 'ZONA ALVO IDEAL',
+          showarrow: false,
+          font: { color: colorEmerald, size: 10, weight: 'bold' }
+        }]
+      };
+
+      Plotly.react(el, [trace], layout, { responsive: true, displayModeBar: false });
+    };
+
+    const handleResize = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const el = document.getElementById('riskPlotDiv');
+        if (el && el.data) Plotly.Plots.resize(el);
+      }, 200);
+    };
+
+    onMounted(() => {
+      if (filtroAtivo.value) setTimeout(atualizarGrafico, 100);
+      window.addEventListener('resize', handleResize);
+      window.addEventListener('themechange', atualizarGrafico);
+    });
+    
+    onUnmounted(() => { 
+      window.removeEventListener('resize', handleResize); 
+      window.removeEventListener('themechange', atualizarGrafico);
+    });
+
+    const solicitarLeituraIA = () => {
+      if (dadosFiltrados.value.length === 0) return;
+      loadingIA.value = true;
+      insightIA.value = '';
+
+      //  CORRECAO MATEMATICA PARA O CEREBRO DA IA
+      const candidatas = dadosFiltrados.value
+        .map(d => {
+          const strikeVal = parseFloat(d.STRIKE || 0);
+          const premioVal = parseFloat(d.CLOSE || 0);
+          const taxaReal = strikeVal > 0 ? (premioVal / strikeVal) : 0;
+          return { ...d, taxaRealCalc: taxaReal, premioRs: premioVal.toFixed(2) };
+        })
+        .filter(d => Math.abs(parseFloat(d.DELTA)) < 0.35 && d.taxaRealCalc > 0.01) // Foca em > 1% de taxa real
+        .sort((a, b) => b.taxaRealCalc - a.taxaRealCalc)
+        .slice(0, 3)
+        .map(d => ({
+          opcao: d.OPTION_TICKER,
+          strike: d.STRIKE,
+          premioRs: d.premioRs,
+          retornoPct: (d.taxaRealCalc * 100).toFixed(2),
+          deltaPct: (Math.abs(parseFloat(d.DELTA)) * 100).toFixed(1),
+          spreadPct: (parseFloat(d.SPREAD_PCT) * 100).toFixed(1)
+        }));
+
+      const payloadParaAPI = {
+        ativo: filtroAtivo.value,
+        tipo: filtroTipo.value,
+        candidatas: candidatas
+      };
+
+      if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+          .withSuccessHandler(resposta => { insightIA.value = resposta; loadingIA.value = false; })
+          .withFailureHandler(erro => { insightIA.value = '<span style="color: var(--brand-rose);">Erro: ' + (erro.message) + '</span>'; loadingIA.value = false; })
+          .apiGerarInsightRiscoRetorno(payloadParaAPI);
+      }
+    };
+
+    return { filtroAtivo, filtroTipo, setTipo, ativos: props.ativos, atualizarGrafico, dadosFiltrados, loadingIA, insightIA, solicitarLeituraIA };
+  }
+};
+</script>

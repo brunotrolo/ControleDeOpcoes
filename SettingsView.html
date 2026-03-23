@@ -1,0 +1,285 @@
+<template id="settings-view-template">
+  <div style="max-width:95%;margin:0 auto;padding-bottom:4rem;padding-top:1.5rem;display:flex;flex-direction:column;gap:1.5rem;">
+
+    <!-- HEADER -->
+    <div class="premium-card" style="padding:1.5rem 2rem;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1.5rem;">
+      <div style="display:flex;align-items:center;gap:1.25rem;">
+        <div style="padding:0.75rem;background:var(--brand-indigo-light);color:var(--brand-indigo);border-radius:var(--radius-lg);border:1px solid var(--brand-indigo-muted);flex-shrink:0;">
+          <i data-lucide="settings" style="width:24px;height:24px;display:block;"></i>
+        </div>
+        <div>
+          <h2 class="t-title" style="color:var(--text-primary);">Configurações Globais</h2>
+          <p class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.2em;margin-top:0.2rem;">Motor de Regras e Parâmetros</p>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:1rem;">
+        <!-- Search -->
+        <div style="position:relative;width:18rem;">
+          <input v-model="searchQuery" type="text" placeholder="Buscar parâmetro..."
+            style="width:100%;font-size:0.85rem;font-weight:500;background:var(--surface-sunken);border:1px solid var(--border-default);color:var(--text-primary);border-radius:var(--radius-full);padding:0.6rem 1rem 0.6rem 1rem;box-sizing:border-box;outline:none;"
+            onfocus="this.style.borderColor='var(--brand-indigo)';this.style.background='var(--surface-base)'"
+            onblur="this.style.borderColor='var(--border-default)';this.style.background='var(--surface-sunken)'">
+        </div>
+
+        <!-- Botões modo view -->
+        <button v-if="!isEditing" @click="startEdit"
+          class="btn-action btn-action-primary"
+          style="padding:0.6rem 2rem;white-space:nowrap;">
+          Editar Regras
+        </button>
+
+        <!-- Botões modo edit -->
+        <div v-else style="display:flex;gap:0.5rem;">
+          <button @click="cancelEdit" :disabled="saving"
+            class="btn-action"
+            style="background:var(--surface-base);border:1px solid var(--border-default);color:var(--text-tertiary);">
+            Cancelar
+          </button>
+          <button @click="saveChanges" :disabled="saving"
+            class="btn-action btn-action-primary"
+            style="min-width:10rem;display:inline-flex;align-items:center;justify-content:center;gap:0.5rem;">
+            <span v-if="saving" style="display:inline-block;width:1rem;height:1rem;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:settings-spin 0.7s linear infinite;"></span>
+            {{ saving ? 'Salvando...' : 'Salvar Modificações' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CORPO -->
+    <div class="premium-card" style="padding:2rem;min-height:500px;">
+
+      <!-- Skeleton loading -->
+      <template v-if="isLoading">
+        <div v-for="n in 2" :key="'skel-grp-'+n"
+          style="margin-bottom:2rem;border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden;animation:settings-pulse 1.5s ease infinite;">
+          <div style="background:var(--surface-overlay);height:4rem;border-bottom:1px solid var(--border-subtle);"></div>
+          <div style="padding:1.5rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1.5rem;">
+            <div v-for="i in 6" :key="'skel-item-'+i"
+              style="height:5.5rem;background:var(--surface-overlay);border-radius:var(--radius-md);"></div>
+          </div>
+        </div>
+      </template>
+
+      <template v-else>
+
+        <!-- Empty state -->
+        <div v-if="Object.keys(filteredGroups).length === 0"
+          style="padding:6rem 0;text-align:center;border:1px dashed var(--border-default);border-radius:var(--radius-lg);background:var(--surface-base);">
+          <span style="font-size:3rem;display:block;margin-bottom:1rem;opacity:0.4;">📭</span>
+          <h3 class="t-subtitle" style="color:var(--text-primary);">Nenhum parâmetro encontrado</h3>
+          <p class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.18em;margin-top:0.5rem;">Tente buscar por "Delta", "Lucro" ou "TRUE"</p>
+        </div>
+
+        <!-- Grupos -->
+        <div v-for="(items, groupName) in filteredGroups" :key="groupName"
+          style="margin-bottom:2rem;border:1px solid var(--border-default);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface-base);">
+
+          <!-- Header do grupo -->
+          <div style="background:var(--surface-overlay);border-bottom:1px solid var(--border-subtle);padding:1rem 1.5rem;display:flex;align-items:center;gap:0.75rem;">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--brand-indigo);flex-shrink:0;"></div>
+            <h3 class="t-label-sm" style="font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:var(--text-primary);">{{ groupName }}</h3>
+            <span class="t-label-sm"
+              style="margin-left:auto;background:var(--surface-base);color:var(--text-muted);border:1px solid var(--border-default);padding:0.2rem 0.75rem;border-radius:var(--radius-full);">
+              {{ items.length }} regras
+            </span>
+          </div>
+
+          <!-- Grid de itens -->
+          <div style="padding:1.5rem 2rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1.5rem;">
+            <div v-for="item in items" :key="item.key"
+              :style="isEditing
+                ? 'border:1px solid var(--brand-indigo-muted);background:var(--brand-indigo-light);'
+                : 'border:1px solid transparent;background:transparent;'"
+              style="position:relative;display:flex;flex-direction:column;justify-content:center;min-height:5.5rem;padding:1.25rem;border-radius:var(--radius-md);transition:background var(--duration-fast),border-color var(--duration-fast);"
+              onmouseover="if(!this.classList.contains('editing'))this.style.background='var(--surface-overlay)'"
+              onmouseout="if(!this.classList.contains('editing'))this.style.background='transparent'">
+
+              <label class="t-label-sm"
+                style="font-weight:700;text-transform:uppercase;letter-spacing:0.18em;color:var(--text-muted);display:block;margin-bottom:0.75rem;">
+                {{ formatLabel(item.key) }}
+              </label>
+
+              <!-- Toggle booleano -->
+              <div v-if="item.type === 'boolean'" style="display:flex;align-items:center;height:2.625rem;">
+                <button type="button" @click="item.value = !item.value"
+                  :disabled="!isEditing"
+                  :style="item.value
+                    ? 'background:var(--brand-emerald);'
+                    : 'background:var(--border-default);'"
+                  style="position:relative;display:inline-flex;width:2.75rem;height:1.5rem;flex-shrink:0;cursor:pointer;border-radius:var(--radius-full);border:none;transition:background var(--duration-std);padding:0;">
+                  <span
+                    :style="item.value ? 'transform:translateX(1.25rem);' : 'transform:translateX(0.125rem);'"
+                    style="display:inline-block;width:1.25rem;height:1.25rem;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:transform var(--duration-std);margin-top:0.125rem;"></span>
+                </button>
+                <span class="t-label-sm"
+                  :style="item.value ? 'color:var(--brand-emerald);' : 'color:var(--text-muted);'"
+                  style="margin-left:1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;">
+                  {{ item.value ? 'ATIVADO' : 'DESATIVADO' }}
+                </span>
+              </div>
+
+              <!-- Input editável -->
+              <input v-else-if="isEditing" v-model="item.value" type="text"
+                style="font-size:0.8rem;font-family:'JetBrains Mono',monospace;font-weight:700;background:var(--surface-base);border:1px solid var(--border-default);color:var(--text-primary);padding:0.6rem 1rem;border-radius:var(--radius-md);width:100%;box-sizing:border-box;outline:none;"
+                onfocus="this.style.borderColor='var(--brand-indigo)'"
+                onblur="this.style.borderColor='var(--border-default)'">
+
+              <!-- Valor estático -->
+              <span v-else
+                class="t-value font-mono-data"
+                style="height:2.625rem;display:flex;align-items:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-primary);"
+                :title="item.value">
+                {{ item.value === '' ? '---' : item.value }}
+              </span>
+
+            </div>
+          </div>
+        </div>
+
+      </template>
+    </div>
+  </div>
+</template>
+
+<style>
+  @keyframes settings-spin  { to { transform: rotate(360deg); } }
+  @keyframes settings-pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+</style>
+
+<script>
+window.SettingsView = {
+  props: { 
+    configItems: Array,
+    isMobile:    Boolean,
+    isLoading:   Boolean
+  },
+  template: '#settings-view-template',
+  data() {
+    return {
+      isEditing:    false,
+      saving:       false,
+      searchQuery:  '',
+      groupedItems: {} 
+    };
+  },
+  mounted() {
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  },
+  watch: {
+    configItems: {
+      immediate: true,
+      handler(newVal) { this.mapearParaUI(newVal); }
+    }
+  },
+  computed: {
+    filteredGroups() {
+      if (!this.searchQuery) return this.groupedItems;
+      const query = this.searchQuery.toLowerCase();
+      const result = {};
+      for (const [groupName, items] of Object.entries(this.groupedItems)) {
+        const filteredItems = items.filter(item => 
+          item.key.toLowerCase().includes(query) || 
+          String(item.value).toLowerCase().includes(query) ||
+          groupName.toLowerCase().includes(query)
+        );
+        if (filteredItems.length > 0) {
+          result[groupName] = filteredItems;
+        }
+      }
+      return result;
+    }
+  },
+  methods: {
+    formatLabel(key) {
+      return key.replace(/_/g, ' ');
+    },
+
+    mapearParaUI(dadosBrutos) {
+      if (!dadosBrutos || !Array.isArray(dadosBrutos)) {
+        this.groupedItems = {};
+        return;
+      }
+
+      const newGroupedItems = {};
+      let currentGroup = "Parâmetros Diversos"; 
+
+      dadosBrutos.forEach(item => {
+        const chave = String(item.CHAVE || '').trim();
+        let valor = item.VALOR !== undefined ? item.VALOR : '';
+
+        if (chave.startsWith('//') || chave.startsWith('---') || chave.startsWith('#')) {
+          currentGroup = chave.replace(/[/|-]/g, '').trim() || "Nova Categoria";
+          return; 
+        }
+
+        if (!chave) return;
+
+        let tipo = 'text';
+        if (String(valor).toUpperCase() === 'TRUE' || String(valor).toUpperCase() === 'FALSE') {
+          tipo = 'boolean';
+          valor = String(valor).toUpperCase() === 'TRUE';
+        }
+
+        if (!newGroupedItems[currentGroup]) {
+          newGroupedItems[currentGroup] = [];
+        }
+
+        newGroupedItems[currentGroup].push({
+          key:   chave,
+          value: valor,
+          type:  tipo
+        });
+      });
+
+      this.groupedItems = newGroupedItems;
+    },
+
+    startEdit()  { this.isEditing = true; },
+    cancelEdit() {
+      this.isEditing   = false;
+      this.searchQuery = ''; 
+      this.mapearParaUI(this.configItems); 
+    },
+    
+    saveChanges() {
+      const self = this;
+      self.saving = true;
+      const payload = {};
+      
+      Object.values(this.groupedItems).forEach(group => {
+        group.forEach(item => {
+          let valToSave = item.value;
+          if (item.type === 'boolean') {
+            valToSave = item.value ? 'TRUE' : 'FALSE';
+          }
+          payload[item.key] = valToSave;
+        });
+      });
+
+      if (typeof google !== 'undefined') {
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (res && res.success) {
+              self.saving    = false;
+              self.isEditing = false;
+              self.$emit('refresh'); 
+            } else {
+              self.saving = false;
+              alert("❌ Erro ao salvar: " + (res.error || res.message));
+            }
+          })
+          .withFailureHandler((err) => {
+            self.saving = false;
+            alert("❌ Falha de comunicação: " + err);
+          })
+          .apiAtualizarChaveValor('Config_Global', payload);
+      } else {
+        setTimeout(() => { self.saving = false; self.isEditing = false; }, 1000);
+      }
+    }
+  }
+};
+</script>

@@ -1,0 +1,503 @@
+<script>
+// ============================================================================
+// APPCORE - MAESTRO V5 (NUCLEO DE ORQUESTRACAO, ESTADO E UI)
+// ============================================================================
+
+const { createApp, ref, shallowRef, computed, onMounted, provide } = Vue;
+
+const app = createApp({
+  setup() {
+    // ====================================================================
+    // 1. ESTADO GLOBAL REATIVO (Single Source of Truth)
+    // ====================================================================
+    const db = shallowRef({
+      cockpit:          [],
+      resumoGerencial:  { timestamp: '--:--' },
+      configGlobal:     {},
+      dadosAtivos:      [],
+      dadosTendencia:   [],
+      necton:           [],
+      calcGreeks:       [],
+      historico250d:    [],
+      scannerMacro:     [],
+      vereditosIA:      []
+    });
+
+    const cuboOlap = ref(window.Agregador ? window.Agregador._gerarCuboVazio() : {});
+
+    const isLoading      = ref(true);
+    const hasError       = ref(false);
+    const errorMessage   = ref('');
+    const lastSync       = ref('');
+    const status         = ref('Iniciando...');
+
+    // ====================================================================
+    // 2. ROTEAMENTO E MENU
+    // ====================================================================
+    const currentView = ref('cockpit');
+    const isCollapsed = ref(true);
+
+    const menu = ref(window.APP_MENU || []);
+
+    const currentMenuLabel = computed(() => {
+      const item = menu.value.find(m => String(m.id).toLowerCase() === String(currentView.value).toLowerCase());
+      return item ? item.label : 'Dashboard';
+    });
+
+    const currentLayout = computed(() => {
+      const map  = window.LAYOUT_MAP || {};
+      const view = String(currentView.value).toLowerCase();
+      return map[view] || [];
+    });
+
+    const toggleSidebar = () => {
+      isCollapsed.value = !isCollapsed.value;
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 310);
+    };
+
+    const navigate = (viewName) => {
+      currentView.value = viewName;
+      if (isMobile.value) isCollapsed.value = true;
+      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 100);
+    };
+
+    const dynamicSummaryData = computed(() => {
+      const s     = cuboOlap.value?.resumoGlobal || {};
+      const lista = cuboOlap.value?.listaAtivas  || [];
+
+      // ivAtual nao e somavel -- calculamos a media ponderada pelo nocional
+      const ivMedio = (() => {
+        const comIV = lista.filter(op => parseFloat(op.ivAtual || 0) > 0);
+        if (!comIV.length) return 0;
+        const somaIV  = comIV.reduce((s, op) => s + parseFloat(op.ivAtual || 0), 0);
+        return somaIV / comIV.length;
+      })();
+
+      return [
+        { key: 'PL_TOTAL_PCT', label: 'P/L %',    value: s.plTotalPct   || 0, type: 'percentage', active: true },
+        { key: 'PL_TOTAL',     label: 'P/L Total', value: s.plTotalValor || 0, type: 'currency',   active: true },
+        { key: 'NOCIONAL',     label: 'Nocional',  value: s.nocional     || 0, type: 'currency',   active: true },
+        { key: 'THETA',        label: 'Theta',     value: s.theta        || 0, type: 'currency',   active: true },
+        { key: 'IV_CURRENT',   label: 'IV Medio',  value: ivMedio,             type: 'percentage', active: true }
+      ];
+    });
+
+    // ====================================================================
+    // 3. SENSOR MOBILE E FATIAMENTO
+    // ====================================================================
+    const isMobile = ref(false);
+
+    const checkMobileStatus = () => {
+      const userAgent      = navigator.userAgent || navigator.vendor || window.opera;
+      const isMobileHardware = /android|ipad|iphone|ipod/i.test(userAgent.toLowerCase());
+      const isSmallScreen  = window.innerWidth <= 1024;
+      isMobile.value = isMobileHardware || isSmallScreen;
+      if (isMobile.value) isCollapsed.value = true;
+    };
+
+    checkMobileStatus();
+
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(checkMobileStatus, 150);
+    });
+
+    const topGridComponents = computed(() => {
+      if (!isMobile.value) return currentLayout.value;
+      const config = window.MOBILE_ORCHESTRATOR_CONFIG || { sequence: [] };
+      const seqIds = config.sequence.map(s => s.id);
+      // Se nao ha carrossel, todos vao pro topGrid em mobile
+      if (!seqIds.length) return currentLayout.value;
+      const idx = currentLayout.value.findIndex(c => seqIds.includes(c.id));
+      return idx === -1 ? currentLayout.value : currentLayout.value.slice(0, idx);
+    });
+
+    const mobileCarouselComponents = computed(() => {
+      if (!isMobile.value) return [];
+      const config = window.MOBILE_ORCHESTRATOR_CONFIG || { sequence: [] };
+      const seqIds = config.sequence.map(s => s.id);
+      if (!seqIds.length) return [];
+      return currentLayout.value.filter(c => seqIds.includes(c.id));
+    });
+
+    const bottomGridComponents = computed(() => {
+      if (!isMobile.value) return [];
+      const config = window.MOBILE_ORCHESTRATOR_CONFIG || { sequence: [] };
+      const seqIds = config.sequence.map(s => s.id);
+      if (!seqIds.length) return [];
+      const idx = currentLayout.value.findIndex(c => seqIds.includes(c.id));
+      if (idx === -1) return [];
+      return currentLayout.value.slice(idx).filter(c => !seqIds.includes(c.id));
+    });
+
+    const getMobileLayoutZones = computed(() => {
+      return window.LayoutConfig?.MOBILE_ORCHESTRATOR_CONFIG || { top: [], carousel: [], bottom: [] };
+    });
+
+    // ====================================================================
+    // 4. POLLING E SYNC
+    // ====================================================================
+    const timerVisual      = ref(300);
+    const isOrquestrando   = ref(false);
+    const isAutoSyncEnabled = ref(false);
+    let pollingInterval    = null;
+
+    const toggleAutoSync = () => {
+      isAutoSyncEnabled.value = !isAutoSyncEnabled.value;
+      if (isAutoSyncEnabled.value) timerVisual.value = 300;
+    };
+
+    const formatCountdown = computed(() => {
+      const m = Math.floor(timerVisual.value / 60).toString().padStart(2, '0');
+      const s = (timerVisual.value % 60).toString().padStart(2, '0');
+      return (m) + ':' + (s);
+    });
+
+    const iniciarMotorRelogio = () => {
+      if (pollingInterval) clearInterval(pollingInterval);
+      pollingInterval = setInterval(() => {
+        if (isAutoSyncEnabled.value && !isLoading.value) {
+          if (timerVisual.value > 0) {
+            timerVisual.value--;
+          } else {
+            timerVisual.value = 300;
+            sincronizarDashboard();
+          }
+        }
+      }, 1000);
+    };
+
+    const dispararErro = (msg) => {
+      console.error("[APP_CORE] " + msg);
+      errorMessage.value = msg;
+      hasError.value     = true;
+      isLoading.value    = false;
+    };
+
+    // ====================================================================
+    // 5. MOTOR DE SINCRONIZACAO EM ESTAGIOS (LAZY FETCHING)
+    // ====================================================================
+    const tempoCarga = ref('');
+
+    const handleFailure = (err) => {
+      console.error("Erro na Sincronizacao:", err);
+      hasError.value     = true;
+      errorMessage.value = String(err);
+      isLoading.value    = false;
+      status.value       = "Falha na Sincronizacao";
+      const st = document.getElementById('debug-status');
+      if (st) st.innerText = "Erro: " + err;
+    };
+
+    // ---  FASE 2: CARGA PESADA (Background) ---
+    let _abasPesadasEmVoo = false;
+    const carregarAbasPesadas = () => {
+      if (_abasPesadasEmVoo) return;
+      _abasPesadasEmVoo = true;
+      const st = document.getElementById('debug-status');
+      if (st) st.innerText = "Baixando dados tecnicos (Background)...";
+
+      google.script.run
+        .withSuccessHandler((response) => {
+          if (!response || !response.success) return;
+          try {
+            const dadosTraduzidos = window.Tradutor.processarBancoCompleto(response.raw);
+
+            //  FIX: chaves alinhadas ao Tradutor (tickerAtivo, spotPrice, status)
+            // O JOIN com dadosTendencia usa tickerAtivo -- chave semantica do Tradutor
+            const cockpitBruto    = db.value.cockpit || [];
+            const dadosTecnicos   = db.value.dadosTendencia || [];
+
+            const cockpitEnriquecido = cockpitBruto.map(op => {
+              const ticker = String(op.tickerAtivo || '').trim().toUpperCase();
+              const infoTecnica = dadosTecnicos.find(t =>
+                String(t.tickerAtivo || '').trim().toUpperCase() === ticker && ticker !== ''
+              ) || {};
+              return { ...op, ...infoTecnica };
+            });
+
+            db.value = {
+              ...db.value,
+              dadosAtivos:   dadosTraduzidos.dadosAtivos   || [],
+              logs:          dadosTraduzidos.logs           || [],
+              historico250d: dadosTraduzidos.historico250d  || [],
+              calcGreeks:    dadosTraduzidos.calcGreeks     || [],
+              dadosGreeks:   dadosTraduzidos.dadosGreeks    || [],
+              necton:        dadosTraduzidos.necton         || [],
+              detalhes:      dadosTraduzidos.detalhes       || [],
+              selecaoOpcoes: dadosTraduzidos.selecaoOpcoes  || [],
+              scannerMacro:  dadosTraduzidos.scannerMacro   || [],
+              vereditosIA:   dadosTraduzidos.vereditosIA    || [],
+              cockpit:       cockpitEnriquecido,
+              raw: { ...(db.value.raw || {}), ...(response.raw || {}) }
+            };
+
+            // Recalcula o cubo com os greeks agora disponiveis
+            cuboOlap.value = { ...window.Agregador.processarSumario(db.value) };
+
+            lastSync.value = new Date().toLocaleTimeString();
+            if (st) st.innerText = "Sistema Nominal (100% Carregado)";
+
+          } catch (err) {
+            console.error("Erro no processamento background:", err);
+          } finally {
+            _abasPesadasEmVoo = false;
+          }
+        })
+        .withFailureHandler(() => { _abasPesadasEmVoo = false; })
+        .getAbasPesadas();
+    };
+
+    // ---  FASE 1: VOO RAPIDO ---
+    const sincronizarDashboard = () => {
+      isLoading.value = true;
+      status.value    = "Conectando...";
+
+      const tempoInicio = performance.now();
+      const st = document.getElementById('debug-status');
+      if (st) st.innerText = "Aguardando Cockpit...";
+
+      google.script.run
+        .withSuccessHandler((response) => {
+          const tempoBackend = performance.now();
+          const msBackend    = tempoBackend - tempoInicio;
+
+          if (!response || !response.success) return handleFailure("Falha na API");
+
+          try {
+            if (st) st.innerText = 'Cockpit Recebido (' + ((msBackend / 1000).toFixed(1)) + 's). Renderizando...';
+
+            const dadosTraduzidos = window.Tradutor.processarBancoCompleto(response.raw);
+
+            //  FIX: O Tradutor ja entrega objetos com chaves semanticas (tickerAtivo, status, spotPrice).
+            //         Nao e mais necessario re-mapear campos brutos do Sheets aqui.
+            //         O map() abaixo apenas garante que o campo tickerAtivo esteja em uppercase.
+            const cockpitExpresso = (dadosTraduzidos.cockpit || []).map(op => ({
+              ...op,
+              tickerAtivo: String(op.tickerAtivo || '').trim().toUpperCase()
+            }));
+
+            //  FIX: CONFIG_GLOBAL agora tem cabecalho na linha 1 (CONFIG_KEY/CONFIG_VAL/NOTE).
+            //         O Tradutor ja pula essa linha em _processarConfigGlobal.
+            //         configGlobalArray usa a mesma matriz raw mas mantem formato para SettingsView.
+            const rawConfig     = response.raw['CONFIG_GLOBAL'] || response.raw['Config_Global'] || [];
+            const configArray   = rawConfig.slice(1)
+              .filter(row => row[0])
+              .map(row => ({ CHAVE: row[0], VALOR: row[1] }));
+
+            db.value = {
+              ...db.value,
+              ...dadosTraduzidos,
+              cockpit:          cockpitExpresso,
+              configGlobal:     dadosTraduzidos.configGlobal     || {},
+              configGlobalArray: configArray,
+              resumoGerencial:  dadosTraduzidos.resumoGerencial  || { timestamp: new Date().toLocaleString() },
+              raw: { ...(db.value.raw || {}), ...(dadosTraduzidos.raw || {}) }
+            };
+
+            cuboOlap.value = { ...window.Agregador.processarSumario(db.value) };
+
+            const tempoFim    = performance.now();
+            const msFrontend  = tempoFim - tempoBackend;
+            const msTotal     = tempoFim - tempoInicio;
+
+            tempoCarga.value  = ((msTotal / 1000).toFixed(2)) + 's (GAS: ' + ((msBackend / 1000).toFixed(2)) + 's | CPU: ' + ((msFrontend / 1000).toFixed(2)) + 's)';
+
+            lastSync.value  = new Date().toLocaleTimeString();
+            status.value    = "Online";
+            isLoading.value = false;
+
+            if (st) st.innerText = tempoCarga.value;
+
+            setTimeout(carregarAbasPesadas, 500);
+
+          } catch (err) {
+            console.error("Erro no Processamento Expresso:", err);
+            handleFailure(err.message);
+          }
+        })
+        .withFailureHandler((err) => handleFailure(err))
+        .getDadosLight();
+    };
+
+    // ====================================================================
+    // 6. DISPENSADOR DE PROPS (Dependency Injection V5)
+    // ====================================================================
+    const getComponentProps = (compConfig) => {
+      const baseProps = {
+        isMobile:      isMobile.value,
+        isLoading:     isLoading.value,
+        lastSync:      lastSync.value,
+        configGlobais: db.value.configGlobal || {},
+        ...compConfig.props
+      };
+
+      //  FIX: usa tickerAtivo (chave semantica do Tradutor)
+      const ativosDaHome = [];
+      if (db.value.cockpit) {
+        db.value.cockpit.forEach(op => {
+          if (op.tickerAtivo && op.tickerAtivo !== '---' && !ativosDaHome.find(a => a.tickerAtivo === op.tickerAtivo)) {
+            ativosDaHome.push({
+              tickerAtivo: op.tickerAtivo,
+              spotPrice:   op.spotPrice || 0
+            });
+          }
+        });
+      }
+
+      const customProps = {
+        // =========================================================
+        // 0. INFRAESTRUTURA & NAVEGACAO
+        // =========================================================
+        'menu-sidebar': {
+          menu:        menu.value,
+          currentView: currentView.value,
+          isCollapsed: isCollapsed.value,
+          isMobile:    isMobile.value,
+          lastSync:    lastSync.value,
+          isLoading:   isLoading.value
+        },
+
+        // =========================================================
+        // 1. HOME & COCKPIT
+        // =========================================================
+        'card-ticker-tape':       { ativos: ativosDaHome },
+        'card-alerta':            { statsPreCalculados: { ...cuboOlap.value, cockpit: db.value.cockpit || [] }, isMobile: isMobile.value },
+        'card-summary':           { statsPreCalculados: cuboOlap.value },
+        'carousel-ativas':        { statsPreCalculados: cuboOlap.value },
+        'cockpit-table':          { statsPreCalculados: cuboOlap.value },
+
+        // =========================================================
+        // 2. ANALISE & GESTAO
+        // =========================================================
+        'comparativo-view':       { db: db.value },
+        'dashboard-hub':          { opcoesBrutas: db.value.selecaoOpcoes || [], statsPreCalculados: cuboOlap.value },
+
+        // =========================================================
+        // 4. OPLAB MARKET DATA HUB
+        // =========================================================
+        'oplab-hub':              { isMobile: isMobile.value },
+
+        // =========================================================
+        // CONSULTOR IA
+        // =========================================================
+        'consultor-ia':           { statsPreCalculados: cuboOlap.value },
+
+        // =========================================================
+        'necton-import':          { data: db.value.necton || [] },
+        'automation-view':        { logs: db.value.logs || [] },
+        'wheel-manager':          { dadosWheel: cuboOlap.value?.custodiaWheel || [] },
+        'bancodedados-view':      { dbRaw: db.value.raw || {}, isLoading: isLoading.value },
+        'settings-view':          { configItems: db.value.configGlobalArray || [], isMobile: isMobile.value, isLoading: isLoading.value }
+      };
+
+      return { ...baseProps, ...(customProps[compConfig.component] || {}) };
+    };
+
+    provide('getComponentProps', getComponentProps);
+
+    // ====================================================================
+    // 7. INICIALIZACAO
+    // ====================================================================
+    onMounted(() => {
+      sincronizarDashboard();
+      iniciarMotorRelogio();
+      if (window.lucide) window.lucide.createIcons();
+    });
+
+    // ====================================================================
+    // 8. EXPOSICAO PARA O TEMPLATE
+    // ====================================================================
+    return {
+      // ESTADO E DADOS
+      db, cuboOlap, isLoading, status, hasError, errorMessage, lastSync, tempoCarga,
+
+      // NAVEGACAO E LAYOUT
+      currentView, navigate, isCollapsed, toggleSidebar, isMobile,
+      menu, currentMenuLabel, currentLayout, dynamicSummaryData, // disponivel para templates futuros
+      //  INDEX: menu-sidebar precisa receber: :menu="menu" :current-view="currentView"
+      //           :is-collapsed="isCollapsed" :is-mobile="isMobile" :last-sync="lastSync"
+      //           @navigate="navigate" @toggle-sidebar="toggleSidebar"
+
+      // COMPONENTES DE INTERFACE
+      topGridComponents,
+      mobileCarouselComponents,
+      bottomGridComponents,
+      getMobileLayoutZones,
+
+      // LOGICA E SINCRONIZACAO
+      getComponentProps,
+      handleRefresh:       () => sincronizarDashboard(),
+      timerVisual,
+      formatCountdown,
+      isOrquestrando,
+      isAutoSyncEnabled,
+      toggleAutoSync,
+
+      MOBILE_ORCHESTRATOR_CONFIG: window.MOBILE_ORCHESTRATOR_CONFIG || { settings: {} }
+    };
+  } // fim setup()
+}); // fim createApp
+
+// ============================================================================
+// REGISTRO DE MICRO FRONT-ENDS E MONTAGEM
+// ============================================================================
+const COMPONENTES_V5 = [
+  // 0. INFRAESTRUTURA & NAVEGACAO
+  ['menu-sidebar',           window.MenuSidebar],
+
+  // 1. HOME & COCKPIT
+  ['card-ticker-tape',       window.CardTickerTape],
+  ['card-alerta',            window.CardAlerta],
+  ['card-summary',           window.CardSummary],
+  ['carousel-ativas',        window.CarouselAtivas],
+  ['cockpit-table',          window.CockpitTable],
+
+  // 2. ANALISE & GESTAO
+  ['comparativo-view',       window.ComparativoView],
+  ['dashboard-hub',          window.DashboardHub],
+  ['dash-theta-decay',        window.DashThetaDecay],
+  ['dash-stress-test',        window.DashStressTest],
+  ['dash-vencimentos-gantt',  window.DashVencimentosGantt],
+  ['dash-liquidity-map',     window.DashLiquidityMap],
+  ['dash-volatility-skew',   window.DashVolatilitySkew],
+  ['dash-risk-return',       window.DashRiskReturn],
+  ['dash-gamma-theta',       window.DashGammaTheta],
+
+  // 3. OPLAB MARKET DATA HUB
+  ['oplab-hub',              window.OpLabHub],
+  ['page-series-opcoes',     window.PageSeriesOpcoes],
+  ['page-melhores-taxas',    window.PageMelhoresTaxas],
+  ['page-volumes',           window.PageVolumes],
+  ['page-variacoes',         window.PageVariacoes],
+  ['page-ranking-m9m21',     window.PageRankingM9M21],
+  ['page-oplab-score',       window.PageOplabScore],
+  ['page-historico',         window.PageHistorico],
+
+  // 4. CONSULTOR IA
+  ['consultor-ia',           window.ConsultorIA],
+
+  // 5. OPLAB MARKET -- PAGINAS ADICIONAIS
+  ['page-correl-ibov',       window.PageCorrelIbov],
+  ['page-fundamentalista',   window.PageFundamentalista],
+
+  ['necton-import',          window.NectonImport],
+  ['automation-view',        window.AutomationView],
+  ['wheel-manager',          window.WheelManager],
+  ['log-console',            window.LogConsole],
+  ['bancodedados-view',      window.BancoDeDadosView],
+  ['oplab-explorer-view',    window.OpLabExplorerView],
+  ['settings-view',          window.SettingsView]
+];
+
+COMPONENTES_V5.forEach(([name, comp]) => {
+  if (comp) {
+    app.component(name, comp);
+  } else {
+    console.error('[CRITICO] Falha ao carregar Micro Front-end: <' + (name) + '>. Verifique se o arquivo HTML esta incluido no Index.');
+  }
+});
+
+app.mount('#app');
+</script>

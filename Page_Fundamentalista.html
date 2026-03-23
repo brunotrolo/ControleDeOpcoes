@@ -1,0 +1,253 @@
+<template id="page-fundamentalista-template">
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+
+    <!-- Controles -->
+    <div class="premium-card" style="display:flex;flex-wrap:wrap;align-items:center;gap:1rem;padding:1rem 1.5rem;">
+
+      <!-- Atributo -->
+      <div style="display:flex;flex-direction:column;gap:0.25rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Atributo</label>
+        <div style="display:flex;flex-wrap:wrap;gap:0.375rem;max-width:600px;">
+          <button v-for="at in atributosDisponiveis" :key="at.key" @click="filtroAtributo = at.key"
+                  style="padding:0.3rem 0.75rem;border-radius:99px;font-size:0.65rem;font-weight:700;cursor:pointer;border:1px solid;transition:all 0.15s;white-space:nowrap;"
+                  :style="filtroAtributo === at.key
+                    ? 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);'
+                    : 'background:var(--surface-base);color:var(--text-secondary);border-color:var(--border-default);'">
+            {{ at.label }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Setor -->
+      <div style="display:flex;flex-direction:column;gap:0.25rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Setor</label>
+        <select v-model="filtroSetor"
+                style="padding:0.375rem 0.75rem;background:var(--surface-base);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.8rem;cursor:pointer;outline:none;"
+                onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+          <option value="">Todos os setores</option>
+          <option v-for="s in setoresDisponiveis" :key="s" :value="s">{{ s }}</option>
+        </select>
+      </div>
+
+      <!-- Busca -->
+      <div style="display:flex;flex-direction:column;gap:0.25rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Busca</label>
+        <input v-model="busca" placeholder="Ticker ou empresa..."
+               style="padding:0.375rem 0.75rem;background:var(--surface-base);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.8rem;outline:none;width:180px;"
+               onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+      </div>
+
+      <div style="margin-left:auto;font-size:0.75rem;color:var(--text-muted);">
+        <span style="font-weight:700;color:var(--text-primary);">{{ linhasFiltradas.length }}</span> empresas
+      </div>
+    </div>
+
+    <!-- Descricao do atributo atual -->
+    <div v-if="atributoAtual" class="premium-card"
+         style="padding:0.875rem 1.5rem;display:flex;gap:1rem;align-items:center;background:var(--brand-indigo-light);border:1px solid var(--brand-indigo-muted);">
+      <i data-lucide="bar-chart-2" style="width:1.25rem;height:1.25rem;color:var(--brand-indigo);flex-shrink:0;"></i>
+      <div>
+        <span style="font-size:0.75rem;font-weight:800;color:var(--brand-indigo);">{{ atributoAtual.label }}</span>
+        <span style="font-size:0.75rem;color:var(--brand-indigo);margin-left:8px;">-- {{ atributoAtual.desc }}</span>
+      </div>
+      <div style="margin-left:auto;font-size:0.7rem;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;">
+        Data balanco: {{ dataMaisRecente }}
+      </div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="premium-card" style="overflow:hidden;">
+      <div v-if="linhasFiltradas.length === 0" style="padding:4rem 2rem;text-align:center;color:var(--text-muted);">
+        <p v-if="dados.length === 0">Dados nao carregados. Execute o motor 022 no menu do Sheets.</p>
+        <p v-else>Nenhuma empresa encontrada com os filtros atuais.</p>
+      </div>
+      <div v-else style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:separate;border-spacing:0;">
+          <thead>
+            <tr style="background:var(--surface-overlay);">
+              <th style="padding:0.625rem 0.75rem;text-align:left;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">#</th>
+              <th style="padding:0.625rem 1rem;text-align:left;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">Empresa</th>
+              <th @click="ordenarPor('ATTR_VALUE')"
+                  style="padding:0.625rem 1rem;text-align:right;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;border-bottom:1px solid var(--border-subtle);cursor:pointer;min-width:140px;"
+                  :style="ordemChave==='ATTR_VALUE' ? 'color:var(--brand-indigo);' : 'color:var(--text-muted);'">
+                {{ atributoAtual ? atributoAtual.label : 'Valor' }}
+                <span v-if="ordemChave==='ATTR_VALUE'">{{ ordemAsc ? '^' : 'v' }}</span>
+              </th>
+              <th style="padding:0.625rem 1rem;text-align:left;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">Tickers</th>
+              <th style="padding:0.625rem 1rem;text-align:left;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">Setor</th>
+              <th style="padding:0.625rem 1rem;text-align:center;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">Data Bal.</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(linha, idx) in linhasFiltradas" :key="linha.TICKER || idx"
+                style="transition:background 0.1s;"
+                :style="idx%2===0 ? 'background:var(--surface-base);' : 'background:var(--surface-sunken);'"
+                onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="">
+
+              <td style="padding:0.625rem 0.75rem;border-bottom:1px solid var(--border-subtle);color:var(--text-muted);font-size:0.75rem;font-family:'JetBrains Mono',monospace;">{{ idx + 1 }}</td>
+
+              <td style="padding:0.625rem 1rem;border-bottom:1px solid var(--border-subtle);">
+                <div style="display:flex;flex-direction:column;gap:2px;">
+                  <span style="font-size:0.875rem;font-weight:800;color:var(--text-primary);">{{ linha.SHORT_NAME || linha.TICKER }}</span>
+                  <span style="font-size:0.65rem;color:var(--text-muted);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ linha.COMPANY_NAME }}</span>
+                </div>
+              </td>
+
+              <!-- Valor do atributo com badge colorido por quartil -->
+              <td style="padding:0.625rem 1rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:1rem;font-weight:900;font-family:'JetBrains Mono',monospace;padding:3px 10px;border-radius:99px;"
+                      :style="badgeValor(parseFloat(linha.ATTR_VALUE||0), idx, linhasFiltradas.length)">
+                  {{ fmtValor(linha.ATTR_VALUE, linha.ATTR_NAME) }}
+                </span>
+              </td>
+
+              <!-- Tickers da empresa -->
+              <td style="padding:0.625rem 1rem;border-bottom:1px solid var(--border-subtle);">
+                <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                  <span v-for="t in parseTickers(linha.TICKERS_JSON)" :key="t"
+                        style="font-size:0.65rem;font-weight:700;padding:2px 6px;border-radius:4px;background:var(--surface-overlay);color:var(--text-secondary);border:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;">
+                    {{ t }}
+                  </span>
+                </div>
+              </td>
+
+              <td style="padding:0.625rem 1rem;border-bottom:1px solid var(--border-subtle);font-size:0.7rem;color:var(--text-muted);">
+                {{ linha.SECTOR ? linha.SECTOR.substring(0,24) : '--' }}
+              </td>
+
+              <td style="padding:0.625rem 1rem;text-align:center;border-bottom:1px solid var(--border-subtle);font-size:0.7rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;white-space:nowrap;">
+                {{ linha.ATTR_DATE || '--' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</template>
+
+<script>
+window.PageFundamentalista = {
+  template: '#page-fundamentalista-template',
+  props: {
+    dados:    { type: Array,   default: () => [] },
+    isMobile: { type: Boolean, default: false }
+  },
+  setup(props) {
+    const { ref, computed } = Vue;
+
+    const filtroAtributo = ref('roic');
+    const filtroSetor    = ref('');
+    const busca          = ref('');
+    const ordemChave     = ref('ATTR_VALUE');
+    const ordemAsc       = ref(false);
+
+    const atributosDisponiveis = [
+      { key: 'roic',                      label: 'ROIC',         desc: 'Retorno sobre Capital Investido' },
+      { key: 'roe',                        label: 'ROE',          desc: 'Retorno sobre Patrimonio' },
+      { key: 'roa',                        label: 'ROA',          desc: 'Retorno sobre Ativos' },
+      { key: 'magic_formula',              label: 'Magic Formula',desc: 'Ranking Greenblatt' },
+      { key: 'price_over_profit_per_share',label: 'P/L',          desc: 'Preco / Lucro por Acao' },
+      { key: 'net_margin',                 label: 'Mg. Liq.',     desc: 'Margem Liquida' },
+      { key: 'ebit_margin',                label: 'Mg. EBIT',     desc: 'Margem EBIT' },
+      { key: 'gross_margin',               label: 'Mg. Bruta',    desc: 'Margem Bruta' },
+      { key: 'ebit',                       label: 'EBIT',         desc: 'Lucro Operacional' },
+      { key: 'earnings',                   label: 'Lucro Liq.',   desc: 'Lucro Liquido' },
+      { key: 'market_cap',                 label: 'Mkt Cap',      desc: 'Valor de Mercado' },
+      { key: 'ev_over_ebit',               label: 'EV/EBIT',      desc: 'Enterprise Value / EBIT' },
+      { key: 'current_ratio',              label: 'Liq. Corr.',   desc: 'Liquidez Corrente' },
+    ];
+
+    const atributoAtual = computed(() =>
+      atributosDisponiveis.find(a => a.key === filtroAtributo.value) || null
+    );
+
+    // Atributos que sao porcentagem
+    const atributosPct = new Set(['roic','roe','roa','net_margin','ebit_margin','gross_margin']);
+    // Atributos que sao monetarios grandes
+    const atributosMoeda = new Set(['ebit','earnings','market_cap','ev']);
+
+    const fmtValor = (v, attrName) => {
+      const n = parseFloat(v);
+      if (isNaN(n)) return '--';
+      const attr = String(attrName || filtroAtributo.value).toLowerCase();
+      if (atributosPct.has(attr)) return (n * 100).toFixed(1) + '%';
+      if (atributosMoeda.has(attr)) {
+        if (Math.abs(n) >= 1e9) return 'R$ ' + (n/1e9).toFixed(1) + 'B';
+        if (Math.abs(n) >= 1e6) return 'R$ ' + (n/1e6).toFixed(1) + 'M';
+      }
+      return n.toFixed(2);
+    };
+
+    const badgeValor = (v, idx, total) => {
+      // Top 25% = verde, meio 50% = neutro, bottom 25% = vermelho
+      const quartil = idx / total;
+      if (!ordemAsc.value) {
+        if (quartil <= 0.25) return 'background:var(--brand-emerald-light);color:var(--brand-emerald);';
+        if (quartil >= 0.75) return 'background:var(--brand-rose-light);color:var(--brand-rose);';
+      } else {
+        if (quartil <= 0.25) return 'background:var(--brand-rose-light);color:var(--brand-rose);';
+        if (quartil >= 0.75) return 'background:var(--brand-emerald-light);color:var(--brand-emerald);';
+      }
+      return 'background:var(--surface-overlay);color:var(--text-primary);';
+    };
+
+    const parseTickers = (json) => {
+      try {
+        const arr = JSON.parse(json || '[]');
+        return Array.isArray(arr) ? arr.slice(0, 4) : [];
+      } catch(e) { return []; }
+    };
+
+    // Filtrar por atributo: so mostrar linhas cujo ATTR_NAME bate com o selecionado
+    const dadosFiltradosPorAttr = computed(() => {
+      return props.dados.filter(r => {
+        const attr = String(r.ATTR_NAME || '').toLowerCase();
+        return attr === filtroAtributo.value || attr === '';
+      });
+    });
+
+    const setoresDisponiveis = computed(() => {
+      const s = new Set(dadosFiltradosPorAttr.value.map(r => r.SECTOR).filter(Boolean));
+      return [...s].sort();
+    });
+
+    const dataMaisRecente = computed(() => {
+      const datas = dadosFiltradosPorAttr.value.map(r => r.ATTR_DATE).filter(Boolean);
+      return datas.length ? datas.sort().reverse()[0] : '--';
+    });
+
+    const linhasFiltradas = computed(() => {
+      let lista = [...dadosFiltradosPorAttr.value];
+      if (filtroSetor.value) lista = lista.filter(r => r.SECTOR === filtroSetor.value);
+      if (busca.value.trim()) {
+        const b = busca.value.trim().toUpperCase();
+        lista = lista.filter(r =>
+          (r.TICKER||'').toUpperCase().includes(b) ||
+          (r.COMPANY_NAME||'').toUpperCase().includes(b) ||
+          (r.SHORT_NAME||'').toUpperCase().includes(b)
+        );
+      }
+      lista.sort((a, b) => {
+        const va = parseFloat(a[ordemChave.value]||0);
+        const vb = parseFloat(b[ordemChave.value]||0);
+        return ordemAsc.value ? va - vb : vb - va;
+      });
+      return lista;
+    });
+
+    const ordenarPor = (chave) => {
+      if (ordemChave.value === chave) ordemAsc.value = !ordemAsc.value;
+      else { ordemChave.value = chave; ordemAsc.value = false; }
+    };
+
+    return {
+      filtroAtributo, filtroSetor, busca, ordemChave, ordemAsc,
+      atributosDisponiveis, atributoAtual, setoresDisponiveis,
+      dataMaisRecente, linhasFiltradas, ordenarPor,
+      fmtValor, badgeValor, parseTickers,
+    };
+  }
+};
+</script>

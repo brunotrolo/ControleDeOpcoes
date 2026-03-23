@@ -1,0 +1,247 @@
+<template id="dash-stress-test-template">
+  <div class="w-full h-full flex flex-col gap-4 p-4 overflow-y-auto hide-scrollbar">
+
+    <!-- Header + controles -->
+    <div class="premium-card shrink-0" style="padding:1rem 1.5rem;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;">
+      <div class="flex items-center gap-3">
+        <div style="padding:0.5rem;background:var(--brand-rose-light);border-radius:var(--radius-md);border:1px solid var(--brand-rose-muted);">
+          <i data-lucide="shield-alert" style="width:18px;height:18px;color:var(--brand-rose);display:block;"></i>
+        </div>
+        <div>
+          <h3 class="t-title" style="color:var(--text-primary);">Stress Test do Portfolio</h3>
+          <p style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">Impacto de movimentos de mercado em cada posicao</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <span style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;">Cenarios:</span>
+        <div v-for="c in cenarios" :key="c"
+          style="padding:4px 12px;border-radius:99px;font-size:0.75rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+          :style="c < 0 ? 'background:var(--brand-rose-light);color:var(--brand-rose);border:1px solid var(--brand-rose-muted);' :
+                  c > 0 ? 'background:var(--brand-emerald-light);color:var(--brand-emerald);border:1px solid var(--brand-emerald-muted);' :
+                          'background:var(--brand-indigo-light);color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);'">
+          {{ c > 0 ? '+' : '' }}{{ c }}%
+        </div>
+      </div>
+    </div>
+
+    <!-- Heatmap de risco -->
+    <div class="premium-card flex-1 overflow-x-auto">
+      <div v-if="posicoes.length === 0"
+        style="padding:4rem;text-align:center;color:var(--text-muted);">
+        Nenhuma posicao ativa para simular.
+      </div>
+
+      <table v-else style="width:100%;border-collapse:separate;border-spacing:0;min-width:700px;">
+        <!-- Cabecalho -->
+        <thead>
+          <tr style="background:var(--surface-overlay);">
+            <th style="padding:0.875rem 1rem;text-align:left;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);white-space:nowrap;">
+              Posicao
+            </th>
+            <th style="padding:0.875rem 0.75rem;text-align:center;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">
+              Moneyness
+            </th>
+            <th style="padding:0.875rem 0.75rem;text-align:center;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">
+              DTE
+            </th>
+            <th v-for="c in cenarios" :key="'h'+c"
+              style="padding:0.875rem 0.75rem;text-align:center;font-size:0.65rem;font-weight:700;letter-spacing:0.1em;border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;"
+              :style="c < 0 ? 'color:var(--brand-rose);' : c > 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-indigo);'">
+              {{ c > 0 ? '+' : '' }}{{ c }}%
+            </th>
+            <th style="padding:0.875rem 0.75rem;text-align:center;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">
+              P/L Atual
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(pos, idx) in linhasStress" :key="pos.simbolo"
+            :style="idx % 2 === 0 ? 'background:var(--surface-base);' : 'background:var(--surface-sunken);'"
+            onmouseover="this.style.background='var(--surface-overlay)'"
+            onmouseout="">
+            <!-- Posicao -->
+            <td style="padding:0.75rem 1rem;border-bottom:1px solid var(--border-subtle);">
+              <div style="display:flex;flex-direction:column;gap:2px;">
+                <span style="font-size:0.875rem;font-weight:800;color:var(--text-primary);">{{ pos.ticker }}</span>
+                <span style="font-size:0.7rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">{{ pos.simbolo }}</span>
+                <span style="font-size:0.65rem;color:var(--text-muted);">K {{ pos.strike }} . {{ pos.tipo }}</span>
+              </div>
+            </td>
+            <!-- Moneyness -->
+            <td style="padding:0.75rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
+              <span style="font-size:0.75rem;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid;"
+                :style="pos.moneyness.includes('ITM') ? 'background:var(--brand-rose-light);color:var(--brand-rose);border-color:var(--brand-rose-muted);' :
+                         pos.moneyness.includes('ATM') ? 'background:var(--brand-amber-light);color:var(--brand-amber);border-color:var(--brand-amber-muted);' :
+                         'background:var(--brand-emerald-light);color:var(--brand-emerald);border-color:var(--brand-emerald-muted);'">
+                {{ pos.moneyness }}
+              </span>
+            </td>
+            <!-- DTE -->
+            <td style="padding:0.75rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
+              <span style="font-size:0.85rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                :style="pos.dte <= 14 ? 'color:var(--brand-rose);' : pos.dte <= 30 ? 'color:var(--brand-amber);' : 'color:var(--text-secondary);'">
+                {{ pos.dte }}d
+              </span>
+            </td>
+            <!-- Celulas de stress por cenario -->
+            <td v-for="c in cenarios" :key="'c'+c"
+              style="padding:0.625rem 0.75rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+                <span style="font-size:0.8rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                  :style="getCelulaStyle(pos.stress[c])">
+                  {{ formatarPL(pos.stress[c].plValor) }}
+                </span>
+                <span style="font-size:0.65rem;font-weight:600;font-family:'JetBrains Mono',monospace;"
+                  :style="pos.stress[c].exercido ? 'color:var(--brand-rose);' : 'color:var(--text-muted);'">
+                  {{ pos.stress[c].exercido ? '[!] Exercido' : pos.stress[c].plPct.toFixed(1) + '%' }}
+                </span>
+              </div>
+            </td>
+            <!-- P/L Atual -->
+            <td style="padding:0.75rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
+              <span style="font-size:0.85rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                :style="pos.plAtual >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'">
+                {{ formatarPL(pos.plAtual) }}
+              </span>
+            </td>
+          </tr>
+
+          <!-- Linha de totais -->
+          <tr style="background:var(--surface-overlay);border-top:2px solid var(--border-default);">
+            <td colspan="3" style="padding:0.875rem 1rem;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">
+              Total Portfolio
+            </td>
+            <td v-for="c in cenarios" :key="'tot'+c"
+              style="padding:0.875rem 0.75rem;text-align:center;">
+              <span style="font-size:0.9rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
+                :style="totaisPorCenario[c] >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'">
+                {{ formatarPL(totaisPorCenario[c]) }}
+              </span>
+            </td>
+            <td style="padding:0.875rem 0.75rem;text-align:center;">
+              <span style="font-size:0.9rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
+                :style="totalPlAtual >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'">
+                {{ formatarPL(totalPlAtual) }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Legenda -->
+    <div class="premium-card shrink-0" style="padding:0.875rem 1.5rem;">
+      <div style="display:flex;flex-wrap:wrap;gap:1.5rem;align-items:center;">
+        <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Legenda:</span>
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <div style="width:12px;height:12px;border-radius:3px;background:var(--brand-emerald-light);border:1px solid var(--brand-emerald-muted);"></div>
+          <span style="font-size:0.72rem;color:var(--text-muted);">Lucro / OTM seguro</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <div style="width:12px;height:12px;border-radius:3px;background:var(--brand-amber-light);border:1px solid var(--brand-amber-muted);"></div>
+          <span style="font-size:0.72rem;color:var(--text-muted);">Atencao / ATM</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <div style="width:12px;height:12px;border-radius:3px;background:var(--brand-rose-light);border:1px solid var(--brand-rose-muted);"></div>
+          <span style="font-size:0.72rem;color:var(--text-muted);">Prejuizo / Exercicio provavel</span>
+        </div>
+        <span style="font-size:0.72rem;color:var(--text-muted);margin-left:auto;">* Simulacao linear baseada em Delta. Nao considera Gamma, IV ou dividendos.</span>
+      </div>
+    </div>
+
+  </div>
+</template>
+
+<script>
+window.DashStressTest = {
+  template: '#dash-stress-test-template',
+  props: {
+    statsPreCalculados: { type: Object, default: () => ({}) },
+    ativos:             { type: Array,  default: () => [] }
+  },
+  setup(props) {
+    const { computed } = Vue;
+
+    // Cenarios de variacao do spot (%)
+    const cenarios = [-15, -10, -5, 0, +5, +10, +15];
+
+    const posicoes = computed(() => props.statsPreCalculados?.listaAtivas || []);
+
+    // Para cada posicao x cenario, calcula o impacto no P/L
+    // Usa aproximacao linear via Delta: DP/L ~ Delta x DSpot x Qtd
+    const linhasStress = computed(() => {
+      return posicoes.value.map(op => {
+        const pm     = parseFloat(op.premioMedio   || 0);
+        const pa     = parseFloat(op.premioAtual   || 0);
+        const spot   = parseFloat(op.spotPrice     || 0);
+        const strike = parseFloat(op.strike        || 0);
+        const delta  = parseFloat(op.delta         || 0);
+        const qtd    = parseFloat(op.quantidade    || 0);
+        const plAtual = parseFloat(op.plTotalValor || 0);
+        const tipo   = String(op.tipoOpcao || '').toUpperCase();
+        const lado   = String(op.direcaoTrade || '').toUpperCase().includes('VENDA') ? -1 : 1;
+
+        const stress = {};
+        cenarios.forEach(c => {
+          const novoSpot   = spot * (1 + c / 100);
+          const deltaSpot  = novoSpot - spot;
+          // Variacao do premio ~ Delta x DSpot (para vendedor, invertido)
+          const varPremio  = delta * deltaSpot * lado * -1;
+          const novoPL     = plAtual + varPremio * qtd;
+          // Exercicio: PUT exercida se novoSpot < strike; CALL se novoSpot > strike
+          const exercido   = tipo.includes('PUT')
+            ? novoSpot < strike
+            : novoSpot > strike;
+          stress[c] = {
+            plValor:  novoPL,
+            plPct:    pm > 0 ? ((pm - (pa - varPremio)) / pm) * 100 : 0,
+            exercido: exercido && c !== 0
+          };
+        });
+
+        return {
+          ticker:   op.tickerAtivo   || '--',
+          simbolo:  op.simboloOpcao  || '--',
+          strike:   strike.toFixed(2).replace('.', ','),
+          tipo:     tipo || '--',
+          moneyness: op.moneynessCode || '--',
+          dte:      Math.round(parseFloat(op.dteCorridos || 0)),
+          plAtual,
+          stress
+        };
+      });
+    });
+
+    const totaisPorCenario = computed(() => {
+      const totais = {};
+      cenarios.forEach(c => {
+        totais[c] = linhasStress.value.reduce((s, pos) => s + (pos.stress[c]?.plValor || 0), 0);
+      });
+      return totais;
+    });
+
+    const totalPlAtual = computed(() =>
+      linhasStress.value.reduce((s, pos) => s + pos.plAtual, 0)
+    );
+
+    const getCelulaStyle = (stress) => {
+      if (!stress) return '';
+      if (stress.exercido)  return 'color:var(--brand-rose);';
+      if (stress.plValor > 0) return 'color:var(--brand-emerald);';
+      if (stress.plValor < -100) return 'color:var(--brand-rose);';
+      return 'color:var(--text-secondary);';
+    };
+
+    const formatarPL = (val) => {
+      if (val === null || val === undefined) return '--';
+      const n   = parseFloat(val);
+      const abs = Math.abs(n);
+      const pre = n < 0 ? '-R$' : 'R$';
+      if (abs >= 1000) return pre + (abs / 1000).toFixed(1) + 'k';
+      return pre + abs.toFixed(0);
+    };
+
+    return { cenarios, posicoes, linhasStress, totaisPorCenario, totalPlAtual, getCelulaStyle, formatarPL };
+  }
+};
+</script>

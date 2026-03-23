@@ -1,0 +1,268 @@
+<template id="dash-gamma-theta-template">
+  <div class="w-full h-full flex flex-col md:flex-row gap-4 p-4">
+    
+    <div class="flex-1 flex flex-col h-full premium-card overflow-hidden relative">
+      
+      <div class="flex flex-col sm:flex-row justify-between items-center p-4 border-b gap-4" style="background: var(--surface-overlay); border-color: var(--border-subtle);">
+        <h3 class="t-title flex items-center gap-2">
+          <i data-lucide="hourglass" class="w-5 h-5" style="color: var(--brand-amber);"></i> Curva Estrutural (Gamma x Theta)
+        </h3>
+        
+        <div class="flex items-center gap-3">
+          <select 
+            v-model="filtroAtivo" 
+            @change="atualizarGrafico"
+            class="input-base py-1.5 text-sm w-auto"
+            style="min-width: 120px;"
+          >
+            <option v-for="ativo in ativos" :key="ativo" :value="ativo">{{ ativo }}</option>
+          </select>
+
+          <div class="flex shadow-sm rounded-md" role="group">
+            <button 
+              @click="setTipo('CALL')"
+              type="button" 
+              class="px-4 py-1.5 text-sm font-bold border rounded-l-md transition-colors"
+              :style="filtroTipo === 'CALL' 
+                ? 'background: var(--brand-indigo); color: white; border-color: var(--brand-indigo);' 
+                : 'background: var(--surface-base); color: var(--text-secondary); border-color: var(--border-default);'"
+            >
+              CALL
+            </button>
+            <button 
+              @click="setTipo('PUT')"
+              type="button" 
+              class="px-4 py-1.5 text-sm font-bold border-t border-b border-r rounded-r-md transition-colors"
+              :style="filtroTipo === 'PUT' 
+                ? 'background: var(--brand-rose); color: white; border-color: var(--brand-rose);' 
+                : 'background: var(--surface-base); color: var(--text-secondary); border-color: var(--border-default);'"
+            >
+              PUT
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-1 relative w-full h-full p-2" style="background: var(--surface-base);">
+
+        <div v-if="dadosFiltrados.length === 0" class="absolute inset-0 flex items-center justify-center z-20" style="background: var(--surface-base); color: var(--text-muted);">
+          Nenhum dado encontrado para este filtro.
+        </div>
+
+        <div id="gammaThetaPlotDiv" class="w-full h-full"></div>
+      </div>
+    </div>
+
+    <div class="w-full md:w-[350px] lg:w-[400px] flex flex-col gap-4 shrink-0 overflow-y-auto hide-scrollbar">
+      
+      <div class="premium-card p-5">
+        <h4 class="t-label mb-3 flex items-center gap-2">
+          <i data-lucide="book-open" class="w-4 h-4"></i> Como ler este grafico
+        </h4>
+        <div class="t-body space-y-3">
+          <p>A balanca da vida: como ganhar dinheiro com o tempo passando, sem ser atropelado por um movimento brusco do mercado.</p>
+          <ul class="list-disc pl-4 space-y-1" style="color: var(--text-tertiary); font-size: 12px;">
+            <li><span style="color: var(--brand-amber); font-weight: bold;">Barras Laranjas (Seu Salario):</span> Mostra o efeito do tempo. Quanto maior a barra, mais centavos caem no seu bolso a cada dia que passa.</li>
+            <li><span style="color: var(--brand-rose); font-weight: bold;">Linha Vermelha (A Bomba):</span> Mostra onde a opcao esta instavel. Se a acao bater na ponta dessa linha, seu prejuizo acelera de forma assustadora.</li>
+          </ul>
+          <div class="mt-4 p-3 rounded text-xs" style="background: var(--surface-overlay); border-left: 4px solid var(--brand-amber);">
+            <strong>O Segredo dos Profissionais:</strong> Evite vender opcoes exatamente onde a Linha Vermelha faz um bico (e ganancia perigosa). Escolha os <b>"ombros" do grafico</b>: onde a linha vermelha ja caiu pro chao, mas a barra laranja ainda te paga um bom salario diario.
+          </div>
+        </div>
+      </div>
+
+      <div class="premium-card p-5 flex-1 flex flex-col" style="border-top: 4px solid var(--brand-amber);">
+        <div class="flex justify-between items-center mb-4">
+          <h4 class="t-label flex items-center gap-2" style="color: var(--brand-amber);">
+            <i data-lucide="sparkles" class="w-4 h-4"></i> Estrategista de Tempo (IA)
+          </h4>
+          <span v-if="loadingIA" class="text-xs animate-pulse" style="color: var(--brand-amber); font-weight: bold;">Calculando...</span>
+        </div>
+        
+        <div class="flex-1 card-inner p-4 text-sm overflow-y-auto mb-4 custom-scrollbar" style="color: var(--text-secondary);">
+          <div v-if="!insightIA && !loadingIA" class="h-full flex flex-col items-center justify-center text-center opacity-60">
+            <i data-lucide="activity" class="w-10 h-10 mb-2"></i>
+            <p>Peca para a IA identificar a fronteira exata entre rentabilidade diaria e risco de explosao Gamma.</p>
+          </div>
+          <div v-else-if="loadingIA" class="h-full flex items-center justify-center">
+            <svg class="animate-spin h-8 w-8" style="color: var(--brand-amber);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+          <div v-else v-html="insightIA" class="space-y-2"></div>
+        </div>
+
+        <button 
+          @click="solicitarLeituraIA"
+          :disabled="loadingIA || !dadosFiltrados.length"
+          class="btn-action w-full"
+          :class="(loadingIA || !dadosFiltrados.length) ? 'btn-action-ghost opacity-50 cursor-not-allowed' : 'btn-action-primary'"
+          style="background-color: var(--brand-amber); color: var(--text-inverted); border: none;"
+        >
+          <i data-lucide="zap" class="w-4 h-4"></i> Analisar Duelo Estrutural
+        </button>
+      </div>
+
+    </div>
+  </div>
+</template>
+
+<script>
+window.DashGammaTheta = {
+  template: '#dash-gamma-theta-template',
+  props: {
+    opcoesBrutas: { type: Array, default: () => [] },
+    ativos: { type: Array, default: () => [] }
+  },
+  setup(props) {
+    const { ref, computed, onMounted, onUnmounted } = Vue;
+    
+    const filtroAtivo = ref(props.ativos.length > 0 ? props.ativos[0] : '');
+    const filtroTipo = ref('CALL');
+    const loadingIA = ref(false);
+    const insightIA = ref('');
+    let debounceTimer = null;
+
+    const dadosFiltrados = computed(() => {
+      if (!filtroAtivo.value) return [];
+      return props.opcoesBrutas
+        .filter(op => op.TICKER === filtroAtivo.value && (op.CATEGORY || '').toUpperCase() === filtroTipo.value)
+        .sort((a, b) => parseFloat(a.STRIKE) - parseFloat(b.STRIKE));
+    });
+
+    const setTipo = (tipo) => {
+      filtroTipo.value = tipo;
+      atualizarGrafico();
+      insightIA.value = '';
+    };
+
+    const getCssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+    const atualizarGrafico = () => {
+      const el = document.getElementById('gammaThetaPlotDiv');
+      if (!el) return;
+
+      const dados = dadosFiltrados.value;
+      
+      if (dados.length === 0) return;
+
+      const xStrikes = dados.map(d => parseFloat(d.STRIKE));
+      const yTheta = dados.map(d => Math.abs(parseFloat(d.THETA || 0)));
+      const yGamma = dados.map(d => parseFloat(d.GAMMA || 0));
+      const spotValue = parseFloat(dados[0].SPOT || 0);
+
+      const colorTheta = getCssVar('--brand-amber') || '#D97706';
+      const colorThetaMuted = getCssVar('--brand-amber-muted') || 'rgba(217, 119, 6, 0.4)';
+      const colorGamma = getCssVar('--brand-rose') || '#E11D48';
+      const colorText = getCssVar('--text-secondary') || '#888';
+      const colorGrid = getCssVar('--border-subtle') || '#333';
+
+      const traceTheta = {
+        x: xStrikes,
+        y: yTheta,
+        name: 'Theta Diario (R$)',
+        type: 'bar',
+        marker: { color: colorThetaMuted, line: { color: colorTheta, width: 1 } },
+        yaxis: 'y1',
+        hovertemplate: 'Strike: R$ %{x:.2f}<br>Decaimento Diario: R$ %{y:.3f}<extra></extra>'
+      };
+
+      const traceGamma = {
+        x: xStrikes,
+        y: yGamma,
+        name: 'Risco Gamma',
+        type: 'scatter',
+        mode: 'lines+markers',
+        line: { color: colorGamma, width: 3, shape: 'spline' },
+        marker: { size: 6, color: colorGamma },
+        yaxis: 'y2', // Eixo secundario
+        hovertemplate: 'Strike: R$ %{x:.2f}<br>Aceleracao Gamma: %{y:.4f}<extra></extra>'
+      };
+
+      const layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        margin: { t: 30, r: 60, b: 50, l: 60 },
+        font: { color: colorText },
+        hovermode: 'x unified',
+        legend: { orientation: 'h', y: 1.1, x: 0.5, xanchor: 'center', font: { color: colorText } },
+        xaxis: { title: 'Preco de Exercicio (Strike)', gridcolor: colorGrid, zerolinecolor: colorGrid },
+        yaxis: { 
+          title: 'Decaimento do Tempo (Theta)', 
+          gridcolor: colorGrid, zerolinecolor: colorGrid,
+          titlefont: { color: colorTheta }, tickfont: { color: colorTheta }
+        },
+        yaxis2: { 
+          title: 'Aceleracao Direcional (Gamma)', 
+          overlaying: 'y', side: 'right',
+          gridcolor: 'rgba(0,0,0,0)', zerolinecolor: 'rgba(0,0,0,0)',
+          titlefont: { color: colorGamma }, tickfont: { color: colorGamma }
+        }
+      };
+
+      if (spotValue > 0) {
+        layout.shapes = [{
+          type: 'line',
+          x0: spotValue, x1: spotValue,
+          y0: 0, y1: 1, yref: 'paper',
+          line: { color: '#FBBF24', width: 2, dash: 'dash' }
+        }];
+        layout.annotations = [{
+          x: spotValue, y: 1.05, yref: 'paper',
+          text: 'SPOT R$ ' + (spotValue.toFixed(2)),
+          showarrow: false,
+          font: { color: '#FBBF24', size: 10, weight: 'bold' }
+        }];
+      }
+
+      Plotly.react(el, [traceTheta, traceGamma], layout, { responsive: true, displayModeBar: false });
+    };
+
+    const handleResize = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const el = document.getElementById('gammaThetaPlotDiv');
+        if (el && el.data) Plotly.Plots.resize(el);
+      }, 200);
+    };
+
+    onMounted(() => {
+      if (filtroAtivo.value) setTimeout(atualizarGrafico, 100);
+      window.addEventListener('resize', handleResize);
+      window.addEventListener('themechange', atualizarGrafico);
+    });
+    
+    onUnmounted(() => { 
+      window.removeEventListener('resize', handleResize); 
+      window.removeEventListener('themechange', atualizarGrafico);
+    });
+
+    const solicitarLeituraIA = () => {
+      if (dadosFiltrados.value.length === 0) return;
+      loadingIA.value = true;
+      insightIA.value = '';
+
+      const picoGamma = dadosFiltrados.value.reduce((max, curr) => parseFloat(curr.GAMMA) > parseFloat(max.GAMMA) ? curr : max, dadosFiltrados.value[0]);
+      
+      const payloadParaAPI = {
+        ativo: filtroAtivo.value,
+        tipo: filtroTipo.value,
+        spot: dadosFiltrados.value[0].SPOT,
+        picoStrike: picoGamma.STRIKE,
+        picoGammaVal: picoGamma.GAMMA,
+        picoThetaVal: Math.abs(parseFloat(picoGamma.THETA))
+      };
+
+      if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+          .withSuccessHandler(resposta => { insightIA.value = resposta; loadingIA.value = false; })
+          .withFailureHandler(erro => { insightIA.value = '<span style="color: var(--brand-rose);">Erro: ' + (erro.message) + '</span>'; loadingIA.value = false; })
+          .apiGerarInsightGammaTheta(payloadParaAPI);
+      }
+    };
+
+    return { filtroAtivo, filtroTipo, setTipo, ativos: props.ativos, atualizarGrafico, dadosFiltrados, loadingIA, insightIA, solicitarLeituraIA };
+  }
+};
+</script>

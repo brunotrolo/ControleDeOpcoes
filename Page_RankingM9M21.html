@@ -1,0 +1,178 @@
+<template id="page-ranking-m9m21-template">
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+
+    <!-- Controles -->
+    <div class="premium-card" style="display:flex;flex-wrap:wrap;align-items:center;gap:1rem;padding:1rem 1.5rem;">
+      <div style="display:flex;flex-direction:column;gap:0.25rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Tendencia</label>
+        <div style="display:flex;gap:0.375rem;">
+          <button v-for="t in [{k:0,l:'Todas'},{k:1,l:'Alta'},{k:-1,l:'Baixa'}]" :key="t.k"
+                  @click="filtroTendencia = t.k"
+                  style="padding:0.375rem 0.875rem;border-radius:99px;font-size:0.7rem;font-weight:700;cursor:pointer;border:1px solid;transition:all 0.15s;"
+                  :style="filtroTendencia === t.k
+                    ? (t.k===1  ? 'background:var(--brand-emerald);color:#fff;border-color:var(--brand-emerald);'
+                      : t.k===-1 ? 'background:var(--brand-rose);color:#fff;border-color:var(--brand-rose);'
+                      : 'background:var(--text-primary);color:var(--surface-base);border-color:var(--text-primary);')
+                    : 'background:var(--surface-base);color:var(--text-secondary);border-color:var(--border-default);'">
+            {{ t.l }}
+          </button>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:0.25rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Setor</label>
+        <select v-model="filtroSetor"
+                style="padding:0.375rem 0.75rem;background:var(--surface-base);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.8rem;cursor:pointer;outline:none;"
+                onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+          <option value="">Todos os setores</option>
+          <option v-for="s in setoresDisponiveis" :key="s" :value="s">{{ s }}</option>
+        </select>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:0.25rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Busca</label>
+        <input v-model="busca" placeholder="Ticker ou empresa..."
+               style="padding:0.375rem 0.75rem;background:var(--surface-base);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.8rem;outline:none;width:180px;"
+               onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+      </div>
+
+      <div style="margin-left:auto;font-size:0.75rem;color:var(--text-muted);">
+        <span style="font-weight:700;color:var(--brand-emerald);">{{ contAlta }}</span> alta
+        <span style="margin:0 6px;color:var(--border-strong);">|</span>
+        <span style="font-weight:700;color:var(--brand-rose);">{{ contBaixa }}</span> baixa
+      </div>
+    </div>
+
+    <!-- Dois paineis lado a lado (Alta / Baixa) quando "Todas" -->
+    <div v-if="filtroTendencia === 0" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div class="premium-card" style="overflow:hidden;">
+        <div style="padding:0.75rem 1.25rem;border-bottom:1px solid var(--border-subtle);background:var(--brand-emerald-light);display:flex;align-items:center;gap:0.5rem;">
+          <i data-lucide="trending-up" style="width:1rem;height:1rem;color:var(--brand-emerald);"></i>
+          <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--brand-emerald);">Tendencia de Alta ({{ listaAlta.length }})</span>
+        </div>
+        <div style="overflow-y:auto;max-height:520px;">
+          <div v-for="(linha, idx) in listaAlta" :key="linha.TICKER"
+               style="padding:0.625rem 1.25rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border-subtle);transition:background 0.1s;"
+               :style="idx % 2 === 0 ? 'background:var(--surface-base);' : 'background:var(--surface-sunken);'"
+               onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="">
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <span style="font-size:0.85rem;font-weight:800;color:var(--text-primary);">{{ linha.TICKER }}</span>
+              <span style="font-size:0.65rem;color:var(--text-muted);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ linha.COMPANY_NAME }}</span>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:0.85rem;font-weight:800;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;">{{ fmtNum(linha.M9M21_VALUE) }}</div>
+              <div style="font-size:0.6rem;color:var(--text-muted);">{{ linha.SECTOR ? linha.SECTOR.substring(0, 20) : '' }}</div>
+            </div>
+          </div>
+          <div v-if="listaAlta.length === 0" style="padding:2rem;text-align:center;color:var(--text-muted);font-size:0.8rem;">Nenhum resultado</div>
+        </div>
+      </div>
+
+      <div class="premium-card" style="overflow:hidden;">
+        <div style="padding:0.75rem 1.25rem;border-bottom:1px solid var(--border-subtle);background:var(--brand-rose-light);display:flex;align-items:center;gap:0.5rem;">
+          <i data-lucide="trending-down" style="width:1rem;height:1rem;color:var(--brand-rose);"></i>
+          <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--brand-rose);">Tendencia de Baixa ({{ listaBaixa.length }})</span>
+        </div>
+        <div style="overflow-y:auto;max-height:520px;">
+          <div v-for="(linha, idx) in listaBaixa" :key="linha.TICKER"
+               style="padding:0.625rem 1.25rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border-subtle);transition:background 0.1s;"
+               :style="idx % 2 === 0 ? 'background:var(--surface-base);' : 'background:var(--surface-sunken);'"
+               onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="">
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <span style="font-size:0.85rem;font-weight:800;color:var(--text-primary);">{{ linha.TICKER }}</span>
+              <span style="font-size:0.65rem;color:var(--text-muted);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ linha.COMPANY_NAME }}</span>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:0.85rem;font-weight:800;color:var(--brand-rose);font-family:'JetBrains Mono',monospace;">{{ fmtNum(linha.M9M21_VALUE) }}</div>
+              <div style="font-size:0.6rem;color:var(--text-muted);">{{ linha.SECTOR ? linha.SECTOR.substring(0, 20) : '' }}</div>
+            </div>
+          </div>
+          <div v-if="listaBaixa.length === 0" style="padding:2rem;text-align:center;color:var(--text-muted);font-size:0.8rem;">Nenhum resultado</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lista filtrada (Alta ou Baixa) -->
+    <div v-else class="premium-card" style="overflow:hidden;">
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:separate;border-spacing:0;min-width:500px;">
+          <thead>
+            <tr style="background:var(--surface-overlay);">
+              <th style="padding:0.625rem 1rem;text-align:left;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">#</th>
+              <th style="padding:0.625rem 1rem;text-align:left;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">Ativo</th>
+              <th style="padding:0.625rem 1rem;text-align:right;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">M9/M21</th>
+              <th style="padding:0.625rem 1rem;text-align:left;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">Setor</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(linha, idx) in linhasFiltradas" :key="linha.TICKER"
+                :style="idx % 2 === 0 ? 'background:var(--surface-base);' : 'background:var(--surface-sunken);'"
+                onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="">
+              <td style="padding:0.625rem 1rem;border-bottom:1px solid var(--border-subtle);color:var(--text-muted);font-size:0.75rem;font-family:'JetBrains Mono',monospace;">{{ idx + 1 }}</td>
+              <td style="padding:0.625rem 1rem;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.875rem;font-weight:800;color:var(--text-primary);">{{ linha.TICKER }}</span>
+                <span style="font-size:0.7rem;color:var(--text-muted);margin-left:8px;">{{ linha.COMPANY_NAME }}</span>
+              </td>
+              <td style="padding:0.625rem 1rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.875rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
+                      :style="filtroTendencia === 1 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'">
+                  {{ fmtNum(linha.M9M21_VALUE) }}
+                </span>
+              </td>
+              <td style="padding:0.625rem 1rem;border-bottom:1px solid var(--border-subtle);font-size:0.7rem;color:var(--text-muted);">{{ linha.SECTOR }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</template>
+
+<script>
+window.PageRankingM9M21 = {
+  template: '#page-ranking-m9m21-template',
+  props: {
+    dados:    { type: Array,   default: () => [] },
+    isMobile: { type: Boolean, default: false }
+  },
+  setup(props) {
+    const { ref, computed, nextTick } = Vue;
+
+    const filtroTendencia = ref(0);
+    const filtroSetor     = ref('');
+    const busca           = ref('');
+
+    const fmtNum = (v) => { const n = parseFloat(v); return isNaN(n) ? '--' : n.toFixed(2); };
+
+    const filtrar = (lista) => {
+      let r = lista;
+      if (filtroSetor.value) r = r.filter(l => l.SECTOR === filtroSetor.value);
+      if (busca.value.trim()) {
+        const b = busca.value.trim().toUpperCase();
+        r = r.filter(l => (l.TICKER||'').toUpperCase().includes(b) || (l.COMPANY_NAME||'').toUpperCase().includes(b));
+      }
+      return r;
+    };
+
+    const listaAlta   = computed(() => filtrar(props.dados.filter(r => String(r.M9M21_TREND) === '1')).sort((a,b) => parseFloat(b.M9M21_VALUE||0) - parseFloat(a.M9M21_VALUE||0)));
+    const listaBaixa  = computed(() => filtrar(props.dados.filter(r => String(r.M9M21_TREND) === '-1')).sort((a,b) => parseFloat(a.M9M21_VALUE||0) - parseFloat(b.M9M21_VALUE||0)));
+    const contAlta    = computed(() => props.dados.filter(r => String(r.M9M21_TREND) === '1').length);
+    const contBaixa   = computed(() => props.dados.filter(r => String(r.M9M21_TREND) === '-1').length);
+
+    const linhasFiltradas = computed(() => {
+      if (filtroTendencia.value === 1)  return listaAlta.value;
+      if (filtroTendencia.value === -1) return listaBaixa.value;
+      return filtrar(props.dados);
+    });
+
+    const setoresDisponiveis = computed(() => {
+      const s = new Set(props.dados.map(r => r.SECTOR).filter(Boolean));
+      return [...s].sort();
+    });
+
+    return { filtroTendencia, filtroSetor, busca, listaAlta, listaBaixa,
+             contAlta, contBaixa, linhasFiltradas, setoresDisponiveis, fmtNum };
+  }
+};
+</script>

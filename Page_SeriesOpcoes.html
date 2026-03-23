@@ -1,0 +1,720 @@
+<template id="page-series-opcoes-template">
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+
+    <!-- -- Barra de controles -------------------------------------- -->
+    <div class="premium-card"
+         style="display:flex;flex-wrap:wrap;align-items:center;gap:1rem;"
+         :style="isMobile ? 'padding:1rem;' : 'padding:1rem 1.5rem;'">
+
+      <!-- Seletor de ativo -->
+      <div style="display:flex;flex-direction:column;gap:0.25rem;min-width:160px;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Ativo</label>
+        <select v-model="ativoSelecionado"
+                style="padding:0.5rem 0.75rem;background:var(--surface-base);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.875rem;font-weight:700;font-family:'JetBrains Mono',monospace;cursor:pointer;outline:none;"
+                onfocus="this.style.borderColor='var(--brand-indigo)'"
+                onblur="this.style.borderColor='var(--border-default)'">
+          <option value="">-- Selecione --</option>
+          <option v-for="t in tickersDisponiveis" :key="t" :value="t">{{ t }}</option>
+        </select>
+      </div>
+
+      <!-- Filtro de vencimento por data -->
+      <div style="display:flex;flex-direction:column;gap:0.25rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Vencimento</label>
+        <div style="display:flex;flex-wrap:wrap;gap:0.375rem;">
+          <button v-for="v in vencimentosDisponiveis" :key="v.data"
+                  @click="toggleVencimento(v.data)"
+                  style="padding:0.375rem 0.75rem;border-radius:99px;font-size:0.7rem;font-weight:700;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all 0.15s;border:1px solid;"
+                  :style="vencimentosFiltro.includes(v.data)
+                    ? 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);'
+                    : 'background:var(--surface-base);color:var(--text-secondary);border-color:var(--border-default);'">
+            {{ v.label }}
+            <span style="margin-left:4px;opacity:0.7;">{{ v.dte }}d</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filtro CALL/PUT -->
+      <div style="display:flex;flex-direction:column;gap:0.25rem;margin-left:auto;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Tipo</label>
+        <div style="display:flex;gap:0.375rem;">
+          <button v-for="tipo in ['TODOS','CALL','PUT']" :key="tipo"
+                  @click="filtroTipo = tipo"
+                  style="padding:0.375rem 0.875rem;border-radius:99px;font-size:0.7rem;font-weight:700;cursor:pointer;transition:all 0.15s;border:1px solid;"
+                  :style="filtroTipo === tipo
+                    ? (tipo === 'CALL' ? 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);'
+                      : tipo === 'PUT' ? 'background:var(--brand-amber);color:#fff;border-color:var(--brand-amber);'
+                      : 'background:var(--text-primary);color:var(--surface-base);border-color:var(--text-primary);')
+                    : 'background:var(--surface-base);color:var(--text-secondary);border-color:var(--border-default);'">
+            {{ tipo }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- -- Painel do Ativo-Mae ------------------------------------- -->
+    <div v-if="ativoSelecionado && infoAtivo" class="premium-card" style="overflow:hidden;">
+      <!-- Faixa de tendencia -->
+      <div style="height:4px;width:100%;"
+           :style="infoAtivo.SHORT_TERM_TREND == 1 ? 'background:var(--brand-emerald);' : infoAtivo.SHORT_TERM_TREND == -1 ? 'background:var(--brand-rose);' : 'background:var(--border-strong);'">
+      </div>
+      <div style="padding:1.25rem 1.5rem;">
+        <!-- Identidade do ativo -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;margin-bottom:1.25rem;">
+          <div>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <span style="font-size:1.75rem;font-weight:900;color:var(--text-primary);letter-spacing:-0.04em;line-height:1;">{{ ativoSelecionado }}</span>
+              <span style="font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:99px;"
+                    :style="tendenciaStyle(infoAtivo.SHORT_TERM_TREND)">
+                {{ tendenciaLabel(infoAtivo.SHORT_TERM_TREND) }} CT
+              </span>
+              <span style="font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:99px;"
+                    :style="tendenciaStyle(infoAtivo.MID_TERM_TREND)">
+                {{ tendenciaLabel(infoAtivo.MID_TERM_TREND) }} MT
+              </span>
+            </div>
+            <p style="font-size:0.8rem;color:var(--text-muted);margin-top:0.25rem;">{{ infoAtivo.COMPANY_NAME }}</p>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:1.75rem;font-weight:900;color:var(--text-primary);font-family:'JetBrains Mono',monospace;line-height:1;">
+              {{ fmt(infoAtivo.CLOSE) }}
+            </div>
+            <div style="font-size:0.875rem;font-weight:700;font-family:'JetBrains Mono',monospace;margin-top:2px;"
+                 :style="infoAtivo.VARIATION >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'">
+              {{ infoAtivo.VARIATION >= 0 ? '+' : '' }}{{ fmtPct(infoAtivo.VARIATION) }}
+            </div>
+          </div>
+        </div>
+
+        <!-- KPIs em strip -->
+        <div style="display:flex;gap:1px;background:var(--border-subtle);border-radius:var(--radius-md);overflow:hidden;overflow-x:auto;">
+          <div v-for="kpi in kpisAtivo" :key="kpi.label"
+               style="flex:1 1 0%;min-width:100px;padding:0.75rem 1rem;background:var(--surface-base);display:flex;flex-direction:column;gap:3px;">
+            <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);white-space:nowrap;">{{ kpi.label }}</span>
+            <span style="font-size:0.95rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                  :style="kpi.cor ? ('color:' + kpi.cor) : 'color:var(--text-primary)'">
+              {{ kpi.valor }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- -- Empty state: nenhum ativo selecionado ------------------- -->
+    <div v-if="!ativoSelecionado" class="premium-card" style="padding:4rem 2rem;text-align:center;opacity:0.7;">
+      <i data-lucide="search" style="width:2.5rem;height:2.5rem;color:var(--text-muted);margin-bottom:1rem;"></i>
+      <p style="color:var(--text-primary);font-weight:700;margin-bottom:0.5rem;">Selecione um ativo</p>
+      <p style="color:var(--text-muted);font-size:0.875rem;">Escolha o ativo acima para ver a cadeia de opcoes.</p>
+    </div>
+
+    <!-- -- Cadeia de Opcoes + Painel lateral ----------------------- -->
+    <div v-else-if="cadeiaPorVencimento.length > 0"
+         style="display:flex;gap:1rem;align-items:flex-start;">
+
+      <!-- Cadeia principal -->
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:0.75rem;">
+
+        <!-- Bloco por vencimento -->
+        <div v-for="grupo in cadeiaPorVencimento" :key="grupo.data" class="premium-card" style="overflow:hidden;">
+
+          <!-- Header do vencimento (clicavel para expandir/colapsar) -->
+          <button @click="toggleVencimentoExpand(grupo.data)"
+                  style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:0.875rem 1.25rem;background:var(--surface-overlay);border:none;cursor:pointer;border-bottom:1px solid var(--border-subtle);"
+                  :style="grupo.expandido ? '' : 'border-bottom:none;'">
+
+            <div style="display:flex;align-items:center;gap:0.875rem;">
+              <i :data-lucide="grupo.expandido ? 'chevron-down' : 'chevron-right'"
+                 style="width:1rem;height:1rem;color:var(--text-muted);flex-shrink:0;"></i>
+
+              <!-- Data formatada -->
+              <div style="display:flex;align-items:center;gap:0.625rem;">
+                <span style="font-size:0.875rem;font-weight:800;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">
+                  {{ grupo.labelData }}
+                </span>
+                <span style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:99px;"
+                      :style="grupo.dte <= 7 ? 'background:var(--brand-rose-light);color:var(--brand-rose);border:1px solid var(--brand-rose-muted);'
+                             : grupo.dte <= 21 ? 'background:var(--brand-amber-light);color:var(--brand-amber);border:1px solid var(--brand-amber-muted);'
+                             : 'background:var(--brand-indigo-light);color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);'">
+                  {{ grupo.dte }}d
+                </span>
+                <!-- Badge MM -->
+                <span v-if="grupo.temMM" style="font-size:0.65rem;font-weight:700;padding:2px 6px;border-radius:99px;background:var(--brand-emerald-light);color:var(--brand-emerald);border:1px solid var(--brand-emerald-muted);">
+                  MM
+                </span>
+              </div>
+            </div>
+
+            <!-- Resumo do vencimento -->
+            <div style="display:flex;align-items:center;gap:1.5rem;">
+              <div style="text-align:right;">
+                <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Strikes</div>
+                <div style="font-size:0.875rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ grupo.qtdStrikes }}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Vol. Fin.</div>
+                <div style="font-size:0.875rem;font-weight:700;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;">{{ fmtCompact(grupo.volFinTotal) }}</div>
+              </div>
+            </div>
+          </button>
+
+          <!-- Tabela do vencimento -->
+          <div v-if="grupo.expandido" style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:separate;border-spacing:0;min-width:680px;">
+
+              <!-- Cabecalho -->
+              <thead>
+                <tr style="background:var(--surface-base);">
+                  <th style="padding:0.625rem 0.75rem;text-align:left;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);white-space:nowrap;">Opcao</th>
+                  <th style="padding:0.625rem 0.75rem;text-align:center;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">Tipo</th>
+                  <th style="padding:0.625rem 0.75rem;text-align:right;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">Strike</th>
+                  <th style="padding:0.625rem 0.75rem;text-align:right;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--brand-emerald);border-bottom:1px solid var(--border-subtle);">Bid</th>
+                  <th style="padding:0.625rem 0.75rem;text-align:right;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--brand-rose);border-bottom:1px solid var(--border-subtle);">Ask</th>
+                  <th style="padding:0.625rem 0.75rem;text-align:right;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">Ultimo</th>
+                  <th style="padding:0.625rem 0.75rem;text-align:right;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">Var%</th>
+                  <th style="padding:0.625rem 0.75rem;text-align:right;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">Vol.Fin.</th>
+                  <th style="padding:0.625rem 0.75rem;text-align:center;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">Madur.</th>
+                  <th style="padding:0.625rem 0.75rem;text-align:center;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">MM</th>
+                </tr>
+              </thead>
+
+              <!-- Linhas -->
+              <tbody>
+                <tr v-for="(linha, idx) in grupo.linhas" :key="linha.OPTION_TICKER"
+                    @click="selecionarOpcao(linha)"
+                    style="cursor:pointer;transition:background 0.1s;"
+                    :style="opcaoSelecionada && opcaoSelecionada.OPTION_TICKER === linha.OPTION_TICKER
+                      ? 'background:var(--brand-indigo-light);'
+                      : idx % 2 === 0 ? 'background:var(--surface-base);' : 'background:var(--surface-sunken);'"
+                    onmouseover="if(!this.style.background.includes('brand-indigo')) this.style.background='var(--surface-overlay)'"
+                    onmouseout="">
+
+                  <!-- Nome da opcao -->
+                  <td style="padding:0.625rem 0.75rem;border-bottom:1px solid var(--border-subtle);">
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                      <span style="font-size:0.8rem;font-weight:800;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ linha.OPTION_TICKER }}</span>
+                    </div>
+                  </td>
+
+                  <!-- CALL/PUT badge -->
+                  <td style="padding:0.625rem 0.5rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
+                    <span style="font-size:0.65rem;font-weight:800;padding:2px 7px;border-radius:99px;"
+                          :style="linha.CATEGORY === 'CALL'
+                            ? 'background:var(--brand-indigo-light);color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);'
+                            : 'background:var(--brand-amber-light);color:var(--brand-amber);border:1px solid var(--brand-amber-muted);'">
+                      {{ linha.CATEGORY }}
+                    </span>
+                  </td>
+
+                  <!-- Strike com distancia do spot -->
+                  <td style="padding:0.625rem 0.75rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;">
+                      <span style="font-size:0.8rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ fmt(linha.STRIKE) }}</span>
+                      <span style="font-size:0.6rem;font-family:'JetBrains Mono',monospace;"
+                            :style="distanciaStrike(linha.STRIKE) < 0 ? 'color:var(--brand-rose);' : distanciaStrike(linha.STRIKE) > 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-amber);'">
+                        {{ distanciaStrike(linha.STRIKE) >= 0 ? '+' : '' }}{{ fmtPct(distanciaStrike(linha.STRIKE)) }}
+                      </span>
+                    </div>
+                  </td>
+
+                  <!-- Bid -->
+                  <td style="padding:0.625rem 0.75rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                    <span style="font-size:0.8rem;font-weight:600;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;">{{ fmt(linha.OPTION_BID) }}</span>
+                  </td>
+
+                  <!-- Ask -->
+                  <td style="padding:0.625rem 0.75rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                    <span style="font-size:0.8rem;font-weight:600;color:var(--brand-rose);font-family:'JetBrains Mono',monospace;">{{ fmt(linha.OPTION_ASK) }}</span>
+                  </td>
+
+                  <!-- Ultimo -->
+                  <td style="padding:0.625rem 0.75rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                    <span style="font-size:0.8rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ fmt(linha.OPTION_CLOSE) }}</span>
+                  </td>
+
+                  <!-- Variacao -->
+                  <td style="padding:0.625rem 0.75rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                    <span style="font-size:0.8rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                          :style="linha.OPTION_VARIATION > 0 ? 'color:var(--brand-emerald);' : linha.OPTION_VARIATION < 0 ? 'color:var(--brand-rose);' : 'color:var(--text-muted);'">
+                      {{ linha.OPTION_VARIATION >= 0 ? '+' : '' }}{{ fmtPct(linha.OPTION_VARIATION) }}
+                    </span>
+                  </td>
+
+                  <!-- Volume financeiro -->
+                  <td style="padding:0.625rem 0.75rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                    <span style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">{{ fmtCompact(linha.OPTION_VOLUME_FIN) }}</span>
+                  </td>
+
+                  <!-- Maturidade -->
+                  <td style="padding:0.625rem 0.5rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
+                    <span style="font-size:0.65rem;font-weight:700;padding:2px 6px;border-radius:4px;"
+                          :style="linha.MATURITY_TYPE === 'AMERICAN'
+                            ? 'background:var(--surface-overlay);color:var(--text-secondary);border:1px solid var(--border-subtle);'
+                            : 'background:var(--brand-indigo-light);color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);'">
+                      {{ linha.MATURITY_TYPE === 'AMERICAN' ? 'AM' : 'EU' }}
+                    </span>
+                  </td>
+
+                  <!-- Market Maker -->
+                  <td style="padding:0.625rem 0.5rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
+                    <i v-if="linha.MARKET_MAKER == 1 || linha.MARKET_MAKER === true || linha.MARKET_MAKER === 'true'"
+                       data-lucide="check-circle-2"
+                       style="width:0.875rem;height:0.875rem;color:var(--brand-emerald);display:inline-block;"></i>
+                    <span v-else style="color:var(--border-strong);font-size:0.75rem;">--</span>
+                  </td>
+
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- -- Painel lateral de detalhes --------------------------- -->
+      <transition name="slide-panel">
+        <div v-if="opcaoSelecionada"
+             style="width:320px;flex-shrink:0;display:flex;flex-direction:column;gap:0.75rem;position:sticky;top:1rem;">
+
+          <!-- Header do painel -->
+          <div class="premium-card" style="overflow:hidden;">
+            <div style="height:4px;"
+                 :style="opcaoSelecionada.CATEGORY === 'CALL' ? 'background:var(--brand-indigo);' : 'background:var(--brand-amber);'"></div>
+            <div style="padding:1rem 1.25rem;display:flex;justify-content:space-between;align-items:flex-start;">
+              <div>
+                <span style="font-size:1.25rem;font-weight:900;color:var(--text-primary);font-family:'JetBrains Mono',monospace;letter-spacing:-0.03em;">{{ opcaoSelecionada.OPTION_TICKER }}</span>
+                <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.375rem;">
+                  <span style="font-size:0.65rem;font-weight:800;padding:2px 7px;border-radius:99px;"
+                        :style="opcaoSelecionada.CATEGORY === 'CALL'
+                          ? 'background:var(--brand-indigo-light);color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);'
+                          : 'background:var(--brand-amber-light);color:var(--brand-amber);border:1px solid var(--brand-amber-muted);'">
+                    {{ opcaoSelecionada.CATEGORY }}
+                  </span>
+                  <span style="font-size:0.65rem;color:var(--text-muted);">{{ opcaoSelecionada.EXPIRY }}</span>
+                  <span style="font-size:0.65rem;font-weight:700;padding:2px 6px;border-radius:4px;background:var(--brand-indigo-light);color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);">
+                    {{ opcaoSelecionada.DTE_CALENDAR }}d
+                  </span>
+                </div>
+              </div>
+              <button @click="opcaoSelecionada = null"
+                      style="padding:0.25rem;background:none;border:none;cursor:pointer;color:var(--text-muted);line-height:1;"
+                      onmouseover="this.style.color='var(--text-primary)'"
+                      onmouseout="this.style.color='var(--text-muted)'">
+                <i data-lucide="x" style="width:1rem;height:1rem;"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Precos bid/ask/ultimo -->
+          <div class="premium-card" style="padding:0;overflow:hidden;">
+            <div style="padding:0.625rem 1rem;border-bottom:1px solid var(--border-subtle);background:var(--surface-overlay);">
+              <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Precos de Mercado</span>
+            </div>
+            <div style="display:flex;gap:1px;background:var(--border-subtle);">
+              <div style="flex:1;padding:0.875rem 0.75rem;background:var(--brand-emerald-light);display:flex;flex-direction:column;gap:3px;align-items:center;">
+                <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--brand-emerald);">Bid</span>
+                <span style="font-size:1.1rem;font-weight:800;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;">{{ fmt(opcaoSelecionada.OPTION_BID) }}</span>
+                <span style="font-size:0.65rem;color:var(--brand-emerald);opacity:0.7;">{{ fmtVol(opcaoSelecionada.BID_VOL) }}</span>
+              </div>
+              <div style="flex:1;padding:0.875rem 0.75rem;background:var(--surface-base);display:flex;flex-direction:column;gap:3px;align-items:center;">
+                <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Ultimo</span>
+                <span style="font-size:1.1rem;font-weight:800;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ fmt(opcaoSelecionada.OPTION_CLOSE) }}</span>
+                <span style="font-size:0.65rem;font-weight:700;"
+                      :style="opcaoSelecionada.OPTION_VARIATION >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'">
+                  {{ opcaoSelecionada.OPTION_VARIATION >= 0 ? '+' : '' }}{{ fmtPct(opcaoSelecionada.OPTION_VARIATION) }}
+                </span>
+              </div>
+              <div style="flex:1;padding:0.875rem 0.75rem;background:var(--brand-rose-light);display:flex;flex-direction:column;gap:3px;align-items:center;">
+                <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--brand-rose);">Ask</span>
+                <span style="font-size:1.1rem;font-weight:800;color:var(--brand-rose);font-family:'JetBrains Mono',monospace;">{{ fmt(opcaoSelecionada.OPTION_ASK) }}</span>
+                <span style="font-size:0.65rem;color:var(--brand-rose);opacity:0.7;">{{ fmtVol(opcaoSelecionada.ASK_VOL) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Strike e Spot -->
+          <div class="premium-card" style="padding:0;overflow:hidden;">
+            <div style="padding:0.625rem 1rem;border-bottom:1px solid var(--border-subtle);background:var(--surface-overlay);">
+              <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Strike vs Spot</span>
+            </div>
+            <div style="padding:0.875rem 1rem;display:flex;flex-direction:column;gap:0.625rem;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.75rem;color:var(--text-muted);">Strike</span>
+                <span style="font-size:0.875rem;font-weight:800;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ fmt(opcaoSelecionada.STRIKE) }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.75rem;color:var(--text-muted);">Spot ({{ ativoSelecionado }})</span>
+                <span style="font-size:0.875rem;font-weight:800;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;">{{ fmt(infoAtivo ? infoAtivo.CLOSE : 0) }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.75rem;color:var(--text-muted);">Distancia</span>
+                <span style="font-size:0.875rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
+                      :style="distanciaStrike(opcaoSelecionada.STRIKE) > 0 ? 'color:var(--brand-emerald);' : distanciaStrike(opcaoSelecionada.STRIKE) < 0 ? 'color:var(--brand-rose);' : 'color:var(--brand-amber);'">
+                  {{ distanciaStrike(opcaoSelecionada.STRIKE) >= 0 ? '+' : '' }}{{ fmtPct(distanciaStrike(opcaoSelecionada.STRIKE)) }}
+                </span>
+              </div>
+              <!-- Barra de distancia -->
+              <div style="margin-top:0.25rem;">
+                <div style="width:100%;height:6px;background:var(--surface-sunken);border-radius:99px;overflow:hidden;position:relative;">
+                  <div style="position:absolute;top:0;bottom:0;background:var(--border-subtle);width:2px;left:50%;transform:translateX(-50%);"></div>
+                  <div style="height:100%;border-radius:99px;transition:width 0.3s;"
+                       :style="barraMoneyness(opcaoSelecionada.STRIKE)"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:0.55rem;color:var(--text-muted);margin-top:3px;">
+                  <span>OTM -10%</span>
+                  <span>ATM</span>
+                  <span>ITM +10%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- OHLC da opcao -->
+          <div class="premium-card" style="padding:0;overflow:hidden;">
+            <div style="padding:0.625rem 1rem;border-bottom:1px solid var(--border-subtle);background:var(--surface-overlay);">
+              <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">OHLC da Opcao</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border-subtle);">
+              <div v-for="ohlc in ohlcOpcao" :key="ohlc.label" style="padding:0.625rem 0.875rem;background:var(--surface-base);">
+                <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">{{ ohlc.label }}</div>
+                <div style="font-size:0.875rem;font-weight:700;font-family:'JetBrains Mono',monospace;" :style="ohlc.cor ? ('color:' + ohlc.cor) : 'color:var(--text-primary)'">{{ ohlc.valor }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Volume e contrato -->
+          <div class="premium-card" style="padding:0;overflow:hidden;">
+            <div style="padding:0.625rem 1rem;border-bottom:1px solid var(--border-subtle);background:var(--surface-overlay);">
+              <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Volume e Contrato</span>
+            </div>
+            <div style="padding:0.875rem 1rem;display:flex;flex-direction:column;gap:0.5rem;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.75rem;color:var(--text-muted);">Vol. Financeiro</span>
+                <span style="font-size:0.875rem;font-weight:700;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;">{{ fmtCompact(opcaoSelecionada.OPTION_VOLUME_FIN) }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.75rem;color:var(--text-muted);">Vol. Contratos</span>
+                <span style="font-size:0.875rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ fmtNumero(opcaoSelecionada.OPTION_VOLUME_QTY) }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.75rem;color:var(--text-muted);">Tam. Contrato</span>
+                <span style="font-size:0.875rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">{{ fmtNumero(opcaoSelecionada.OPTION_CONTRACT_SIZE) }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.75rem;color:var(--text-muted);">Maturidade</span>
+                <span style="font-size:0.875rem;font-weight:700;color:var(--text-secondary);">{{ opcaoSelecionada.MATURITY_TYPE }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.75rem;color:var(--text-muted);">Market Maker</span>
+                <span style="font-size:0.875rem;font-weight:700;"
+                      :style="(opcaoSelecionada.MARKET_MAKER == 1 || opcaoSelecionada.MARKET_MAKER === true) ? 'color:var(--brand-emerald);' : 'color:var(--text-muted);'">
+                  {{ (opcaoSelecionada.MARKET_MAKER == 1 || opcaoSelecionada.MARKET_MAKER === true) ? 'Sim' : 'Nao' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contexto: M9M21 e Score (se disponivel) -->
+          <div v-if="contextoAtivo" class="premium-card" style="padding:0;overflow:hidden;">
+            <div style="padding:0.625rem 1rem;border-bottom:1px solid var(--border-subtle);background:var(--surface-overlay);">
+              <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Contexto do Ativo</span>
+            </div>
+            <div style="padding:0.875rem 1rem;display:flex;flex-direction:column;gap:0.5rem;">
+              <div v-if="contextoAtivo.m9m21" style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.75rem;color:var(--text-muted);">Tendencia M9M21</span>
+                <span style="font-size:0.75rem;font-weight:800;padding:2px 8px;border-radius:99px;"
+                      :style="contextoAtivo.m9m21.M9M21_TREND == 1
+                        ? 'background:var(--brand-emerald-light);color:var(--brand-emerald);border:1px solid var(--brand-emerald-muted);'
+                        : 'background:var(--brand-rose-light);color:var(--brand-rose);border:1px solid var(--brand-rose-muted);'">
+                  {{ contextoAtivo.m9m21.M9M21_TREND == 1 ? 'ALTA' : 'BAIXA' }}
+                  {{ contextoAtivo.m9m21.M9M21_VALUE ? ('(' + Number(contextoAtivo.m9m21.M9M21_VALUE).toFixed(2) + ')') : '' }}
+                </span>
+              </div>
+              <div v-if="contextoAtivo.score" style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.75rem;color:var(--text-muted);">OPLab Score</span>
+                <span style="font-size:0.875rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
+                      :style="contextoAtivo.score.SCORE_TOTAL >= 3 ? 'color:var(--brand-emerald);' : contextoAtivo.score.SCORE_TOTAL >= 1 ? 'color:var(--brand-amber);' : 'color:var(--text-muted);'">
+                  {{ contextoAtivo.score.SCORE_TOTAL }}/5
+                </span>
+              </div>
+              <div v-if="contextoAtivo.score" style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:0.75rem;color:var(--text-muted);">Setor</span>
+                <span style="font-size:0.72rem;color:var(--text-secondary);text-align:right;max-width:160px;">{{ contextoAtivo.score.SECTOR || '--' }}</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </transition>
+
+    </div>
+
+    <!-- -- Empty state: sem opcoes filtradas ----------------------- -->
+    <div v-else-if="ativoSelecionado" class="premium-card" style="padding:3rem 2rem;text-align:center;">
+      <i data-lucide="inbox" style="width:2rem;height:2rem;color:var(--text-muted);margin-bottom:0.75rem;"></i>
+      <p style="color:var(--text-muted);font-size:0.875rem;">Nenhuma opcao encontrada para os filtros selecionados.</p>
+    </div>
+
+  </div>
+</template>
+
+<script>
+window.PageSeriesOpcoes = {
+  template: '#page-series-opcoes-template',
+  props: {
+    dadosSeries: { type: Array,  default: () => [] },
+    dadosM9M21:  { type: Array,  default: () => [] },
+    dadosScore:  { type: Array,  default: () => [] },
+    isMobile:    { type: Boolean, default: false }
+  },
+  setup(props) {
+    const { ref, computed, watch, nextTick } = Vue;
+
+    const ativoSelecionado   = ref('');
+    const filtroTipo         = ref('TODOS');
+    const vencimentosFiltro  = ref([]);
+    const opcaoSelecionada   = ref(null);
+    const expandidos         = ref({});
+
+    // -- Helpers de formatacao --------------------------------------
+    const fmt = (v) => {
+      if (v === null || v === undefined || v === '' || v === 0) return '--';
+      const n = parseFloat(v);
+      if (isNaN(n)) return '--';
+      return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const fmtPct = (v) => {
+      if (v === null || v === undefined || v === '') return '--';
+      const n = parseFloat(v);
+      if (isNaN(n)) return '--';
+      return n.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + '%';
+    };
+
+    const fmtCompact = (v) => {
+      if (!v || v === 0) return '--';
+      const n = parseFloat(v);
+      if (isNaN(n) || n === 0) return '--';
+      if (n >= 1e6) return 'R$ ' + (n / 1e6).toFixed(1) + 'M';
+      if (n >= 1e3) return 'R$ ' + (n / 1e3).toFixed(1) + 'k';
+      return 'R$ ' + n.toFixed(0);
+    };
+
+    const fmtNumero = (v) => {
+      if (!v) return '--';
+      return parseFloat(v).toLocaleString('pt-BR');
+    };
+
+    const fmtVol = (v) => {
+      if (!v || v === 0) return '';
+      const n = parseFloat(v);
+      if (n >= 1000) return (n/1000).toFixed(0) + 'k';
+      return String(n);
+    };
+
+    const tendenciaLabel = (v) => {
+      if (v == 1)  return 'ALTA';
+      if (v == -1) return 'BAIXA';
+      return 'NEUTRO';
+    };
+
+    const tendenciaStyle = (v) => {
+      if (v == 1)  return 'background:var(--brand-emerald-light);color:var(--brand-emerald);border:1px solid var(--brand-emerald-muted);';
+      if (v == -1) return 'background:var(--brand-rose-light);color:var(--brand-rose);border:1px solid var(--brand-rose-muted);';
+      return 'background:var(--surface-overlay);color:var(--text-muted);border:1px solid var(--border-subtle);';
+    };
+
+    // -- Tickers disponiveis ----------------------------------------
+    const tickersDisponiveis = computed(() => {
+      const set = new Set(props.dadosSeries.map(r => r.TICKER).filter(Boolean));
+      return [...set].sort();
+    });
+
+    // -- Info do ativo-mae (primeira linha do ticker selecionado) --
+    const infoAtivo = computed(() => {
+      if (!ativoSelecionado.value) return null;
+      return props.dadosSeries.find(r => r.TICKER === ativoSelecionado.value) || null;
+    });
+
+    // -- KPIs do painel do ativo ------------------------------------
+    const kpisAtivo = computed(() => {
+      const a = infoAtivo.value;
+      if (!a) return [];
+      return [
+        { label: 'IV Atual',     valor: fmtPct(a.IV_CURRENT),   cor: 'var(--brand-amber)' },
+        { label: 'EWMA',         valor: fmtPct(a.EWMA_CURRENT), cor: null },
+        { label: 'STDV 1Y',      valor: fmtPct(a.STDV_1Y),      cor: null },
+        { label: 'Beta IBOV',    valor: a.BETA_IBOV ? Number(a.BETA_IBOV).toFixed(2) : '--', cor: null },
+        { label: 'Volume Fin.',  valor: fmtCompact(a.VOLUME_FIN), cor: 'var(--brand-indigo)' },
+        { label: 'Tam. Lote',    valor: fmtNumero(a.CONTRACT_SIZE), cor: null },
+      ];
+    });
+
+    // -- Distancia do strike ao spot --------------------------------
+    const distanciaStrike = (strike) => {
+      const spot = parseFloat(infoAtivo.value?.CLOSE || 0);
+      if (!spot) return 0;
+      return ((parseFloat(strike) - spot) / spot) * 100;
+    };
+
+    // -- Barra de moneyness -----------------------------------------
+    const barraMoneyness = (strike) => {
+      const dist = distanciaStrike(strike);
+      const clamped = Math.max(-10, Math.min(10, dist));
+      const pct = ((clamped + 10) / 20) * 100;
+      const cor = dist > 0 ? 'var(--brand-emerald)' : dist < 0 ? 'var(--brand-rose)' : 'var(--brand-amber)';
+      return 'width:' + pct + '%;background:' + cor + ';border-radius:99px;';
+    };
+
+    // -- Vencimentos disponiveis para o ativo ----------------------
+    const vencimentosDisponiveis = computed(() => {
+      if (!ativoSelecionado.value) return [];
+      const linhas = props.dadosSeries.filter(r => r.TICKER === ativoSelecionado.value && r.EXPIRY);
+      const mapa = {};
+      linhas.forEach(r => {
+        if (!mapa[r.EXPIRY]) {
+          mapa[r.EXPIRY] = { data: r.EXPIRY, dte: parseInt(r.DTE_CALENDAR) || 0 };
+        }
+      });
+      return Object.values(mapa)
+        .sort((a, b) => a.dte - b.dte)
+        .map(v => ({
+          ...v,
+          label: formatarMesAno(v.data)
+        }));
+    });
+
+    const formatarMesAno = (dataStr) => {
+      if (!dataStr) return '--';
+      try {
+        const [ano, mes, dia] = dataStr.split('-');
+        const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+        return (dia ? dia + '/' : '') + meses[parseInt(mes) - 1] + '/' + ano.slice(2);
+      } catch { return dataStr; }
+    };
+
+    // -- Ao mudar ativo: expandir primeiro vencimento ---------------
+    watch(ativoSelecionado, () => {
+      vencimentosFiltro.value = [];
+      opcaoSelecionada.value  = null;
+      expandidos.value        = {};
+      nextTick(() => {
+        // Expande apenas o primeiro vencimento
+        const venc = vencimentosDisponiveis.value;
+        if (venc.length > 0) {
+          expandidos.value[venc[0].data] = true;
+        }
+        if (window.lucide) window.lucide.createIcons();
+      });
+    });
+
+    const toggleVencimento = (data) => {
+      const idx = vencimentosFiltro.value.indexOf(data);
+      if (idx === -1) vencimentosFiltro.value.push(data);
+      else vencimentosFiltro.value.splice(idx, 1);
+    };
+
+    const toggleVencimentoExpand = (data) => {
+      expandidos.value[data] = !expandidos.value[data];
+      nextTick(() => { if (window.lucide) window.lucide.createIcons(); });
+    };
+
+    // -- Cadeia agrupada por vencimento -----------------------------
+    const cadeiaPorVencimento = computed(() => {
+      if (!ativoSelecionado.value) return [];
+
+      let linhas = props.dadosSeries.filter(r =>
+        r.TICKER === ativoSelecionado.value && r.OPTION_TICKER
+      );
+
+      if (filtroTipo.value !== 'TODOS') {
+        linhas = linhas.filter(r => r.CATEGORY === filtroTipo.value);
+      }
+
+      // Se ha filtro de vencimento ativo
+      if (vencimentosFiltro.value.length > 0) {
+        linhas = linhas.filter(r => vencimentosFiltro.value.includes(r.EXPIRY));
+      }
+
+      // Agrupar por EXPIRY
+      const grupos = {};
+      linhas.forEach(r => {
+        const chave = r.EXPIRY || 'sem-data';
+        if (!grupos[chave]) {
+          grupos[chave] = {
+            data: chave,
+            dte: parseInt(r.DTE_CALENDAR) || 0,
+            labelData: formatarMesAno(chave),
+            linhas: [],
+            expandido: expandidos.value[chave] ?? false,
+            temMM: false,
+            volFinTotal: 0,
+          };
+        }
+        grupos[chave].linhas.push(r);
+        if (r.MARKET_MAKER == 1 || r.MARKET_MAKER === true || r.MARKET_MAKER === 'true') {
+          grupos[chave].temMM = true;
+        }
+        grupos[chave].volFinTotal += parseFloat(r.OPTION_VOLUME_FIN || 0);
+      });
+
+      return Object.values(grupos)
+        .sort((a, b) => a.dte - b.dte)
+        .map(g => ({
+          ...g,
+          qtdStrikes: [...new Set(g.linhas.map(l => l.STRIKE))].length,
+          expandido: expandidos.value[g.data] ?? false,
+        }));
+    });
+
+    // -- Selecionar opcao -> painel lateral -------------------------
+    const selecionarOpcao = (linha) => {
+      if (opcaoSelecionada.value?.OPTION_TICKER === linha.OPTION_TICKER) {
+        opcaoSelecionada.value = null;
+      } else {
+        opcaoSelecionada.value = linha;
+        nextTick(() => { if (window.lucide) window.lucide.createIcons(); });
+      }
+    };
+
+    // -- OHLC da opcao selecionada ----------------------------------
+    const ohlcOpcao = computed(() => {
+      const o = opcaoSelecionada.value;
+      if (!o) return [];
+      return [
+        { label: 'Abertura',  valor: fmt(o.OPTION_OPEN),  cor: null },
+        { label: 'Maximo',    valor: fmt(o.OPTION_HIGH),  cor: 'var(--brand-emerald)' },
+        { label: 'Minimo',    valor: fmt(o.OPTION_LOW),   cor: 'var(--brand-rose)' },
+        { label: 'Fechamento',valor: fmt(o.OPTION_CLOSE), cor: null },
+      ];
+    });
+
+    // -- Contexto do ativo: M9M21 e Score --------------------------
+    const contextoAtivo = computed(() => {
+      if (!ativoSelecionado.value) return null;
+      const ticker = ativoSelecionado.value;
+      const m9m21  = props.dadosM9M21.find(r => r.TICKER === ticker) || null;
+      const score  = props.dadosScore.find(r => r.TICKER === ticker)  || null;
+      if (!m9m21 && !score) return null;
+      return { m9m21, score };
+    });
+
+    return {
+      ativoSelecionado, filtroTipo, vencimentosFiltro, opcaoSelecionada,
+      tickersDisponiveis, infoAtivo, kpisAtivo, vencimentosDisponiveis,
+      cadeiaPorVencimento, contextoAtivo, ohlcOpcao,
+      fmt, fmtPct, fmtCompact, fmtNumero, fmtVol,
+      tendenciaLabel, tendenciaStyle, distanciaStrike, barraMoneyness,
+      toggleVencimento, toggleVencimentoExpand, selecionarOpcao,
+    };
+  }
+};
+</script>
+
+<style>
+.slide-panel-enter-active { transition: all 0.25s ease-out; }
+.slide-panel-leave-active { transition: all 0.2s ease-in; }
+.slide-panel-enter-from, .slide-panel-leave-to {
+  opacity: 0;
+  transform: translateX(1.5rem);
+}
+</style>

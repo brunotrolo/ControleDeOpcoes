@@ -1,0 +1,151 @@
+<template id="page-volumes-template">
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+
+    <!-- Controles -->
+    <div class="premium-card" style="display:flex;flex-wrap:wrap;align-items:center;gap:1rem;padding:1rem 1.5rem;">
+      <div style="display:flex;flex-direction:column;gap:0.25rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Ordenar por</label>
+        <div style="display:flex;gap:0.375rem;">
+          <button v-for="op in ordemOpcoes" :key="op.key" @click="ordemChave = op.key"
+                  style="padding:0.375rem 0.875rem;border-radius:99px;font-size:0.7rem;font-weight:700;cursor:pointer;border:1px solid;transition:all 0.15s;"
+                  :style="ordemChave === op.key
+                    ? 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);'
+                    : 'background:var(--surface-base);color:var(--text-secondary);border-color:var(--border-default);'">
+            {{ op.label }}
+          </button>
+        </div>
+      </div>
+      <div style="margin-left:auto;font-size:0.75rem;color:var(--text-muted);">
+        <span style="font-weight:700;color:var(--text-primary);">{{ dadosOrdenados.length }}</span> ativos
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div style="display:flex;gap:1px;background:var(--border-subtle);border-radius:var(--radius-xl);overflow:hidden;overflow-x:auto;">
+      <div v-for="kpi in kpis" :key="kpi.label"
+           style="flex:1 1 0%;min-width:140px;padding:1rem 1.25rem;background:var(--surface-base);display:flex;flex-direction:column;gap:4px;">
+        <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">{{ kpi.label }}</span>
+        <span style="font-size:1.25rem;font-weight:800;font-family:'JetBrains Mono',monospace;line-height:1;"
+              :style="kpi.cor ? 'color:' + kpi.cor : 'color:var(--text-primary)'">{{ kpi.valor }}</span>
+      </div>
+    </div>
+
+    <!-- Cards de ativos -->
+    <div style="display:grid;gap:0.75rem;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));">
+      <div v-for="linha in dadosOrdenados" :key="linha.TICKER"
+           class="premium-card" style="overflow:hidden;transition:box-shadow 0.2s;"
+           onmouseover="this.style.boxShadow='0 0 0 2px var(--brand-indigo-muted)'"
+           onmouseout="this.style.boxShadow=''">
+
+        <!-- Barra de proporcao CALL/PUT no topo -->
+        <div style="height:4px;width:100%;display:flex;">
+          <div style="height:100%;background:var(--brand-indigo);transition:width 0.4s;"
+               :style="'width:' + propCall(linha) + '%;'"></div>
+          <div style="height:100%;background:var(--brand-amber);flex:1;"></div>
+        </div>
+
+        <div style="padding:1rem 1.25rem;display:flex;flex-direction:column;gap:0.875rem;">
+
+          <!-- Header -->
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <span style="font-size:1.25rem;font-weight:900;color:var(--text-primary);letter-spacing:-0.03em;">{{ linha.TICKER }}</span>
+              <p style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">{{ linha.COMPANY_NAME }}</p>
+              <p style="font-size:0.65rem;color:var(--text-muted);margin-top:1px;">{{ linha.SECTOR }}</p>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Vol. Total</div>
+              <div style="font-size:1rem;font-weight:800;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ fmtCompact(linha.VOLUME_TOTAL) }}</div>
+            </div>
+          </div>
+
+          <!-- CALL / PUT barras -->
+          <div style="display:flex;gap:1px;background:var(--border-subtle);border-radius:var(--radius-md);overflow:hidden;">
+            <div style="flex:1;padding:0.625rem 0.75rem;background:var(--brand-indigo-light);display:flex;flex-direction:column;gap:2px;">
+              <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--brand-indigo);">CALL</span>
+              <span style="font-size:0.875rem;font-weight:800;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;">{{ fmtCompact(linha.VOLUME_CALL) }}</span>
+              <span style="font-size:0.65rem;color:var(--brand-indigo);opacity:0.8;">{{ propCall(linha).toFixed(0) }}%</span>
+            </div>
+            <div style="flex:1;padding:0.625rem 0.75rem;background:var(--brand-amber-light);display:flex;flex-direction:column;gap:2px;">
+              <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--brand-amber);">PUT</span>
+              <span style="font-size:0.875rem;font-weight:800;color:var(--brand-amber);font-family:'JetBrains Mono',monospace;">{{ fmtCompact(linha.VOLUME_PUT) }}</span>
+              <span style="font-size:0.65rem;color:var(--brand-amber);opacity:0.8;">{{ (100 - propCall(linha)).toFixed(0) }}%</span>
+            </div>
+          </div>
+
+          <!-- Barra visual proporcional -->
+          <div>
+            <div style="width:100%;height:5px;background:var(--surface-sunken);border-radius:99px;overflow:hidden;">
+              <div style="height:100%;background:var(--brand-indigo);border-radius:99px;transition:width 0.4s;"
+                   :style="'width:' + propCall(linha) + '%;'"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:0.55rem;color:var(--text-muted);margin-top:3px;">
+              <span>CALL {{ propCall(linha).toFixed(0) }}%</span>
+              <span>PUT {{ (100 - propCall(linha)).toFixed(0) }}%</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</template>
+
+<script>
+window.PageVolumes = {
+  template: '#page-volumes-template',
+  props: {
+    dados:    { type: Array,   default: () => [] },
+    isMobile: { type: Boolean, default: false }
+  },
+  setup(props) {
+    const { ref, computed } = Vue;
+
+    const ordemChave = ref('VOLUME_TOTAL');
+    const ordemOpcoes = [
+      { key: 'VOLUME_TOTAL', label: 'Total' },
+      { key: 'VOLUME_CALL',  label: 'CALL' },
+      { key: 'VOLUME_PUT',   label: 'PUT' },
+    ];
+
+    const fmtCompact = (v) => {
+      const n = parseFloat(v);
+      if (isNaN(n) || n === 0) return '--';
+      if (n >= 1e9) return 'R$ ' + (n / 1e9).toFixed(1) + 'B';
+      if (n >= 1e6) return 'R$ ' + (n / 1e6).toFixed(1) + 'M';
+      if (n >= 1e3) return 'R$ ' + (n / 1e3).toFixed(0) + 'k';
+      return 'R$ ' + n.toFixed(0);
+    };
+
+    const propCall = (linha) => {
+      const call  = parseFloat(linha.VOLUME_CALL)  || 0;
+      const total = parseFloat(linha.VOLUME_TOTAL) || 0;
+      return total > 0 ? (call / total) * 100 : 50;
+    };
+
+    const dadosOrdenados = computed(() => {
+      return [...props.dados].sort((a, b) => (parseFloat(b[ordemChave.value]) || 0) - (parseFloat(a[ordemChave.value]) || 0));
+    });
+
+    const kpis = computed(() => {
+      const lista = props.dados;
+      if (!lista.length) return [];
+      const totalGeral  = lista.reduce((s, r) => s + (parseFloat(r.VOLUME_TOTAL) || 0), 0);
+      const totalCall   = lista.reduce((s, r) => s + (parseFloat(r.VOLUME_CALL)  || 0), 0);
+      const totalPut    = lista.reduce((s, r) => s + (parseFloat(r.VOLUME_PUT)   || 0), 0);
+      const callRatio   = totalGeral > 0 ? (totalCall / totalGeral * 100).toFixed(1) : '0';
+      const lider       = dadosOrdenados.value[0];
+      return [
+        { label: 'Ativos',         valor: lista.length,            cor: null },
+        { label: 'Vol. Total',     valor: fmtCompact(totalGeral),  cor: 'var(--brand-indigo)' },
+        { label: 'CALL %',         valor: callRatio + '%',         cor: 'var(--brand-indigo)' },
+        { label: 'PUT %',          valor: (100 - parseFloat(callRatio)).toFixed(1) + '%', cor: 'var(--brand-amber)' },
+        { label: 'Maior volume',   valor: lider ? lider.TICKER : '--', cor: null },
+      ];
+    });
+
+    return { ordemChave, ordemOpcoes, dadosOrdenados, kpis, fmtCompact, propCall };
+  }
+};
+</script>
