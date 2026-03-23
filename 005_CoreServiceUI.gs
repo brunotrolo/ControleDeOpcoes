@@ -1,105 +1,104 @@
 /**
- * @fileoverview CoreServiceUI - v4.0 (Silent Mode)
- * RESPONSABILIDADE: Gerenciar a ponte de execução mantendo o silêncio total na interface.
- * PADRÃO: Zero Toasts e Zero Modais. Tudo flui em background (Console e SysLogger).
+ * @fileoverview 005_CoreServiceUI.gs - v4.1
+ * RESPONSABILIDADE: Gerenciar a ponte de execucao mantendo o silencio total na interface.
+ * PADRAO: Zero Toasts e Zero Modais. Tudo flui em background (Console e SysLogger).
+ *
+ * v4.1 - Correcoes:
+ *   - Removidos template literals (backticks) -- incompativeis com GAS document.write()
+ *   - Adicionadas bridges ausentes: SyncCorrelIbovRanking_Menu, SyncCompaniesRanking_Menu
+ *   - ConsultorIA_AbrirTela REMOVIDA deste arquivo -- pertence ao 024_ConsultorIAClaudeSonnet45.gs
  */
 
 const UIHandler = {
-  
+
   /**
-   * Forçamos o sistema a sempre agir como backend, 
+   * Forcamos o sistema a sempre agir como backend,
    * ignorando qualquer tentativa de renderizar pop-ups na tela.
    */
   isBackend() {
-    return true; 
+    return true;
   },
 
   /**
-   * Notificação Silenciosa.
+   * Notificacao Silenciosa.
    */
-  notify(mensagem, titulo = "Sistema") {
-    console.info("[NOTIFY_SILENCIADO] " + (titulo) + ": " + (mensagem));
+  notify(mensagem, titulo) {
+    titulo = titulo || "Sistema";
+    console.info("[NOTIFY_SILENCIADO] " + titulo + ": " + mensagem);
   },
 
   /**
    * Alerta Silencioso. Redirecionado para o Console de Erros.
    */
   alert(titulo, mensagem) {
-    console.warn("[ALERT_SILENCIADO] " + (titulo) + ": " + (mensagem));
+    console.warn("[ALERT_SILENCIADO] " + titulo + ": " + mensagem);
   }
 };
 
-// ═══════════════════════════════════════════════════════════════
-// PONTES DE EXECUÇÃO (BRIDGES)
-// ═══════════════════════════════════════════════════════════════
+// ================================================================
+// BRIDGE MESTRE
+// ================================================================
 
 /**
- * Bridge mestre que encapsula a execução garantindo logs e silêncio.
+ * Bridge mestre que encapsula a execucao garantindo logs e silencio.
  */
 function _menuBridge(servicoNome, callback) {
-  const inicio = Date.now();
-  
+  var inicio = Date.now();
+
   try {
-    // Executa a função real silenciosamente
     callback();
-    
-    const duracao = ((Date.now() - inicio) / 1000).toFixed(1);
-    console.info("[BRIDGE] " + (servicoNome) + " concluído com sucesso em " + (duracao) + "s.");
-    
-    // Garante que os logs da execução sejam salvos na aba Logs
+
+    var duracao = ((Date.now() - inicio) / 1000).toFixed(1);
+    console.info("[BRIDGE] " + servicoNome + " concluido com sucesso em " + duracao + "s.");
+
     if (typeof SysLogger !== 'undefined') SysLogger.flush();
 
   } catch (e) {
-    console.error("[BRIDGE_ERRO] Falha em " + (servicoNome) + ": " + (e.message));
-    
+    console.error("[BRIDGE_ERRO] Falha em " + servicoNome + ": " + e.message);
+
     if (typeof SysLogger !== 'undefined') {
-      // Uso de String() para garantir a proteção da primeira coluna do 003
-      SysLogger.log("UI_BRIDGE", "ERRO", "Falha fatal em " + (servicoNome), String(e.message));
+      SysLogger.log("UI_BRIDGE", "ERRO", "Falha fatal em " + servicoNome, String(e.message));
       SysLogger.flush();
     }
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// MAPA DE FUNÇÕES DO MENU
-// ═══════════════════════════════════════════════════════════════
+// ================================================================
+// MAPA DE FUNCOES DO MENU
+// ================================================================
 
 function AtualizarNecton_Menu()             { _menuBridge("Necton", atualizarNecton); }
 function AtualizarDadosAtivos_Menu()        { _menuBridge("Ativos", atualizarDadosAtivos); }
-function AtualizarHistorico_Menu()          { _menuBridge("Histórico", atualizarDadosHistoricos); }
+function AtualizarHistorico_Menu()          { _menuBridge("Historico", atualizarDadosHistoricos); }
 function AtualizarDetalhes_Menu()           { _menuBridge("Detalhes", atualizarDetalhesOpcoes); }
 function AtualizarGregasAPI_Menu()          { _menuBridge("Gregas (API)", atualizarGregas); }
 function CalcularGregasNativo_Menu()        { _menuBridge("Gregas (Nativo)", calcularGregasNativo); }
 function AtualizarScanner_Menu()            { _menuBridge("Scanner Oportunidades", atualizarScannerOpcoes); }
-function SyncSeriesInstrumento_Menu()       { _menuBridge("Séries de Opções (OPLab)", orquestrarSyncSeriesInstrumento); }
+function SyncSeriesInstrumento_Menu()       { _menuBridge("Series de Opcoes (OPLab)", orquestrarSyncSeriesInstrumento); }
 function SyncBestCoveredOptionsRates_Menu() { _menuBridge("Melhores Taxas de Lucro (OPLab)", orquestrarSyncBestRates); }
-function SyncHighestOptionsVolume_Menu()    { _menuBridge("Maiores Volumes em Opções (OPLab)", orquestrarSyncHighestVolume); }
-function SyncHighestOptionsVariation_Menu() { _menuBridge("Maiores Variações em Opções (OPLab)", orquestrarSyncHighestVariation); }
-function SyncM9M21Ranking_Menu()            { _menuBridge("Ranking Tendência M9M21 (OPLab)", orquestrarSyncM9M21); }
+function SyncHighestOptionsVolume_Menu()    { _menuBridge("Maiores Volumes em Opcoes (OPLab)", orquestrarSyncHighestVolume); }
+function SyncHighestOptionsVariation_Menu() { _menuBridge("Maiores Variacoes em Opcoes (OPLab)", orquestrarSyncHighestVariation); }
+function SyncM9M21Ranking_Menu()            { _menuBridge("Ranking Tendencia M9M21 (OPLab)", orquestrarSyncM9M21); }
 function SyncOplabScore_Menu()              { _menuBridge("Ranking OPLab Score (OPLab)", orquestrarSyncOplabScore); }
-function SyncHistoricalOptions_Menu()       { _menuBridge("Histórico de Opções (OPLab)", orquestrarSyncHistoricalOptions); }
-function ConsultorIA_AbrirTela() {
-  // Bridge de menu — abre a tela ConsultorIA no Web App via notificacao
-  UIHandler.notify("Abra o Web App para acessar o Consultor IA.", "Consultor IA");
-}
+function SyncHistoricalOptions_Menu()       { _menuBridge("Historico de Opcoes (OPLab)", orquestrarSyncHistoricalOptions); }
 function SyncCorrelIbovRanking_Menu()       { _menuBridge("Ranking Correlacao IBOV (OPLab)", orquestrarSyncCorrelIbov); }
 function SyncCompaniesRanking_Menu()        { _menuBridge("Ranking Fundamentalista (OPLab)", orquestrarSyncCompaniesRanking); }
 
-// ═══════════════════════════════════════════════════════════════
-// TESTE DE HOMOLOGAÇÃO (004)
-// ═══════════════════════════════════════════════════════════════
+
+// ================================================================
+// TESTE DE HOMOLOGACAO
+// ================================================================
 
 function testSuiteUIHandler() {
-  console.log("=== HOMOLOGANDO INTERFACE v4.0 (SILENT MODE) ===");
-  
-  UIHandler.notify("Isso não deve aparecer na tela.", "Teste");
-  UIHandler.alert("Isso também não deve aparecer na tela.", "Teste de Erro");
-  
-  // Teste da Bridge com erro simulado
-  console.log("Testando resiliência da Bridge silenciosa...");
-  _menuBridge("Teste_Silencioso", () => {
-    throw new Error("Simulação de falha para validar apenas o Log interno.");
+  console.log("=== HOMOLOGANDO INTERFACE v4.1 ===");
+
+  UIHandler.notify("Isso nao deve aparecer na tela.", "Teste");
+  UIHandler.alert("Isso tambem nao deve aparecer na tela.", "Teste de Erro");
+
+  console.log("Testando resiliencia da Bridge silenciosa...");
+  _menuBridge("Teste_Silencioso", function() {
+    throw new Error("Simulacao de falha para validar apenas o Log interno.");
   });
 
-  console.log("=== FIM DA HOMOLOGAÇÃO 004 ===");
+  console.log("=== FIM DA HOMOLOGACAO ===");
 }
