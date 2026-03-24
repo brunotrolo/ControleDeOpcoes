@@ -18,6 +18,7 @@ function onOpen(e) {
     const ui = SpreadsheetApp.getUi();
     ui.createMenu('⚙️ Automação')
         .addItem('🚀 Rodar Fluxo Mestre (Planilha)', 'executarFluxoSequencial')
+        .addItem('🔌 Rodar Fluxo OPLab Market Data', 'executarFluxoOPLab')
         .addSeparator()
         .addItem('📥 1. Atualizar Necton (Portfólio)', 'AtualizarNecton_Menu')
         .addItem('📈 2. Atualizar Dados Ativos (Ações)', 'AtualizarDadosAtivos_Menu')
@@ -36,7 +37,7 @@ function onOpen(e) {
         .addItem('📉 11. Ranking Tendência M9M21 (API OPLab)', 'SyncM9M21Ranking_Menu')
         .addItem('🏆 12. Ranking OPLab Score (API OPLab)', 'SyncOplabScore_Menu')
         .addItem('🕰️ 13. Histórico de Opções (API OPLab)', 'SyncHistoricalOptions_Menu')
-        .addItem('🌐 14. Correlação IBOV (API OPLab)', 'SyncCorrelIbovRanking_Menu')
+        .addItem('🏦 14. Correlação IBOV (API OPLab)', 'SyncCorrelIbovRanking_Menu')
         .addItem('📊 15. Ranking Fundamentalista (API OPLab)', 'SyncCompaniesRanking_Menu')
         .addSeparator()
         .addItem('🤖 16. Consultor IA (Claude)', 'ConsultorIA_AbrirTela')

@@ -72,7 +72,21 @@ function getAbasPesadas() {
       // 3. Motor Matemático & Filtros
       SYS_CONFIG.SHEETS.GREEKS_CALC,
       SYS_CONFIG.SHEETS.GREEKS_API,
-      SYS_CONFIG.SHEETS.SELECTION_OPT
+      SYS_CONFIG.SHEETS.SELECTION_OPT,
+
+      // 4. OPLab Market Data (motores 014-020)
+      SYS_CONFIG.SHEETS.SERIES_INSTR,
+      SYS_CONFIG.SHEETS.BEST_RATES,
+      SYS_CONFIG.SHEETS.VOL_OPCOES,
+      SYS_CONFIG.SHEETS.VAR_OPCOES,
+      SYS_CONFIG.SHEETS.RANK_M9M21,
+      SYS_CONFIG.SHEETS.RANK_SCORE,
+      SYS_CONFIG.SHEETS.HIST_OPCOES,
+      SYS_CONFIG.SHEETS.RANK_CORREL,
+      SYS_CONFIG.SHEETS.RANK_FUND,
+
+      // 5. Consultor IA (024_ConsultorIAClaudeSonnet45)
+      SYS_CONFIG.SHEETS.CONSULTOR_HIST
     ];
 
     const data = { success: true, timestamp: new Date().toLocaleString('pt-BR'), raw: {} };

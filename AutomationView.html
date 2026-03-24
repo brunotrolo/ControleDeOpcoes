@@ -12,12 +12,20 @@
           <p class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.2em;margin-top:0.2rem;">Sincroniza, Calcula e Notifica em Cascata</p>
         </div>
       </div>
-      <button @click="run('executarFluxoSequencial')"
-        style="display:flex;align-items:center;gap:0.75rem;background:var(--brand-indigo);border:1px solid var(--brand-indigo);padding:0.75rem 1.5rem;border-radius:var(--radius-full);cursor:pointer;"
-        onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
-        <i data-lucide="play" style="width:14px;height:14px;color:#fff;fill:#fff;display:block;"></i>
-        <span class="t-label-sm" style="font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#fff;">Rodar Fluxo Mestre</span>
-      </button>
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+        <button @click="run('executarFluxoSequencial')"
+          style="display:flex;align-items:center;gap:0.75rem;background:var(--brand-indigo);border:1px solid var(--brand-indigo);padding:0.75rem 1.5rem;border-radius:var(--radius-full);cursor:pointer;"
+          onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+          <i data-lucide="play" style="width:14px;height:14px;color:#fff;fill:#fff;display:block;"></i>
+          <span class="t-label-sm" style="font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#fff;">Rodar Fluxo Mestre</span>
+        </button>
+        <button @click="run('executarFluxoOPLab')"
+          style="display:flex;align-items:center;gap:0.75rem;background:var(--surface-base);border:1px solid var(--brand-indigo);padding:0.75rem 1.5rem;border-radius:var(--radius-full);cursor:pointer;"
+          onmouseover="this.style.background='var(--brand-indigo-light)'" onmouseout="this.style.background='var(--surface-base)'">
+          <i data-lucide="database" style="width:14px;height:14px;color:var(--brand-indigo);display:block;"></i>
+          <span class="t-label-sm" style="font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--brand-indigo);">Rodar Fluxo OPLab</span>
+        </button>
+      </div>
     </div>
 
     <!-- GRID DE ACOES -->

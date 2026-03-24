@@ -358,7 +358,7 @@ window.MenuSidebar = {
     // Menu principal da bottom bar (4 itens fixos)
     mobileMenu() {
       return this.menu
-        .filter(item => this.mobileMenuIds.includes(item.id))
+        .filter(item => !item.separator && this.mobileMenuIds.includes(item.id))
         .map(item => ({
           ...item,
           shortLabel: this.shortLabels[item.id] || item.label
@@ -367,7 +367,7 @@ window.MenuSidebar = {
 
     // Itens restantes vao para o drawer
     drawerMenu() {
-      return this.menu.filter(item => !this.mobileMenuIds.includes(item.id));
+      return this.menu.filter(item => !item.separator && !this.mobileMenuIds.includes(item.id));
     },
 
     // Labels curtos para a bottom bar

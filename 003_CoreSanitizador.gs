@@ -76,6 +76,13 @@ const Sanitizador = {
     }
     
     // Fallback para ISO
+    // CRITICO: new Date("2026-04-17") interpreta como UTC midnight.
+    // No fuso America/Sao_Paulo (UTC-3) isso vira 2026-04-16T21:00 -- um dia antes.
+    // Fix: detectar formato ISO YYYY-MM-DD e construir via componentes locais.
+    const isoData = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoData) {
+      return new Date(parseInt(isoData[1]), parseInt(isoData[2]) - 1, parseInt(isoData[3]));
+    }
     const d = new Date(valor);
     return isNaN(d.getTime()) ? "" : d;
   },
