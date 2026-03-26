@@ -382,6 +382,7 @@ const app = createApp({
         // =========================================================
         // CONSULTOR IA
         // =========================================================
+        'cockpit-summary':        { cockpit: db.value.cockpit || [] },
         'consultor-ia':           { statsPreCalculados: cuboOlap.value },
 
         // =========================================================
@@ -453,6 +454,7 @@ const COMPONENTES_V5 = [
   ['card-summary',           window.CardSummary],
   ['carousel-ativas',        window.CarouselAtivas],
   ['cockpit-table',          window.CockpitTable],
+  ['cockpit-summary',        window.CockpitSummary],
 
   // 2. ANALISE & GESTAO
   ['comparativo-view',       window.ComparativoView],

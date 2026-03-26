@@ -24,8 +24,48 @@ const StockDataSync = {
       }
 
       const valoresAtivos = abaAtivos.getRange(2, 1, ultimaLinhaAtivos - 1, 1).getValues();
-      const tickersAlvo = [...new Set(valoresAtivos.flat().filter(t => t && String(t).trim() !== "" && t !== "ERRO_API" && t !== "N/A"))];
-      
+      const tickersExistentesSet = new Set(
+        valoresAtivos.flat()
+          .filter(t => t && String(t).trim() !== "" && t !== "ERRO_API" && t !== "N/A")
+          .map(t => String(t).trim().toUpperCase())
+      );
+
+      // Coletar tickers do NECTON_IMPORT que ainda nao estao em DADOS_ATIVOS
+      // A coluna TICKER do NECTON_IMPORT ja contem o ativo-mae (ex: CSAN3, PETR4).
+      // Isso garante que novos ativos operados sejam sincronizados automaticamente.
+      const tickersDoNecton = new Set();
+      try {
+        const abaNecton = ss.getSheetByName(SYS_CONFIG.SHEETS.IMPORT);
+        if (abaNecton && abaNecton.getLastRow() > 1) {
+          const headersNecton = abaNecton.getRange(1, 1, 1, abaNecton.getLastColumn()).getValues()[0];
+          const colTicker = headersNecton.findIndex(h => String(h).trim().toUpperCase() === 'TICKER');
+          if (colTicker >= 0) {
+            const valoresNecton = abaNecton.getRange(2, colTicker + 1, abaNecton.getLastRow() - 1, 1).getValues();
+            valoresNecton.flat().forEach(t => {
+              const ticker = String(t || '').trim().toUpperCase();
+              if (ticker && ticker !== '' && ticker !== 'UNDEFINED' && ticker !== 'NULL') {
+                tickersDoNecton.add(ticker);
+              }
+            });
+          }
+        }
+      } catch (eNecton) {
+        SysLogger.log(this._serviceName, "WARN", "Nao foi possivel ler NECTON_IMPORT.", String(eNecton.message));
+      }
+
+      // Union: tickers existentes + novos do NECTON_IMPORT
+      const tickersUnion = new Set([...tickersExistentesSet, ...tickersDoNecton]);
+      const tickersNovos  = [...tickersDoNecton].filter(t => !tickersExistentesSet.has(t));
+
+      if (tickersNovos.length > 0) {
+        SysLogger.log(this._serviceName, "INFO",
+          "Novos tickers detectados no NECTON_IMPORT: " + tickersNovos.join(', '),
+          "Serao adicionados ao DADOS_ATIVOS apos sincronizacao."
+        );
+      }
+
+      const tickersAlvo = [...tickersUnion];
+
       if (tickersAlvo.length === 0) return;
 
       const cabecalhosAtivos = abaAtivos.getRange(1, 1, 1, ultimaColunaAtivos).getValues()[0];

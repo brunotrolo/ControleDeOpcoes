@@ -67,7 +67,7 @@
 
       <!-- Lista de posicoes (esquerda) -->
       <div style="width:320px;flex-shrink:0;display:flex;flex-direction:column;gap:0.5rem;"
-           :style="isMobile ? 'width:100%;' : 'position:sticky;top:1rem;max-height:calc(100vh - 200px);overflow-y:auto;'">
+           :style="isMobile ? 'width:100%;' : ''">
 
         <!-- Legenda de urgencia -->
         <div style="display:flex;gap:1rem;padding:0.5rem 0;flex-wrap:wrap;">
@@ -193,8 +193,12 @@
             <div style="height:4px;" :style="'background:' + corStatusIA(analiseAtual.status) + ';'"></div>
             <div style="padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
               <div>
-                <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;flex-wrap:wrap;">
                   <span style="font-size:1.5rem;font-weight:900;color:var(--text-primary);letter-spacing:-0.03em;">{{ posicaoSelecionada.ticker }}</span>
+                  <span v-if="analiseAtual._do_historico"
+                        style="font-size:0.6rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--surface-overlay);color:var(--text-muted);border:1px solid var(--border-subtle);">
+                    Historico: {{ analiseAtual._analisado_em || '' }}
+                  </span>
                   <span style="font-size:0.75rem;font-weight:800;padding:3px 10px;border-radius:99px;"
                         :style="'background:' + bgStatusIA(analiseAtual.status) + ';color:' + corStatusIA(analiseAtual.status) + ';border:1px solid ' + corStatusIA(analiseAtual.status) + '33;'">
                     {{ labelStatus(analiseAtual.status) }}
@@ -544,9 +548,92 @@ window.ConsultorIA = {
             erroGlobal.value = res.error || 'Erro ao carregar posicoes.';
             return;
           }
-          posicoes.value    = res.posicoes || [];
+          posicoes.value       = res.posicoes || [];
           listaCarregada.value = true;
           nextTick(() => { if (window.lucide) window.lucide.createIcons(); });
+
+          // Apos listar posicoes, busca historico do Sheets e pre-popula
+          // o cache com a analise mais recente de cada opcao.
+          // Assim posicoes ja analisadas aparecem imediatamente ao clicar.
+          google.script.run
+            .withSuccessHandler(function(resHist) {
+              if (!resHist.success || !resHist.historico) return;
+              var hist = resHist.historico; // ja vem ordenado do mais recente para o mais antigo
+
+              // Para cada posicao ativa, procura a analise mais recente no historico
+              posicoes.value.forEach(function(pos) {
+                // Historico ja esta em ordem decrescente -- o primeiro match e o mais recente
+                var registro = hist.find(function(h) {
+                  return String(h.OPCAO || '').trim().toUpperCase() === pos.opcao.trim().toUpperCase();
+                });
+                if (!registro) return;
+
+                // Reconstruir o objeto analise no mesmo formato retornado pelo Claude.
+                // Garantir que todos os campos existam mesmo que vazios --
+                // o template usa v-if em varios lugares e colapsa se undefined.
+
+                // Alertas: vem como string "alerta1 | alerta2 | alerta3"
+                var alertasArr = [];
+                if (registro.ALERTAS && String(registro.ALERTAS).trim() !== '') {
+                  alertasArr = String(registro.ALERTAS).split(' | ').filter(function(a) {
+                    return a.trim() !== '';
+                  });
+                }
+
+                // Opcao sugerida: so monta se tiver ticker preenchido
+                var opcaoSugerida = null;
+                var tickerOpcaoSug = String(registro.OPCAO_SUGERIDA_TICKER || '').trim();
+                if (tickerOpcaoSug !== '' && tickerOpcaoSug !== '0') {
+                  opcaoSugerida = {
+                    ticker_opcao:    tickerOpcaoSug,
+                    ticker_ativo:    String(registro.OPCAO_SUGERIDA_ATIVO  || '').trim(),
+                    strike:          parseFloat(registro.OPCAO_SUGERIDA_STRIKE || 0),
+                    vencimento:      String(registro.OPCAO_SUGERIDA_VENC  || '').trim(),
+                    dte:             parseInt(registro.OPCAO_SUGERIDA_DTE    || 0),
+                    premio_estimado: parseFloat(registro.OPCAO_SUGERIDA_PREMIO || 0),
+                    taxa_lucro_pct:  parseFloat(registro.OPCAO_SUGERIDA_TAXA  || 0),
+                    motivo_escolha:  ''
+                  };
+                }
+
+                // Simulacao: monta sempre que houver custo ou receita
+                var simulacao = null;
+                var custoRec  = parseFloat(registro.SIM_CUSTO_RECOMPRA || 0);
+                var receitaRec = parseFloat(registro.SIM_RECEITA_NOVA  || 0);
+                if (custoRec !== 0 || receitaRec !== 0) {
+                  simulacao = {
+                    custo_recompra:             custoRec,
+                    receita_nova_venda:         receitaRec,
+                    resultado_liquido_operacao: parseFloat(registro.SIM_RESULTADO_LIQUIDO || 0),
+                    resultado_por_contrato:     parseFloat(registro.SIM_RESULTADO_LIQUIDO || 0) / Math.max(1, parseInt(pos.raw.QUANTITY || pos.raw.quantity || 1)),
+                    observacao:                 'Analise do historico: ' + String(registro.ANALISADO_EM || '')
+                  };
+                }
+
+                var analise = {
+                  status:        String(registro.STATUS_RECOMENDADO || '').trim(),
+                  urgencia:      String(registro.URGENCIA           || '').trim(),
+                  diagnostico:   String(registro.DIAGNOSTICO        || '').trim(),
+                  recomendacao:  String(registro.RECOMENDACAO       || '').trim(),
+                  justificativa: String(registro.JUSTIFICATIVA      || '').trim(),
+                  alertas:       alertasArr,
+                  opcao_sugerida: opcaoSugerida,
+                  simulacao:     simulacao,
+                  _do_historico: true,
+                  _analisado_em: String(registro.ANALISADO_EM || '').trim()
+                };
+
+                cacheAnalises.value[pos.opcao] = analise;
+                pos.analisado = true; // marca badge "Analisado" no card
+              });
+
+              nextTick(() => { if (window.lucide) window.lucide.createIcons(); });
+            })
+            .withFailureHandler(function() {
+              // Falha silenciosa -- historico e opcional, nao bloqueia o uso
+              console.warn('[ConsultorIA] Nao foi possivel carregar historico.');
+            })
+            .consultorLerHistorico(200);
         })
         .withFailureHandler(function(err) {
           carregandoLista.value = false;

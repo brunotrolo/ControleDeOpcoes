@@ -1,0 +1,398 @@
+<template id="cockpit-summary-template">
+  <div style="display:flex;flex-direction:column;gap:1rem;width:100%;">
+
+    <!-- ================================================================
+         BLOCO 1: FILTROS
+         ================================================================ -->
+    <div class="premium-card" style="overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0.875rem 1.5rem;border-bottom:1px solid var(--border-subtle);flex-wrap:wrap;gap:0.5rem;">
+        <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);">
+          Filtros
+          <span style="font-weight:500;margin-left:0.5rem;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);">{{ linhasFiltradas.length }} / {{ cockpit.length }}</span>
+        </span>
+        <button v-if="temFiltro" @click="limparFiltros"
+          style="display:flex;align-items:center;gap:0.375rem;padding:0.3rem 0.75rem;border-radius:var(--radius-md);background:var(--brand-rose-light);border:1px solid var(--brand-rose-muted);color:var(--brand-rose);font-size:0.65rem;font-weight:700;cursor:pointer;">
+          <i data-lucide="x" style="width:0.65rem;height:0.65rem;display:block;"></i>
+          Limpar
+        </button>
+      </div>
+      <div style="padding:0.875rem 1.5rem;display:flex;flex-wrap:wrap;gap:1rem;">
+        <div v-for="grupo in gruposFiltro" :key="grupo.campo" style="display:flex;flex-direction:column;gap:0.3rem;">
+          <span style="font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);">{{ grupo.label }}</span>
+          <div style="display:flex;flex-wrap:wrap;gap:0.2rem;">
+            <button v-for="opt in grupo.opcoes" :key="opt.val" @click="toggle(grupo.campo, opt.val)"
+              :style="filtros[grupo.campo] && filtros[grupo.campo].indexOf(opt.val) >= 0
+                ? 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);'
+                : 'background:var(--surface-base);color:var(--text-secondary);border-color:var(--border-default);'"
+              style="padding:2px 8px;border-radius:99px;font-size:0.62rem;font-weight:700;border:1px solid;cursor:pointer;transition:all 0.12s;white-space:nowrap;">
+              {{ opt.label }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================
+         BLOCO 2: RESUMO CONSOLIDADO (estrutura fixa, sempre visivel)
+         ================================================================ -->
+    <div class="premium-card" style="overflow:hidden;">
+      <div style="padding:0.75rem 1.5rem;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:0.75rem;">
+        <div style="padding:0.4rem;background:var(--brand-indigo-light);border-radius:var(--radius-md);border:1px solid var(--brand-indigo-muted);">
+          <i data-lucide="table-2" style="width:0.875rem;height:0.875rem;color:var(--brand-indigo);display:block;"></i>
+        </div>
+        <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);">Resumo Consolidado</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:separate;border-spacing:0;min-width:760px;">
+          <thead>
+            <tr style="background:var(--surface-overlay);">
+              <th style="padding:0.5rem 1.25rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);border-bottom:2px solid var(--border-default);position:sticky;left:0;background:var(--surface-overlay);z-index:2;white-space:nowrap;min-width:120px;">Operacao</th>
+              <th style="padding:0.5rem 0.875rem;text-align:right;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);border-bottom:2px solid var(--border-default);white-space:nowrap;">Qtde</th>
+              <th style="padding:0.5rem 0.875rem;text-align:right;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);border-bottom:2px solid var(--border-default);white-space:nowrap;">Ganho Max</th>
+              <th style="padding:0.5rem 0.875rem;text-align:right;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);border-bottom:2px solid var(--border-default);white-space:nowrap;">Lucro Max %</th>
+              <th style="padding:0.5rem 0.875rem;text-align:right;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);border-bottom:2px solid var(--border-default);white-space:nowrap;">Nocional</th>
+              <th style="padding:0.5rem 0.875rem;text-align:right;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);border-bottom:2px solid var(--border-default);white-space:nowrap;">Perda Max</th>
+              <th style="padding:0.5rem 0.875rem;text-align:right;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);border-bottom:2px solid var(--border-default);white-space:nowrap;">Premio PM</th>
+              <th style="padding:0.5rem 0.875rem;text-align:right;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);border-bottom:2px solid var(--border-default);white-space:nowrap;">Premio Atual</th>
+              <th style="padding:0.5rem 0.875rem;text-align:right;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);border-bottom:2px solid var(--border-default);white-space:nowrap;">P/L %</th>
+              <th style="padding:0.5rem 1.25rem;text-align:right;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);border-bottom:2px solid var(--border-default);white-space:nowrap;">P/L R$</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template v-for="row in resumoCalculado" :key="row.id">
+              <!-- Linha dado -->
+              <tr v-if="row.t === 'd'" onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="this.style.background='transparent'" style="transition:background 0.1s;">
+                <td style="padding:0.5rem 1.25rem;border-bottom:1px solid var(--border-subtle);position:sticky;left:0;background:inherit;z-index:1;white-space:nowrap;">
+                  <span style="font-size:0.75rem;font-weight:700;" :style="row.side==='VENDA'?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ row.side }}</span>
+                  <span style="color:var(--border-strong);margin:0 4px;font-size:0.75rem;">|</span>
+                  <span style="font-size:0.75rem;font-weight:700;color:var(--text-secondary);">{{ row.tipo }}</span>
+                </td>
+                <td style="padding:0.5rem 0.875rem;text-align:right;font-size:0.78rem;font-weight:700;color:var(--text-primary);border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtQ(row.qtd) }}</td>
+                <td style="padding:0.5rem 0.875rem;text-align:right;font-size:0.78rem;font-weight:700;border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.gmax>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(row.gmax) }}</td>
+                <td style="padding:0.5rem 0.875rem;text-align:right;font-size:0.78rem;font-weight:700;border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.lmp>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(row.lmp) }}</td>
+                <td style="padding:0.5rem 0.875rem;text-align:right;font-size:0.78rem;color:var(--text-secondary);border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.noc) }}</td>
+                <td style="padding:0.5rem 0.875rem;text-align:right;font-size:0.78rem;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.pmax) }}</td>
+                <td style="padding:0.5rem 0.875rem;text-align:right;font-size:0.78rem;color:var(--text-secondary);border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.pm) }}</td>
+                <td style="padding:0.5rem 0.875rem;text-align:right;font-size:0.78rem;color:var(--text-secondary);border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.pa) }}</td>
+                <td style="padding:0.5rem 0.875rem;text-align:right;font-size:0.78rem;font-weight:800;border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.plp>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(row.plp) }}</td>
+                <td style="padding:0.5rem 1.25rem;text-align:right;font-size:0.78rem;font-weight:800;border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.plv>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(row.plv) }}</td>
+              </tr>
+              <!-- Subtotal -->
+              <tr v-else-if="row.t === 's'" style="background:var(--surface-sunken);">
+                <td style="padding:0.4rem 1.25rem;font-size:0.6rem;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);position:sticky;left:0;background:var(--surface-sunken);z-index:1;white-space:nowrap;">SUBTOTAL {{ row.tipo }}</td>
+                <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.72rem;font-weight:800;color:var(--text-primary);border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtQ(row.qtd) }}</td>
+                <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.72rem;font-weight:800;border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.gmax>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(row.gmax) }}</td>
+                <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.72rem;font-weight:800;border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.lmp>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(row.lmp) }}</td>
+                <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.72rem;font-weight:800;color:var(--text-secondary);border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.noc) }}</td>
+                <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.72rem;color:var(--text-muted);border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.pmax) }}</td>
+                <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.72rem;color:var(--text-secondary);border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.pm) }}</td>
+                <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.72rem;color:var(--text-secondary);border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.pa) }}</td>
+                <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.72rem;font-weight:900;border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.plp>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(row.plp) }}</td>
+                <td style="padding:0.4rem 1.25rem;text-align:right;font-size:0.72rem;font-weight:900;border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.plv>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(row.plv) }}</td>
+              </tr>
+              <!-- Total -->
+              <tr v-else-if="row.t === 'T'" style="background:var(--brand-indigo-light);">
+                <td style="padding:0.55rem 1.25rem;font-size:0.62rem;font-weight:900;text-transform:uppercase;letter-spacing:0.14em;color:var(--brand-indigo);position:sticky;left:0;background:var(--brand-indigo-light);z-index:1;white-space:nowrap;">TOTAL GERAL</td>
+                <td style="padding:0.55rem 0.875rem;text-align:right;font-size:0.82rem;font-weight:900;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtQ(row.qtd) }}</td>
+                <td style="padding:0.55rem 0.875rem;text-align:right;font-size:0.82rem;font-weight:900;font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.gmax>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(row.gmax) }}</td>
+                <td style="padding:0.55rem 0.875rem;text-align:right;font-size:0.82rem;font-weight:900;font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.lmp>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(row.lmp) }}</td>
+                <td style="padding:0.55rem 0.875rem;text-align:right;font-size:0.82rem;font-weight:900;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.noc) }}</td>
+                <td style="padding:0.55rem 0.875rem;text-align:right;font-size:0.82rem;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.pmax) }}</td>
+                <td style="padding:0.55rem 0.875rem;text-align:right;font-size:0.82rem;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.pm) }}</td>
+                <td style="padding:0.55rem 0.875rem;text-align:right;font-size:0.82rem;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.pa) }}</td>
+                <td style="padding:0.55rem 0.875rem;text-align:right;font-size:0.88rem;font-weight:900;font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.plp>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(row.plp) }}</td>
+                <td style="padding:0.55rem 1.25rem;text-align:right;font-size:0.88rem;font-weight:900;font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.plv>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(row.plv) }}</td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ================================================================
+         BLOCO 3: TABELA COMPLETA (todas as operacoes filtradas, todas as colunas)
+         ================================================================ -->
+    <div class="premium-card" style="overflow:hidden;">
+      <div style="padding:0.75rem 1.5rem;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:0.75rem;">
+        <div style="padding:0.4rem;background:var(--brand-emerald-light);border-radius:var(--radius-md);border:1px solid var(--brand-emerald-muted);">
+          <i data-lucide="list" style="width:0.875rem;height:0.875rem;color:var(--brand-emerald);display:block;"></i>
+        </div>
+        <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);">
+          Operacoes
+          <span style="font-family:'JetBrains Mono',monospace;color:var(--brand-emerald);margin-left:0.5rem;">{{ linhasFiltradas.length }}</span>
+        </span>
+      </div>
+      <div style="overflow:auto;max-height:520px;">
+        <table style="width:100%;border-collapse:separate;border-spacing:0;min-width:2400px;font-size:0.7rem;">
+          <thead style="position:sticky;top:0;z-index:3;">
+            <tr style="background:var(--surface-overlay);">
+              <th v-for="col in colunas" :key="col.k" style="padding:0.4rem 0.75rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);border-bottom:2px solid var(--border-default);white-space:nowrap;">{{ col.label }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(op, idx) in linhasFiltradas" :key="op.tradeId || idx"
+                onmouseover="this.style.background='var(--surface-overlay)'"
+                onmouseout="this.style.background='transparent'"
+                style="transition:background 0.1s;">
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ op.tradeId || '' }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ op.estrategiaId || '' }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;">
+                <span style="padding:1px 6px;border-radius:99px;font-size:0.6rem;font-weight:700;"
+                      :style="op.status==='ATIVO'?'background:var(--brand-emerald-light);color:var(--brand-emerald);':op.status==='EXERCIDA'?'background:var(--brand-rose-light);color:var(--brand-rose);':'background:var(--surface-overlay);color:var(--text-muted);'">
+                  {{ op.status || '' }}
+                </span>
+              </td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">{{ fmtData(op.dataTrade) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ mesNum(op.dataTrade) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">{{ fmtData(op.dataVencimento) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ mesNum(op.dataVencimento) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text-primary);">{{ op.simboloOpcao || '' }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--brand-indigo);">{{ op.tickerAtivo || '' }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;color:var(--text-secondary);">{{ op.nomeEmpresa || '' }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;color:var(--text-muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;">{{ op.setor || '' }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-weight:700;" :style="op.direcaoTrade==='VENDA'?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ op.direcaoTrade || '' }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-weight:700;color:var(--text-secondary);">{{ op.tipoOpcao || '' }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-primary);">{{ fmtQ(op.quantidade) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">{{ fmtR(op.strike) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">{{ fmtR(op.spotPrice) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;color:var(--text-muted);">{{ op.moneynessCode || '' }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">{{ fmtR(op.premioMedio) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">{{ fmtR(op.premioAtual) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;" :style="op.ganhoMaximo>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(op.ganhoMaximo) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;" :style="op.potencialLucroPct>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(op.potencialLucroPct * 100) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtR(op.perdaMaxima) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">{{ fmtR(op.nocional) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;" :style="op.plTotalPct>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(op.plTotalPct * 100) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">{{ fmtR(op.plTotalUnitario) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;" :style="op.plTotalValor>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(op.plTotalValor) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtR(op.breakEven) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ op.dteCorridos || 0 }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;" :style="(op.dteUteis||0)<=14?'color:var(--brand-rose);font-weight:700;':(op.dteUteis||0)<=21?'color:var(--brand-amber);':'color:var(--text-secondary);'">{{ op.dteUteis || 0 }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.ivAtual) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.ivRank) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.variacao) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.moneynessRatio) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.delta) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.gamma) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.vega) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.theta) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.rho) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.volatilidadeImpl) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.poe) }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ op.directionFlag || '' }}</td>
+              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ op.controlFlag || '' }}</td>
+            </tr>
+            <tr v-if="linhasFiltradas.length === 0">
+              <td colspan="43" style="padding:2rem;text-align:center;color:var(--text-muted);font-size:0.875rem;">
+                Nenhuma operacao encontrada.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</template>
+
+<script>
+window.CockpitSummary = {
+  template: '#cockpit-summary-template',
+  props: {
+    cockpit:  { type: Array,   default: function() { return []; } },
+    isMobile: { type: Boolean, default: false }
+  },
+
+  data: function() {
+    return {
+      filtros: { status:[], tradeMonth:[], expiryMonth:[], opcaoTicker:[], ticker:[], side:[], tipo:[], moneyness:[] },
+      colunas: [
+        { k:'tradeId',          label:'ID_TRADE'       },
+        { k:'estrategiaId',     label:'ID_STRATEGY'    },
+        { k:'status',           label:'STATUS'         },
+        { k:'dataTrade',        label:'TRADE_DATE'     },
+        { k:'tradeMonth',       label:'TRADE_MONTH'    },
+        { k:'dataVencimento',   label:'EXPIRY'         },
+        { k:'expiryMonth',      label:'EXPIRY_MONTH'   },
+        { k:'simboloOpcao',     label:'OPTION_TICKER'  },
+        { k:'tickerAtivo',      label:'TICKER'         },
+        { k:'nomeEmpresa',      label:'COMPANY_NAME'   },
+        { k:'setor',            label:'SECTOR'         },
+        { k:'direcaoTrade',     label:'SIDE'           },
+        { k:'tipoOpcao',        label:'OPTION_TYPE'    },
+        { k:'quantidade',       label:'QUANTITY'       },
+        { k:'strike',           label:'STRIKE'         },
+        { k:'spotPrice',        label:'SPOT'           },
+        { k:'moneynessCode',    label:'MONEYNESS'      },
+        { k:'premioMedio',      label:'ENTRY_PRICE'    },
+        { k:'premioAtual',      label:'LAST_PREMIUM'   },
+        { k:'ganhoMaximo',      label:'MAX_GAIN'       },
+        { k:'potencialLucroPct',label:'MAX_PROFIT_PCT' },
+        { k:'perdaMaxima',      label:'MAX_LOSS'       },
+        { k:'nocional',         label:'NOTIONAL'       },
+        { k:'plTotalPct',       label:'PL_PCT'         },
+        { k:'plTotalUnitario',  label:'PL_TOTAL'       },
+        { k:'plTotalValor',     label:'PL_VALUE'       },
+        { k:'breakEven',        label:'BREAK_EVEN'     },
+        { k:'dteCorridos',      label:'DTE_CALENDAR'   },
+        { k:'dteUteis',         label:'DTE'            },
+        { k:'ivAtual',          label:'IV'             },
+        { k:'ivRank',           label:'IV_RANK'        },
+        { k:'variacao',         label:'VARIATION'      },
+        { k:'moneynessRatio',   label:'MONEYNESS_RATIO'},
+        { k:'delta',            label:'DELTA'          },
+        { k:'gamma',            label:'GAMMA'          },
+        { k:'vega',             label:'VEGA'           },
+        { k:'theta',            label:'THETA'          },
+        { k:'rho',              label:'RHO'            },
+        { k:'volatilidadeImpl', label:'IV_CALC'        },
+        { k:'poe',              label:'POE'            },
+        { k:'directionFlag',    label:'DIRECTION_FLAG' },
+        { k:'controlFlag',      label:'CONTROL_FLAG'   }
+      ]
+    };
+  },
+
+  computed: {
+
+    temFiltro: function() {
+      var f = this.filtros;
+      return f.status.length>0||f.tradeMonth.length>0||f.expiryMonth.length>0||
+             f.opcaoTicker.length>0||f.ticker.length>0||f.side.length>0||
+             f.tipo.length>0||f.moneyness.length>0;
+    },
+
+    gruposFiltro: function() {
+      var self=this, data=this.cockpit;
+      function u(arr){ var s={},r=[]; arr.forEach(function(v){if(v&&!s[v]){s[v]=true;r.push(v);}}); return r.sort(); }
+      function uMes(campo){ var s={},r=[];
+        data.forEach(function(o){ var v=self.mesVal(o[campo]),l=self.mesLabel(o[campo]);
+          if(v&&!s[v]){s[v]=true;r.push({val:v,label:l});} });
+        return r.sort(function(a,b){return a.val.localeCompare(b.val);}); }
+      function to(arr){ return arr.map(function(v){return{val:v,label:v};}); }
+      return [
+        {campo:'status',      label:'Status',        opcoes:to(u(data.map(function(o){return String(o.status||'').trim().toUpperCase();})))},
+        {campo:'tradeMonth',  label:'Mes Trade',     opcoes:uMes('dataTrade')},
+        {campo:'expiryMonth', label:'Mes Venc.',     opcoes:uMes('dataVencimento')},
+        {campo:'opcaoTicker', label:'Option Ticker', opcoes:to(u(data.map(function(o){return String(o.simboloOpcao||'').trim().toUpperCase();})))},
+        {campo:'ticker',      label:'Ticker',        opcoes:to(u(data.map(function(o){return String(o.tickerAtivo||'').trim().toUpperCase();})))},
+        {campo:'side',        label:'Side',          opcoes:to(u(data.map(function(o){return String(o.direcaoTrade||'').trim().toUpperCase();})))},
+        {campo:'tipo',        label:'Option Type',   opcoes:to(u(data.map(function(o){return String(o.tipoOpcao||'').trim().toUpperCase();})))},
+        {campo:'moneyness',   label:'Moneyness',     opcoes:to(u(data.map(function(o){return String(o.moneynessCode||'').trim().toUpperCase();})))}
+      ];
+    },
+
+    linhasFiltradas: function() {
+      var f=this.filtros, self=this;
+      return this.cockpit.filter(function(o) {
+        if(f.status.length      && f.status.indexOf(String(o.status        ||'').trim().toUpperCase())<0) return false;
+        if(f.tradeMonth.length  && f.tradeMonth.indexOf(self.mesVal(o.dataTrade))<0)                      return false;
+        if(f.expiryMonth.length && f.expiryMonth.indexOf(self.mesVal(o.dataVencimento))<0)                return false;
+        if(f.opcaoTicker.length && f.opcaoTicker.indexOf(String(o.simboloOpcao ||'').trim().toUpperCase())<0) return false;
+        if(f.ticker.length      && f.ticker.indexOf(String(o.tickerAtivo    ||'').trim().toUpperCase())<0) return false;
+        if(f.side.length        && f.side.indexOf(String(o.direcaoTrade     ||'').trim().toUpperCase())<0) return false;
+        if(f.tipo.length        && f.tipo.indexOf(String(o.tipoOpcao        ||'').trim().toUpperCase())<0) return false;
+        if(f.moneyness.length   && f.moneyness.indexOf(String(o.moneynessCode||'').trim().toUpperCase())<0) return false;
+        return true;
+      });
+    },
+
+    resumoCalculado: function() {
+      // Calcula sobre linhasFiltradas
+      // Estrutura FIXA: VENDA PUT -> COMPRA PUT -> SUB PUT -> VENDA CALL -> COMPRA CALL -> SUB CALL -> TOTAL
+      var dados=this.linhasFiltradas, acc={};
+      dados.forEach(function(o){
+        var side=String(o.direcaoTrade||'').trim().toUpperCase();
+        var tipo=String(o.tipoOpcao||'').trim().toUpperCase();
+        if(!side||!tipo) return;
+        var k=side+'_'+tipo;
+        if(!acc[k]) acc[k]={side:side,tipo:tipo,qtd:0,gmax:0,lmp:0,noc:0,pmax:0,pm:0,pa:0,plp:0,plv:0};
+        var g=acc[k];
+        g.qtd  += parseFloat(o.quantidade)||0;
+        g.gmax += parseFloat(o.ganhoMaximo)||0;
+        g.lmp  += (parseFloat(o.potencialLucroPct)||0)*100;
+        g.noc  += parseFloat(o.nocional)||0;
+        g.pmax += parseFloat(o.perdaMaxima)||0;
+        g.pm   += parseFloat(o.premioMedio)||0;
+        g.pa   += parseFloat(o.premioAtual)||0;
+        g.plp  += (parseFloat(o.plTotalPct)||0)*100;
+        g.plv  += parseFloat(o.plTotalValor)||0;
+      });
+
+      function soma(lista){
+        var r={qtd:0,gmax:0,lmp:0,noc:0,pmax:0,pm:0,pa:0,plp:0,plv:0};
+        lista.forEach(function(g){r.qtd+=g.qtd;r.gmax+=g.gmax;r.lmp+=g.lmp;r.noc+=g.noc;r.pmax+=g.pmax;r.pm+=g.pm;r.pa+=g.pa;r.plp+=g.plp;r.plv+=g.plv;});
+        return r;
+      }
+
+      var res=[], tudo=[];
+      ['PUT','CALL'].forEach(function(tipo){
+        var it=[];
+        ['VENDA','COMPRA'].forEach(function(side){
+          var k=side+'_'+tipo;
+          if(!acc[k]) return;
+          var g=acc[k];
+          res.push({id:k,t:'d',side:side,tipo:tipo,qtd:g.qtd,gmax:g.gmax,lmp:g.lmp,noc:g.noc,pmax:g.pmax,pm:g.pm,pa:g.pa,plp:g.plp,plv:g.plv});
+          it.push(g); tudo.push(g);
+        });
+        if(it.length){var s=soma(it);res.push({id:'s_'+tipo,t:'s',side:'',tipo:tipo,qtd:s.qtd,gmax:s.gmax,lmp:s.lmp,noc:s.noc,pmax:s.pmax,pm:s.pm,pa:s.pa,plp:s.plp,plv:s.plv});}
+      });
+      if(tudo.length){var t=soma(tudo);res.push({id:'T',t:'T',side:'',tipo:'',qtd:t.qtd,gmax:t.gmax,lmp:t.lmp,noc:t.noc,pmax:t.pmax,pm:t.pm,pa:t.pa,plp:t.plp,plv:t.plv});}
+      return res;
+    }
+
+  },
+
+  methods: {
+    toggle: function(campo,valor){
+      var l=this.filtros[campo], i=l.indexOf(valor);
+      if(i>=0) l.splice(i,1); else l.push(valor);
+    },
+    limparFiltros: function(){
+      var self=this;
+      Object.keys(this.filtros).forEach(function(k){self.filtros[k]=[];});
+    },
+    mesVal: function(val){
+      if(!val) return '';
+      var d=val instanceof Date?val:new Date(val);
+      if(isNaN(d.getTime())){var s=String(val).trim();return s.length>=7?s.substring(0,7):s;}
+      return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    },
+    mesLabel: function(val){
+      var M=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+      if(!val) return '';
+      var d=val instanceof Date?val:new Date(val);
+      if(isNaN(d.getTime())) return String(val).trim();
+      return M[d.getMonth()]+'/'+d.getFullYear();
+    },
+    mesNum: function(val){
+      if(!val) return '';
+      var d=val instanceof Date?val:new Date(val);
+      if(isNaN(d.getTime())) return '';
+      return d.getMonth()+1;
+    },
+    fmtData: function(val){
+      if(!val) return '';
+      var d=val instanceof Date?val:new Date(val);
+      if(isNaN(d.getTime())) return String(val).substring(0,10);
+      return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+    },
+    fmtR: function(v){
+      var n=parseFloat(v)||0;
+      return (n<0?'-R$ ':'R$ ')+Math.abs(n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    },
+    fmtP: function(v){
+      var n=parseFloat(v)||0;
+      return (n>=0?'+':'')+n.toFixed(2)+'%';
+    },
+    fmtQ: function(v){
+      return (parseFloat(v)||0).toLocaleString('pt-BR');
+    },
+    fmtN4: function(v){
+      var n=parseFloat(v);
+      if(isNaN(n)||n===0) return '';
+      return n.toFixed(4);
+    }
+  }
+};
+</script>

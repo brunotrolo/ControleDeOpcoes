@@ -556,8 +556,8 @@ window.Tradutor = {
           objetoRow.isAtiva = false;
         }
 
-        // 2. Filtro: ATIVOS ou EXERCIDAS entram na matriz (Para a Estratégia Wheel ler o passado)
-        if (!objetoRow.isAtiva && objetoRow.status !== 'EXERCIDA') continue;
+        // 2. Todas as operacoes entram na matriz (ATIVO, ENCERRADO, EXERCIDA)
+        // O filtro por status e feito no frontend (CockpitSummary, CockpitTable, etc)
 
         // 3. Normalização de Moneyness
         if (objetoRow.moneynessCode) {
