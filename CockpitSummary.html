@@ -2,45 +2,19 @@
   <div style="display:flex;flex-direction:column;gap:1rem;width:100%;">
 
     <!-- ================================================================
-         BLOCO 1: FILTROS
+         BLOCO 1: RESUMO CONSOLIDADO
          ================================================================ -->
     <div class="premium-card" style="overflow:hidden;">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:0.875rem 1.5rem;border-bottom:1px solid var(--border-subtle);flex-wrap:wrap;gap:0.5rem;">
-        <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);">
-          Filtros
-          <span style="font-weight:500;margin-left:0.5rem;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);">{{ linhasFiltradas.length }} / {{ cockpit.length }}</span>
-        </span>
-        <button v-if="temFiltro" @click="limparFiltros"
-          style="display:flex;align-items:center;gap:0.375rem;padding:0.3rem 0.75rem;border-radius:var(--radius-md);background:var(--brand-rose-light);border:1px solid var(--brand-rose-muted);color:var(--brand-rose);font-size:0.65rem;font-weight:700;cursor:pointer;">
-          <i data-lucide="x" style="width:0.65rem;height:0.65rem;display:block;"></i>
-          Limpar
-        </button>
-      </div>
-      <div style="padding:0.875rem 1.5rem;display:flex;flex-wrap:wrap;gap:1rem;">
-        <div v-for="grupo in gruposFiltro" :key="grupo.campo" style="display:flex;flex-direction:column;gap:0.3rem;">
-          <span style="font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);">{{ grupo.label }}</span>
-          <div style="display:flex;flex-wrap:wrap;gap:0.2rem;">
-            <button v-for="opt in grupo.opcoes" :key="opt.val" @click="toggle(grupo.campo, opt.val)"
-              :style="filtros[grupo.campo] && filtros[grupo.campo].indexOf(opt.val) >= 0
-                ? 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);'
-                : 'background:var(--surface-base);color:var(--text-secondary);border-color:var(--border-default);'"
-              style="padding:2px 8px;border-radius:99px;font-size:0.62rem;font-weight:700;border:1px solid;cursor:pointer;transition:all 0.12s;white-space:nowrap;">
-              {{ opt.label }}
-            </button>
+      <div style="padding:0.75rem 1.5rem;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <div style="padding:0.4rem;background:var(--brand-indigo-light);border-radius:var(--radius-md);border:1px solid var(--brand-indigo-muted);">
+            <i data-lucide="table-2" style="width:0.875rem;height:0.875rem;color:var(--brand-indigo);display:block;"></i>
           </div>
+          <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);">Resumo Consolidado</span>
         </div>
-      </div>
-    </div>
-
-    <!-- ================================================================
-         BLOCO 2: RESUMO CONSOLIDADO (estrutura fixa, sempre visivel)
-         ================================================================ -->
-    <div class="premium-card" style="overflow:hidden;">
-      <div style="padding:0.75rem 1.5rem;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:0.75rem;">
-        <div style="padding:0.4rem;background:var(--brand-indigo-light);border-radius:var(--radius-md);border:1px solid var(--brand-indigo-muted);">
-          <i data-lucide="table-2" style="width:0.875rem;height:0.875rem;color:var(--brand-indigo);display:block;"></i>
-        </div>
-        <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);">Resumo Consolidado</span>
+        <span style="font-size:0.68rem;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);">
+          {{ linhasFiltradas.length }} / {{ cockpit.length }} ops
+        </span>
       </div>
       <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:separate;border-spacing:0;min-width:760px;">
@@ -60,7 +34,6 @@
           </thead>
           <tbody>
             <template v-for="row in resumoCalculado" :key="row.id">
-              <!-- Linha dado -->
               <tr v-if="row.t === 'd'" onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="this.style.background='transparent'" style="transition:background 0.1s;">
                 <td style="padding:0.5rem 1.25rem;border-bottom:1px solid var(--border-subtle);position:sticky;left:0;background:inherit;z-index:1;white-space:nowrap;">
                   <span style="font-size:0.75rem;font-weight:700;" :style="row.side==='VENDA'?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ row.side }}</span>
@@ -77,7 +50,6 @@
                 <td style="padding:0.5rem 0.875rem;text-align:right;font-size:0.78rem;font-weight:800;border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.plp>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(row.plp) }}</td>
                 <td style="padding:0.5rem 1.25rem;text-align:right;font-size:0.78rem;font-weight:800;border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.plv>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(row.plv) }}</td>
               </tr>
-              <!-- Subtotal -->
               <tr v-else-if="row.t === 's'" style="background:var(--surface-sunken);">
                 <td style="padding:0.4rem 1.25rem;font-size:0.6rem;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);position:sticky;left:0;background:var(--surface-sunken);z-index:1;white-space:nowrap;">SUBTOTAL {{ row.tipo }}</td>
                 <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.72rem;font-weight:800;color:var(--text-primary);border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtQ(row.qtd) }}</td>
@@ -90,7 +62,6 @@
                 <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.72rem;font-weight:900;border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.plp>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(row.plp) }}</td>
                 <td style="padding:0.4rem 1.25rem;text-align:right;font-size:0.72rem;font-weight:900;border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.plv>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(row.plv) }}</td>
               </tr>
-              <!-- Total -->
               <tr v-else-if="row.t === 'T'" style="background:var(--brand-indigo-light);">
                 <td style="padding:0.55rem 1.25rem;font-size:0.62rem;font-weight:900;text-transform:uppercase;letter-spacing:0.14em;color:var(--brand-indigo);position:sticky;left:0;background:var(--brand-indigo-light);z-index:1;white-space:nowrap;">TOTAL GERAL</td>
                 <td style="padding:0.55rem 0.875rem;text-align:right;font-size:0.82rem;font-weight:900;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtQ(row.qtd) }}</td>
@@ -110,81 +81,439 @@
     </div>
 
     <!-- ================================================================
-         BLOCO 3: TABELA COMPLETA (todas as operacoes filtradas, todas as colunas)
+         BLOCO 2: TABELA COMPLETA COM FILTROS INLINE NO CABECALHO
          ================================================================ -->
-    <div class="premium-card" style="overflow:hidden;">
-      <div style="padding:0.75rem 1.5rem;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:0.75rem;">
-        <div style="padding:0.4rem;background:var(--brand-emerald-light);border-radius:var(--radius-md);border:1px solid var(--brand-emerald-muted);">
-          <i data-lucide="list" style="width:0.875rem;height:0.875rem;color:var(--brand-emerald);display:block;"></i>
+    <div class="premium-card" style="overflow:visible;">
+
+      <!-- Header da tabela com contador e limpar filtros -->
+      <div style="padding:0.75rem 1.25rem;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <div style="padding:0.4rem;background:var(--brand-emerald-light);border-radius:var(--radius-md);border:1px solid var(--brand-emerald-muted);">
+            <i data-lucide="list" style="width:0.875rem;height:0.875rem;color:var(--brand-emerald);display:block;"></i>
+          </div>
+          <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);">
+            Operacoes
+            <span style="font-family:'JetBrains Mono',monospace;color:var(--brand-emerald);margin-left:0.5rem;">{{ linhasFiltradas.length }}</span>
+          </span>
         </div>
-        <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);">
-          Operacoes
-          <span style="font-family:'JetBrains Mono',monospace;color:var(--brand-emerald);margin-left:0.5rem;">{{ linhasFiltradas.length }}</span>
-        </span>
+        <button v-if="temFiltro" @click="limparFiltros"
+          style="display:flex;align-items:center;gap:0.3rem;padding:0.25rem 0.75rem;border-radius:var(--radius-md);background:var(--brand-rose-light);border:1px solid var(--brand-rose-muted);color:var(--brand-rose);font-size:0.65rem;font-weight:700;cursor:pointer;">
+          <i data-lucide="x" style="width:0.65rem;height:0.65rem;display:block;"></i>
+          Limpar filtros
+        </button>
       </div>
-      <div style="overflow:auto;max-height:520px;">
-        <table style="width:100%;border-collapse:separate;border-spacing:0;min-width:2400px;font-size:0.7rem;">
-          <thead style="position:sticky;top:0;z-index:3;">
+
+      <!-- Tabela com filtros no thead -->
+      <div style="overflow:auto;max-height:600px;position:relative;">
+        <table style="width:100%;border-collapse:separate;border-spacing:0;min-width:2800px;font-size:0.7rem;">
+          <thead style="position:sticky;top:0;z-index:10;">
+
+            <!-- Linha 1: Labels das colunas -->
             <tr style="background:var(--surface-overlay);">
-              <th v-for="col in colunas" :key="col.k" style="padding:0.4rem 0.75rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);border-bottom:2px solid var(--border-default);white-space:nowrap;">{{ col.label }}</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">ID_TRADE</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">ID_STRATEGY</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">STATUS</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">TRADE_DATE</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">TRADE_MONTH</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">EXPIRY</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">EXPIRY_MONTH</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">OPTION_TICKER</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">TICKER</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">COMPANY_NAME</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">SECTOR</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">SIDE</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">OPTION_TYPE</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">QUANTITY</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">STRIKE</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">SPOT</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">MONEYNESS</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">ENTRY_PRICE</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">LAST_PREMIUM</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">MAX_GAIN</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">MAX_PROFIT_PCT</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">MAX_LOSS</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">NOTIONAL</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">PL_PCT</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">PL_TOTAL</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">PL_VALUE</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">BREAK_EVEN</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">DTE_CALENDAR</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">DTE</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">IV</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">IV_RANK</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">VARIATION</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">MONEYNESS_RATIO</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">DELTA</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">GAMMA</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">VEGA</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">THETA</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">RHO</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">IV_CALC</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">POE</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">DIRECTION_FLAG</th>
+              <th style="padding:0.4rem 0.6rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);border-bottom:1px solid var(--border-subtle);white-space:nowrap;background:var(--surface-overlay);">CONTROL_FLAG</th>
+            </tr>
+
+            <!-- Linha 2: Inputs de filtro em todas as colunas -->
+            <tr style="background:var(--surface-sunken);">
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);position:relative;">
+                <div style="position:relative;">
+                  <input :value="buscas.tradeId" @input="buscas.tradeId=$event.target.value" @focus="dropdownAberto.tradeId=true" @blur="fecharDelay('tradeId')" placeholder="..." style="width:100%;min-width:60px;padding:2px 5px 2px 18px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;box-sizing:border-box;" :style="filtros.tradeId.length || buscas.tradeId ? {borderColor:'var(--brand-indigo)'} : {}" />
+                  <i data-lucide="chevron-down" style="position:absolute;left:4px;top:50%;transform:translateY(-50%);width:0.5rem;height:0.5rem;color:var(--text-muted);pointer-events:none;display:block;"></i>
+                  <span v-if="filtros.tradeId.length" style="position:absolute;right:3px;top:50%;transform:translateY(-50%);background:var(--brand-indigo);color:#fff;border-radius:99px;font-size:0.48rem;font-weight:700;padding:0 3px;line-height:1.7;">{{ filtros.tradeId.length }}</span>
+                </div>
+                <div v-if="dropdownAberto.tradeId && opcoesCol('tradeId','tradeId',false).length" style="position:absolute;top:100%;left:0;z-index:9999;min-width:110px;max-width:220px;background:var(--surface-base);border:1px solid var(--brand-indigo-muted);border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,0.3);max-height:200px;overflow-y:auto;">
+                  <div v-for="opt in opcoesCol('tradeId','tradeId',false)" :key="opt.val||opt" @mousedown.prevent="toggle('tradeId', opt.val||opt)" style="padding:4px 8px;font-size:0.64rem;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;" :style="filtros.tradeId.indexOf(opt.val||opt)>=0?'background:var(--brand-indigo-light);color:var(--brand-indigo);font-weight:700;':'color:var(--text-primary);'" onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="this.style.removeProperty('background')">
+                    <i v-if="filtros.tradeId.indexOf(opt.val||opt)>=0" data-lucide="check" style="width:0.5rem;height:0.5rem;flex-shrink:0;display:block;"></i>
+                    <span v-else style="width:0.5rem;flex-shrink:0;"></span>
+                    {{ opt.label||opt }}
+                  </div>
+                </div>
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);position:relative;">
+                <div style="position:relative;">
+                  <input :value="buscas.estrategiaId" @input="buscas.estrategiaId=$event.target.value" @focus="dropdownAberto.estrategiaId=true" @blur="fecharDelay('estrategiaId')" placeholder="..." style="width:100%;min-width:60px;padding:2px 5px 2px 18px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;box-sizing:border-box;" :style="filtros.estrategiaId.length || buscas.estrategiaId ? {borderColor:'var(--brand-indigo)'} : {}" />
+                  <i data-lucide="chevron-down" style="position:absolute;left:4px;top:50%;transform:translateY(-50%);width:0.5rem;height:0.5rem;color:var(--text-muted);pointer-events:none;display:block;"></i>
+                  <span v-if="filtros.estrategiaId.length" style="position:absolute;right:3px;top:50%;transform:translateY(-50%);background:var(--brand-indigo);color:#fff;border-radius:99px;font-size:0.48rem;font-weight:700;padding:0 3px;line-height:1.7;">{{ filtros.estrategiaId.length }}</span>
+                </div>
+                <div v-if="dropdownAberto.estrategiaId && opcoesCol('estrategiaId','estrategiaId',false).length" style="position:absolute;top:100%;left:0;z-index:9999;min-width:110px;max-width:220px;background:var(--surface-base);border:1px solid var(--brand-indigo-muted);border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,0.3);max-height:200px;overflow-y:auto;">
+                  <div v-for="opt in opcoesCol('estrategiaId','estrategiaId',false)" :key="opt.val||opt" @mousedown.prevent="toggle('estrategiaId', opt.val||opt)" style="padding:4px 8px;font-size:0.64rem;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;" :style="filtros.estrategiaId.indexOf(opt.val||opt)>=0?'background:var(--brand-indigo-light);color:var(--brand-indigo);font-weight:700;':'color:var(--text-primary);'" onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="this.style.removeProperty('background')">
+                    <i v-if="filtros.estrategiaId.indexOf(opt.val||opt)>=0" data-lucide="check" style="width:0.5rem;height:0.5rem;flex-shrink:0;display:block;"></i>
+                    <span v-else style="width:0.5rem;flex-shrink:0;"></span>
+                    {{ opt.label||opt }}
+                  </div>
+                </div>
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);position:relative;">
+                <div style="position:relative;">
+                  <input :value="buscas.status" @input="buscas.status=$event.target.value" @focus="dropdownAberto.status=true" @blur="fecharDelay('status')" placeholder="..." style="width:100%;min-width:60px;padding:2px 5px 2px 18px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;box-sizing:border-box;" :style="filtros.status.length || buscas.status ? {borderColor:'var(--brand-indigo)'} : {}" />
+                  <i data-lucide="chevron-down" style="position:absolute;left:4px;top:50%;transform:translateY(-50%);width:0.5rem;height:0.5rem;color:var(--text-muted);pointer-events:none;display:block;"></i>
+                  <span v-if="filtros.status.length" style="position:absolute;right:3px;top:50%;transform:translateY(-50%);background:var(--brand-indigo);color:#fff;border-radius:99px;font-size:0.48rem;font-weight:700;padding:0 3px;line-height:1.7;">{{ filtros.status.length }}</span>
+                </div>
+                <div v-if="dropdownAberto.status && opcoesCol('status','status',false).length" style="position:absolute;top:100%;left:0;z-index:9999;min-width:110px;max-width:220px;background:var(--surface-base);border:1px solid var(--brand-indigo-muted);border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,0.3);max-height:200px;overflow-y:auto;">
+                  <div v-for="opt in opcoesCol('status','status',false)" :key="opt.val||opt" @mousedown.prevent="toggle('status', opt.val||opt)" style="padding:4px 8px;font-size:0.64rem;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;" :style="filtros.status.indexOf(opt.val||opt)>=0?'background:var(--brand-indigo-light);color:var(--brand-indigo);font-weight:700;':'color:var(--text-primary);'" onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="this.style.removeProperty('background')">
+                    <i v-if="filtros.status.indexOf(opt.val||opt)>=0" data-lucide="check" style="width:0.5rem;height:0.5rem;flex-shrink:0;display:block;"></i>
+                    <span v-else style="width:0.5rem;flex-shrink:0;"></span>
+                    {{ opt.label||opt }}
+                  </div>
+                </div>
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);position:relative;">
+                <div style="position:relative;">
+                  <input :value="buscas.tradeDateTxt" @input="buscas.tradeDateTxt=$event.target.value" @focus="dropdownAberto.tradeDateTxt=true" @blur="fecharDelay('tradeDateTxt')" placeholder="..." style="width:100%;min-width:60px;padding:2px 5px 2px 18px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;box-sizing:border-box;" :style="filtros.tradeDateTxt.length || buscas.tradeDateTxt ? {borderColor:'var(--brand-indigo)'} : {}" />
+                  <i data-lucide="chevron-down" style="position:absolute;left:4px;top:50%;transform:translateY(-50%);width:0.5rem;height:0.5rem;color:var(--text-muted);pointer-events:none;display:block;"></i>
+                  <span v-if="filtros.tradeDateTxt.length" style="position:absolute;right:3px;top:50%;transform:translateY(-50%);background:var(--brand-indigo);color:#fff;border-radius:99px;font-size:0.48rem;font-weight:700;padding:0 3px;line-height:1.7;">{{ filtros.tradeDateTxt.length }}</span>
+                </div>
+                <div v-if="dropdownAberto.tradeDateTxt && opcoesCol('tradeDateTxt','dataTrade',false).length" style="position:absolute;top:100%;left:0;z-index:9999;min-width:110px;max-width:220px;background:var(--surface-base);border:1px solid var(--brand-indigo-muted);border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,0.3);max-height:200px;overflow-y:auto;">
+                  <div v-for="opt in opcoesCol('tradeDateTxt','dataTrade',false)" :key="opt.val||opt" @mousedown.prevent="toggle('tradeDateTxt', opt.val||opt)" style="padding:4px 8px;font-size:0.64rem;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;" :style="filtros.tradeDateTxt.indexOf(opt.val||opt)>=0?'background:var(--brand-indigo-light);color:var(--brand-indigo);font-weight:700;':'color:var(--text-primary);'" onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="this.style.removeProperty('background')">
+                    <i v-if="filtros.tradeDateTxt.indexOf(opt.val||opt)>=0" data-lucide="check" style="width:0.5rem;height:0.5rem;flex-shrink:0;display:block;"></i>
+                    <span v-else style="width:0.5rem;flex-shrink:0;"></span>
+                    {{ opt.label||opt }}
+                  </div>
+                </div>
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);position:relative;">
+                <div style="position:relative;">
+                  <input :value="buscas.tradeMonth" @input="buscas.tradeMonth=$event.target.value" @focus="dropdownAberto.tradeMonth=true" @blur="fecharDelay('tradeMonth')" placeholder="..." style="width:100%;min-width:60px;padding:2px 5px 2px 18px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;box-sizing:border-box;" :style="filtros.tradeMonth.length || buscas.tradeMonth ? {borderColor:'var(--brand-indigo)'} : {}" />
+                  <i data-lucide="chevron-down" style="position:absolute;left:4px;top:50%;transform:translateY(-50%);width:0.5rem;height:0.5rem;color:var(--text-muted);pointer-events:none;display:block;"></i>
+                  <span v-if="filtros.tradeMonth.length" style="position:absolute;right:3px;top:50%;transform:translateY(-50%);background:var(--brand-indigo);color:#fff;border-radius:99px;font-size:0.48rem;font-weight:700;padding:0 3px;line-height:1.7;">{{ filtros.tradeMonth.length }}</span>
+                </div>
+                <div v-if="dropdownAberto.tradeMonth && opcoesCol('tradeMonth','dataTrade',true).length" style="position:absolute;top:100%;left:0;z-index:9999;min-width:110px;max-width:220px;background:var(--surface-base);border:1px solid var(--brand-indigo-muted);border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,0.3);max-height:200px;overflow-y:auto;">
+                  <div v-for="opt in opcoesCol('tradeMonth','dataTrade',true)" :key="opt.val||opt" @mousedown.prevent="toggle('tradeMonth', opt.val||opt)" style="padding:4px 8px;font-size:0.64rem;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;" :style="filtros.tradeMonth.indexOf(opt.val||opt)>=0?'background:var(--brand-indigo-light);color:var(--brand-indigo);font-weight:700;':'color:var(--text-primary);'" onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="this.style.removeProperty('background')">
+                    <i v-if="filtros.tradeMonth.indexOf(opt.val||opt)>=0" data-lucide="check" style="width:0.5rem;height:0.5rem;flex-shrink:0;display:block;"></i>
+                    <span v-else style="width:0.5rem;flex-shrink:0;"></span>
+                    {{ opt.label||opt }}
+                  </div>
+                </div>
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);position:relative;">
+                <div style="position:relative;">
+                  <input :value="buscas.expiryTxt" @input="buscas.expiryTxt=$event.target.value" @focus="dropdownAberto.expiryTxt=true" @blur="fecharDelay('expiryTxt')" placeholder="..." style="width:100%;min-width:60px;padding:2px 5px 2px 18px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;box-sizing:border-box;" :style="filtros.expiryTxt.length || buscas.expiryTxt ? {borderColor:'var(--brand-indigo)'} : {}" />
+                  <i data-lucide="chevron-down" style="position:absolute;left:4px;top:50%;transform:translateY(-50%);width:0.5rem;height:0.5rem;color:var(--text-muted);pointer-events:none;display:block;"></i>
+                  <span v-if="filtros.expiryTxt.length" style="position:absolute;right:3px;top:50%;transform:translateY(-50%);background:var(--brand-indigo);color:#fff;border-radius:99px;font-size:0.48rem;font-weight:700;padding:0 3px;line-height:1.7;">{{ filtros.expiryTxt.length }}</span>
+                </div>
+                <div v-if="dropdownAberto.expiryTxt && opcoesCol('expiryTxt','dataVencimento',false).length" style="position:absolute;top:100%;left:0;z-index:9999;min-width:110px;max-width:220px;background:var(--surface-base);border:1px solid var(--brand-indigo-muted);border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,0.3);max-height:200px;overflow-y:auto;">
+                  <div v-for="opt in opcoesCol('expiryTxt','dataVencimento',false)" :key="opt.val||opt" @mousedown.prevent="toggle('expiryTxt', opt.val||opt)" style="padding:4px 8px;font-size:0.64rem;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;" :style="filtros.expiryTxt.indexOf(opt.val||opt)>=0?'background:var(--brand-indigo-light);color:var(--brand-indigo);font-weight:700;':'color:var(--text-primary);'" onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="this.style.removeProperty('background')">
+                    <i v-if="filtros.expiryTxt.indexOf(opt.val||opt)>=0" data-lucide="check" style="width:0.5rem;height:0.5rem;flex-shrink:0;display:block;"></i>
+                    <span v-else style="width:0.5rem;flex-shrink:0;"></span>
+                    {{ opt.label||opt }}
+                  </div>
+                </div>
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);position:relative;">
+                <div style="position:relative;">
+                  <input :value="buscas.expiryMonth" @input="buscas.expiryMonth=$event.target.value" @focus="dropdownAberto.expiryMonth=true" @blur="fecharDelay('expiryMonth')" placeholder="..." style="width:100%;min-width:60px;padding:2px 5px 2px 18px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;box-sizing:border-box;" :style="filtros.expiryMonth.length || buscas.expiryMonth ? {borderColor:'var(--brand-indigo)'} : {}" />
+                  <i data-lucide="chevron-down" style="position:absolute;left:4px;top:50%;transform:translateY(-50%);width:0.5rem;height:0.5rem;color:var(--text-muted);pointer-events:none;display:block;"></i>
+                  <span v-if="filtros.expiryMonth.length" style="position:absolute;right:3px;top:50%;transform:translateY(-50%);background:var(--brand-indigo);color:#fff;border-radius:99px;font-size:0.48rem;font-weight:700;padding:0 3px;line-height:1.7;">{{ filtros.expiryMonth.length }}</span>
+                </div>
+                <div v-if="dropdownAberto.expiryMonth && opcoesCol('expiryMonth','dataVencimento',true).length" style="position:absolute;top:100%;left:0;z-index:9999;min-width:110px;max-width:220px;background:var(--surface-base);border:1px solid var(--brand-indigo-muted);border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,0.3);max-height:200px;overflow-y:auto;">
+                  <div v-for="opt in opcoesCol('expiryMonth','dataVencimento',true)" :key="opt.val||opt" @mousedown.prevent="toggle('expiryMonth', opt.val||opt)" style="padding:4px 8px;font-size:0.64rem;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;" :style="filtros.expiryMonth.indexOf(opt.val||opt)>=0?'background:var(--brand-indigo-light);color:var(--brand-indigo);font-weight:700;':'color:var(--text-primary);'" onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="this.style.removeProperty('background')">
+                    <i v-if="filtros.expiryMonth.indexOf(opt.val||opt)>=0" data-lucide="check" style="width:0.5rem;height:0.5rem;flex-shrink:0;display:block;"></i>
+                    <span v-else style="width:0.5rem;flex-shrink:0;"></span>
+                    {{ opt.label||opt }}
+                  </div>
+                </div>
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);position:relative;">
+                <div style="position:relative;">
+                  <input :value="buscas.opcaoTicker" @input="buscas.opcaoTicker=$event.target.value" @focus="dropdownAberto.opcaoTicker=true" @blur="fecharDelay('opcaoTicker')" placeholder="..." style="width:100%;min-width:60px;padding:2px 5px 2px 18px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;box-sizing:border-box;" :style="filtros.opcaoTicker.length || buscas.opcaoTicker ? {borderColor:'var(--brand-indigo)'} : {}" />
+                  <i data-lucide="chevron-down" style="position:absolute;left:4px;top:50%;transform:translateY(-50%);width:0.5rem;height:0.5rem;color:var(--text-muted);pointer-events:none;display:block;"></i>
+                  <span v-if="filtros.opcaoTicker.length" style="position:absolute;right:3px;top:50%;transform:translateY(-50%);background:var(--brand-indigo);color:#fff;border-radius:99px;font-size:0.48rem;font-weight:700;padding:0 3px;line-height:1.7;">{{ filtros.opcaoTicker.length }}</span>
+                </div>
+                <div v-if="dropdownAberto.opcaoTicker && opcoesCol('opcaoTicker','simboloOpcao',false).length" style="position:absolute;top:100%;left:0;z-index:9999;min-width:110px;max-width:220px;background:var(--surface-base);border:1px solid var(--brand-indigo-muted);border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,0.3);max-height:200px;overflow-y:auto;">
+                  <div v-for="opt in opcoesCol('opcaoTicker','simboloOpcao',false)" :key="opt.val||opt" @mousedown.prevent="toggle('opcaoTicker', opt.val||opt)" style="padding:4px 8px;font-size:0.64rem;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;" :style="filtros.opcaoTicker.indexOf(opt.val||opt)>=0?'background:var(--brand-indigo-light);color:var(--brand-indigo);font-weight:700;':'color:var(--text-primary);'" onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="this.style.removeProperty('background')">
+                    <i v-if="filtros.opcaoTicker.indexOf(opt.val||opt)>=0" data-lucide="check" style="width:0.5rem;height:0.5rem;flex-shrink:0;display:block;"></i>
+                    <span v-else style="width:0.5rem;flex-shrink:0;"></span>
+                    {{ opt.label||opt }}
+                  </div>
+                </div>
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);position:relative;">
+                <div style="position:relative;">
+                  <input :value="buscas.ticker" @input="buscas.ticker=$event.target.value" @focus="dropdownAberto.ticker=true" @blur="fecharDelay('ticker')" placeholder="..." style="width:100%;min-width:60px;padding:2px 5px 2px 18px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;box-sizing:border-box;" :style="filtros.ticker.length || buscas.ticker ? {borderColor:'var(--brand-indigo)'} : {}" />
+                  <i data-lucide="chevron-down" style="position:absolute;left:4px;top:50%;transform:translateY(-50%);width:0.5rem;height:0.5rem;color:var(--text-muted);pointer-events:none;display:block;"></i>
+                  <span v-if="filtros.ticker.length" style="position:absolute;right:3px;top:50%;transform:translateY(-50%);background:var(--brand-indigo);color:#fff;border-radius:99px;font-size:0.48rem;font-weight:700;padding:0 3px;line-height:1.7;">{{ filtros.ticker.length }}</span>
+                </div>
+                <div v-if="dropdownAberto.ticker && opcoesCol('ticker','tickerAtivo',false).length" style="position:absolute;top:100%;left:0;z-index:9999;min-width:110px;max-width:220px;background:var(--surface-base);border:1px solid var(--brand-indigo-muted);border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,0.3);max-height:200px;overflow-y:auto;">
+                  <div v-for="opt in opcoesCol('ticker','tickerAtivo',false)" :key="opt.val||opt" @mousedown.prevent="toggle('ticker', opt.val||opt)" style="padding:4px 8px;font-size:0.64rem;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;" :style="filtros.ticker.indexOf(opt.val||opt)>=0?'background:var(--brand-indigo-light);color:var(--brand-indigo);font-weight:700;':'color:var(--text-primary);'" onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="this.style.removeProperty('background')">
+                    <i v-if="filtros.ticker.indexOf(opt.val||opt)>=0" data-lucide="check" style="width:0.5rem;height:0.5rem;flex-shrink:0;display:block;"></i>
+                    <span v-else style="width:0.5rem;flex-shrink:0;"></span>
+                    {{ opt.label||opt }}
+                  </div>
+                </div>
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);position:relative;">
+                <div style="position:relative;">
+                  <input :value="buscas.nomeEmpresa" @input="buscas.nomeEmpresa=$event.target.value" @focus="dropdownAberto.nomeEmpresa=true" @blur="fecharDelay('nomeEmpresa')" placeholder="..." style="width:100%;min-width:60px;padding:2px 5px 2px 18px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;box-sizing:border-box;" :style="filtros.nomeEmpresa.length || buscas.nomeEmpresa ? {borderColor:'var(--brand-indigo)'} : {}" />
+                  <i data-lucide="chevron-down" style="position:absolute;left:4px;top:50%;transform:translateY(-50%);width:0.5rem;height:0.5rem;color:var(--text-muted);pointer-events:none;display:block;"></i>
+                  <span v-if="filtros.nomeEmpresa.length" style="position:absolute;right:3px;top:50%;transform:translateY(-50%);background:var(--brand-indigo);color:#fff;border-radius:99px;font-size:0.48rem;font-weight:700;padding:0 3px;line-height:1.7;">{{ filtros.nomeEmpresa.length }}</span>
+                </div>
+                <div v-if="dropdownAberto.nomeEmpresa && opcoesCol('nomeEmpresa','nomeEmpresa',false).length" style="position:absolute;top:100%;left:0;z-index:9999;min-width:110px;max-width:220px;background:var(--surface-base);border:1px solid var(--brand-indigo-muted);border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,0.3);max-height:200px;overflow-y:auto;">
+                  <div v-for="opt in opcoesCol('nomeEmpresa','nomeEmpresa',false)" :key="opt.val||opt" @mousedown.prevent="toggle('nomeEmpresa', opt.val||opt)" style="padding:4px 8px;font-size:0.64rem;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;" :style="filtros.nomeEmpresa.indexOf(opt.val||opt)>=0?'background:var(--brand-indigo-light);color:var(--brand-indigo);font-weight:700;':'color:var(--text-primary);'" onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="this.style.removeProperty('background')">
+                    <i v-if="filtros.nomeEmpresa.indexOf(opt.val||opt)>=0" data-lucide="check" style="width:0.5rem;height:0.5rem;flex-shrink:0;display:block;"></i>
+                    <span v-else style="width:0.5rem;flex-shrink:0;"></span>
+                    {{ opt.label||opt }}
+                  </div>
+                </div>
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);position:relative;">
+                <div style="position:relative;">
+                  <input :value="buscas.setor" @input="buscas.setor=$event.target.value" @focus="dropdownAberto.setor=true" @blur="fecharDelay('setor')" placeholder="..." style="width:100%;min-width:60px;padding:2px 5px 2px 18px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;box-sizing:border-box;" :style="filtros.setor.length || buscas.setor ? {borderColor:'var(--brand-indigo)'} : {}" />
+                  <i data-lucide="chevron-down" style="position:absolute;left:4px;top:50%;transform:translateY(-50%);width:0.5rem;height:0.5rem;color:var(--text-muted);pointer-events:none;display:block;"></i>
+                  <span v-if="filtros.setor.length" style="position:absolute;right:3px;top:50%;transform:translateY(-50%);background:var(--brand-indigo);color:#fff;border-radius:99px;font-size:0.48rem;font-weight:700;padding:0 3px;line-height:1.7;">{{ filtros.setor.length }}</span>
+                </div>
+                <div v-if="dropdownAberto.setor && opcoesCol('setor','setor',false).length" style="position:absolute;top:100%;left:0;z-index:9999;min-width:110px;max-width:220px;background:var(--surface-base);border:1px solid var(--brand-indigo-muted);border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,0.3);max-height:200px;overflow-y:auto;">
+                  <div v-for="opt in opcoesCol('setor','setor',false)" :key="opt.val||opt" @mousedown.prevent="toggle('setor', opt.val||opt)" style="padding:4px 8px;font-size:0.64rem;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;" :style="filtros.setor.indexOf(opt.val||opt)>=0?'background:var(--brand-indigo-light);color:var(--brand-indigo);font-weight:700;':'color:var(--text-primary);'" onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="this.style.removeProperty('background')">
+                    <i v-if="filtros.setor.indexOf(opt.val||opt)>=0" data-lucide="check" style="width:0.5rem;height:0.5rem;flex-shrink:0;display:block;"></i>
+                    <span v-else style="width:0.5rem;flex-shrink:0;"></span>
+                    {{ opt.label||opt }}
+                  </div>
+                </div>
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);position:relative;">
+                <div style="position:relative;">
+                  <input :value="buscas.side" @input="buscas.side=$event.target.value" @focus="dropdownAberto.side=true" @blur="fecharDelay('side')" placeholder="..." style="width:100%;min-width:60px;padding:2px 5px 2px 18px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;box-sizing:border-box;" :style="filtros.side.length || buscas.side ? {borderColor:'var(--brand-indigo)'} : {}" />
+                  <i data-lucide="chevron-down" style="position:absolute;left:4px;top:50%;transform:translateY(-50%);width:0.5rem;height:0.5rem;color:var(--text-muted);pointer-events:none;display:block;"></i>
+                  <span v-if="filtros.side.length" style="position:absolute;right:3px;top:50%;transform:translateY(-50%);background:var(--brand-indigo);color:#fff;border-radius:99px;font-size:0.48rem;font-weight:700;padding:0 3px;line-height:1.7;">{{ filtros.side.length }}</span>
+                </div>
+                <div v-if="dropdownAberto.side && opcoesCol('side','direcaoTrade',false).length" style="position:absolute;top:100%;left:0;z-index:9999;min-width:110px;max-width:220px;background:var(--surface-base);border:1px solid var(--brand-indigo-muted);border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,0.3);max-height:200px;overflow-y:auto;">
+                  <div v-for="opt in opcoesCol('side','direcaoTrade',false)" :key="opt.val||opt" @mousedown.prevent="toggle('side', opt.val||opt)" style="padding:4px 8px;font-size:0.64rem;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;" :style="filtros.side.indexOf(opt.val||opt)>=0?'background:var(--brand-indigo-light);color:var(--brand-indigo);font-weight:700;':'color:var(--text-primary);'" onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="this.style.removeProperty('background')">
+                    <i v-if="filtros.side.indexOf(opt.val||opt)>=0" data-lucide="check" style="width:0.5rem;height:0.5rem;flex-shrink:0;display:block;"></i>
+                    <span v-else style="width:0.5rem;flex-shrink:0;"></span>
+                    {{ opt.label||opt }}
+                  </div>
+                </div>
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);position:relative;">
+                <div style="position:relative;">
+                  <input :value="buscas.tipo" @input="buscas.tipo=$event.target.value" @focus="dropdownAberto.tipo=true" @blur="fecharDelay('tipo')" placeholder="..." style="width:100%;min-width:60px;padding:2px 5px 2px 18px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;box-sizing:border-box;" :style="filtros.tipo.length || buscas.tipo ? {borderColor:'var(--brand-indigo)'} : {}" />
+                  <i data-lucide="chevron-down" style="position:absolute;left:4px;top:50%;transform:translateY(-50%);width:0.5rem;height:0.5rem;color:var(--text-muted);pointer-events:none;display:block;"></i>
+                  <span v-if="filtros.tipo.length" style="position:absolute;right:3px;top:50%;transform:translateY(-50%);background:var(--brand-indigo);color:#fff;border-radius:99px;font-size:0.48rem;font-weight:700;padding:0 3px;line-height:1.7;">{{ filtros.tipo.length }}</span>
+                </div>
+                <div v-if="dropdownAberto.tipo && opcoesCol('tipo','tipoOpcao',false).length" style="position:absolute;top:100%;left:0;z-index:9999;min-width:110px;max-width:220px;background:var(--surface-base);border:1px solid var(--brand-indigo-muted);border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,0.3);max-height:200px;overflow-y:auto;">
+                  <div v-for="opt in opcoesCol('tipo','tipoOpcao',false)" :key="opt.val||opt" @mousedown.prevent="toggle('tipo', opt.val||opt)" style="padding:4px 8px;font-size:0.64rem;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;" :style="filtros.tipo.indexOf(opt.val||opt)>=0?'background:var(--brand-indigo-light);color:var(--brand-indigo);font-weight:700;':'color:var(--text-primary);'" onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="this.style.removeProperty('background')">
+                    <i v-if="filtros.tipo.indexOf(opt.val||opt)>=0" data-lucide="check" style="width:0.5rem;height:0.5rem;flex-shrink:0;display:block;"></i>
+                    <span v-else style="width:0.5rem;flex-shrink:0;"></span>
+                    {{ opt.label||opt }}
+                  </div>
+                </div>
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.quantidade" @input="buscas.quantidade=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.quantidade ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.strike" @input="buscas.strike=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.strike ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.spot" @input="buscas.spot=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.spot ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);position:relative;">
+                <div style="position:relative;">
+                  <input :value="buscas.moneyness" @input="buscas.moneyness=$event.target.value" @focus="dropdownAberto.moneyness=true" @blur="fecharDelay('moneyness')" placeholder="..." style="width:100%;min-width:60px;padding:2px 5px 2px 18px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;box-sizing:border-box;" :style="filtros.moneyness.length || buscas.moneyness ? {borderColor:'var(--brand-indigo)'} : {}" />
+                  <i data-lucide="chevron-down" style="position:absolute;left:4px;top:50%;transform:translateY(-50%);width:0.5rem;height:0.5rem;color:var(--text-muted);pointer-events:none;display:block;"></i>
+                  <span v-if="filtros.moneyness.length" style="position:absolute;right:3px;top:50%;transform:translateY(-50%);background:var(--brand-indigo);color:#fff;border-radius:99px;font-size:0.48rem;font-weight:700;padding:0 3px;line-height:1.7;">{{ filtros.moneyness.length }}</span>
+                </div>
+                <div v-if="dropdownAberto.moneyness && opcoesCol('moneyness','moneynessCode',false).length" style="position:absolute;top:100%;left:0;z-index:9999;min-width:110px;max-width:220px;background:var(--surface-base);border:1px solid var(--brand-indigo-muted);border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,0.3);max-height:200px;overflow-y:auto;">
+                  <div v-for="opt in opcoesCol('moneyness','moneynessCode',false)" :key="opt.val||opt" @mousedown.prevent="toggle('moneyness', opt.val||opt)" style="padding:4px 8px;font-size:0.64rem;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;" :style="filtros.moneyness.indexOf(opt.val||opt)>=0?'background:var(--brand-indigo-light);color:var(--brand-indigo);font-weight:700;':'color:var(--text-primary);'" onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="this.style.removeProperty('background')">
+                    <i v-if="filtros.moneyness.indexOf(opt.val||opt)>=0" data-lucide="check" style="width:0.5rem;height:0.5rem;flex-shrink:0;display:block;"></i>
+                    <span v-else style="width:0.5rem;flex-shrink:0;"></span>
+                    {{ opt.label||opt }}
+                  </div>
+                </div>
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.premioMedio" @input="buscas.premioMedio=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.premioMedio ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.premioAtual" @input="buscas.premioAtual=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.premioAtual ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.ganhoMaximo" @input="buscas.ganhoMaximo=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.ganhoMaximo ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.maxProfPct" @input="buscas.maxProfPct=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.maxProfPct ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.perdaMaxima" @input="buscas.perdaMaxima=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.perdaMaxima ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.nocional" @input="buscas.nocional=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.nocional ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.plPct" @input="buscas.plPct=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.plPct ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.plTotal" @input="buscas.plTotal=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.plTotal ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.plValor" @input="buscas.plValor=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.plValor ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.breakEven" @input="buscas.breakEven=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.breakEven ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.dteCorridos" @input="buscas.dteCorridos=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.dteCorridos ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.dteUteis" @input="buscas.dteUteis=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.dteUteis ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.iv" @input="buscas.iv=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.iv ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.ivRank" @input="buscas.ivRank=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.ivRank ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.variacao" @input="buscas.variacao=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.variacao ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.moneynessR" @input="buscas.moneynessR=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.moneynessR ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.delta" @input="buscas.delta=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.delta ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.gamma" @input="buscas.gamma=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.gamma ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.vega" @input="buscas.vega=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.vega ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.theta" @input="buscas.theta=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.theta ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.rho" @input="buscas.rho=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.rho ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.ivCalc" @input="buscas.ivCalc=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.ivCalc ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);">
+                <input :value="buscas.poe" @input="buscas.poe=$event.target.value" placeholder="..." style="width:100%;min-width:56px;padding:2px 5px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;" :style="buscas.poe ? {borderColor:'var(--brand-indigo)'} : {}" />
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);position:relative;">
+                <div style="position:relative;">
+                  <input :value="buscas.dirFlag" @input="buscas.dirFlag=$event.target.value" @focus="dropdownAberto.dirFlag=true" @blur="fecharDelay('dirFlag')" placeholder="..." style="width:100%;min-width:60px;padding:2px 5px 2px 18px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;box-sizing:border-box;" :style="filtros.dirFlag.length || buscas.dirFlag ? {borderColor:'var(--brand-indigo)'} : {}" />
+                  <i data-lucide="chevron-down" style="position:absolute;left:4px;top:50%;transform:translateY(-50%);width:0.5rem;height:0.5rem;color:var(--text-muted);pointer-events:none;display:block;"></i>
+                  <span v-if="filtros.dirFlag.length" style="position:absolute;right:3px;top:50%;transform:translateY(-50%);background:var(--brand-indigo);color:#fff;border-radius:99px;font-size:0.48rem;font-weight:700;padding:0 3px;line-height:1.7;">{{ filtros.dirFlag.length }}</span>
+                </div>
+                <div v-if="dropdownAberto.dirFlag && opcoesCol('dirFlag','directionFlag',false).length" style="position:absolute;top:100%;left:0;z-index:9999;min-width:110px;max-width:220px;background:var(--surface-base);border:1px solid var(--brand-indigo-muted);border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,0.3);max-height:200px;overflow-y:auto;">
+                  <div v-for="opt in opcoesCol('dirFlag','directionFlag',false)" :key="opt.val||opt" @mousedown.prevent="toggle('dirFlag', opt.val||opt)" style="padding:4px 8px;font-size:0.64rem;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;" :style="filtros.dirFlag.indexOf(opt.val||opt)>=0?'background:var(--brand-indigo-light);color:var(--brand-indigo);font-weight:700;':'color:var(--text-primary);'" onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="this.style.removeProperty('background')">
+                    <i v-if="filtros.dirFlag.indexOf(opt.val||opt)>=0" data-lucide="check" style="width:0.5rem;height:0.5rem;flex-shrink:0;display:block;"></i>
+                    <span v-else style="width:0.5rem;flex-shrink:0;"></span>
+                    {{ opt.label||opt }}
+                  </div>
+                </div>
+              </td>
+              <td style="padding:2px 4px;border-bottom:2px solid var(--border-default);background:var(--surface-sunken);position:relative;">
+                <div style="position:relative;">
+                  <input :value="buscas.ctrlFlag" @input="buscas.ctrlFlag=$event.target.value" @focus="dropdownAberto.ctrlFlag=true" @blur="fecharDelay('ctrlFlag')" placeholder="..." style="width:100%;min-width:60px;padding:2px 5px 2px 18px;border-radius:3px;border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-primary);font-size:0.6rem;box-sizing:border-box;" :style="filtros.ctrlFlag.length || buscas.ctrlFlag ? {borderColor:'var(--brand-indigo)'} : {}" />
+                  <i data-lucide="chevron-down" style="position:absolute;left:4px;top:50%;transform:translateY(-50%);width:0.5rem;height:0.5rem;color:var(--text-muted);pointer-events:none;display:block;"></i>
+                  <span v-if="filtros.ctrlFlag.length" style="position:absolute;right:3px;top:50%;transform:translateY(-50%);background:var(--brand-indigo);color:#fff;border-radius:99px;font-size:0.48rem;font-weight:700;padding:0 3px;line-height:1.7;">{{ filtros.ctrlFlag.length }}</span>
+                </div>
+                <div v-if="dropdownAberto.ctrlFlag && opcoesCol('ctrlFlag','controlFlag',false).length" style="position:absolute;top:100%;left:0;z-index:9999;min-width:110px;max-width:220px;background:var(--surface-base);border:1px solid var(--brand-indigo-muted);border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,0.3);max-height:200px;overflow-y:auto;">
+                  <div v-for="opt in opcoesCol('ctrlFlag','controlFlag',false)" :key="opt.val||opt" @mousedown.prevent="toggle('ctrlFlag', opt.val||opt)" style="padding:4px 8px;font-size:0.64rem;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;" :style="filtros.ctrlFlag.indexOf(opt.val||opt)>=0?'background:var(--brand-indigo-light);color:var(--brand-indigo);font-weight:700;':'color:var(--text-primary);'" onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="this.style.removeProperty('background')">
+                    <i v-if="filtros.ctrlFlag.indexOf(opt.val||opt)>=0" data-lucide="check" style="width:0.5rem;height:0.5rem;flex-shrink:0;display:block;"></i>
+                    <span v-else style="width:0.5rem;flex-shrink:0;"></span>
+                    {{ opt.label||opt }}
+                  </div>
+                </div>
+              </td>
             </tr>
           </thead>
+
           <tbody>
             <tr v-for="(op, idx) in linhasFiltradas" :key="op.tradeId || idx"
                 onmouseover="this.style.background='var(--surface-overlay)'"
                 onmouseout="this.style.background='transparent'"
                 style="transition:background 0.1s;">
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ op.tradeId || '' }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ op.estrategiaId || '' }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;">
-                <span style="padding:1px 6px;border-radius:99px;font-size:0.6rem;font-weight:700;"
-                      :style="op.status==='ATIVO'?'background:var(--brand-emerald-light);color:var(--brand-emerald);':op.status==='EXERCIDA'?'background:var(--brand-rose-light);color:var(--brand-rose);':'background:var(--surface-overlay);color:var(--text-muted);'">
-                  {{ op.status || '' }}
-                </span>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:0.66rem;">{{ op.tradeId || '' }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:0.66rem;">{{ op.estrategiaId || '' }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-size:0.66rem;">
+                <span style="padding:1px 6px;border-radius:99px;font-size:0.6rem;font-weight:700;" :style="op.status==='ATIVO'?'background:var(--brand-emerald-light);color:var(--brand-emerald);':op.status==='EXERCIDA'?'background:var(--brand-rose-light);color:var(--brand-rose);':'background:var(--surface-overlay);color:var(--text-muted);'">{{ op.status || '' }}</span>
               </td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">{{ fmtData(op.dataTrade) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ mesNum(op.dataTrade) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">{{ fmtData(op.dataVencimento) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ mesNum(op.dataVencimento) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text-primary);">{{ op.simboloOpcao || '' }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--brand-indigo);">{{ op.tickerAtivo || '' }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;color:var(--text-secondary);">{{ op.nomeEmpresa || '' }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;color:var(--text-muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;">{{ op.setor || '' }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-weight:700;" :style="op.direcaoTrade==='VENDA'?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ op.direcaoTrade || '' }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-weight:700;color:var(--text-secondary);">{{ op.tipoOpcao || '' }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-primary);">{{ fmtQ(op.quantidade) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">{{ fmtR(op.strike) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">{{ fmtR(op.spotPrice) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;color:var(--text-muted);">{{ op.moneynessCode || '' }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">{{ fmtR(op.premioMedio) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">{{ fmtR(op.premioAtual) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;" :style="op.ganhoMaximo>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(op.ganhoMaximo) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;" :style="op.potencialLucroPct>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(op.potencialLucroPct * 100) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtR(op.perdaMaxima) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">{{ fmtR(op.nocional) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;" :style="op.plTotalPct>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(op.plTotalPct * 100) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">{{ fmtR(op.plTotalUnitario) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;" :style="op.plTotalValor>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(op.plTotalValor) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtR(op.breakEven) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ op.dteCorridos || 0 }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;" :style="(op.dteUteis||0)<=14?'color:var(--brand-rose);font-weight:700;':(op.dteUteis||0)<=21?'color:var(--brand-amber);':'color:var(--text-secondary);'">{{ op.dteUteis || 0 }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.ivAtual) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.ivRank) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.variacao) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.moneynessRatio) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.delta) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.gamma) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.vega) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.theta) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.rho) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.volatilidadeImpl) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ fmtN4(op.poe) }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ op.directionFlag || '' }}</td>
-              <td style="padding:0.35rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">{{ op.controlFlag || '' }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);font-size:0.66rem;">{{ fmtData(op.dataTrade) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:0.66rem;">{{ mesNum(op.dataTrade) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);font-size:0.66rem;">{{ fmtData(op.dataVencimento) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:0.66rem;">{{ mesNum(op.dataVencimento) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text-primary);font-size:0.66rem;">{{ op.simboloOpcao || '' }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--brand-indigo);font-size:0.66rem;">{{ op.tickerAtivo || '' }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;color:var(--text-secondary);font-size:0.66rem;">{{ op.nomeEmpresa || '' }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;color:var(--text-muted);font-size:0.66rem;max-width:160px;overflow:hidden;text-overflow:ellipsis;">{{ op.setor || '' }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-weight:700;font-size:0.66rem;" :style="op.direcaoTrade==='VENDA'?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ op.direcaoTrade || '' }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;font-weight:700;color:var(--text-secondary);font-size:0.66rem;">{{ op.tipoOpcao || '' }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-primary);font-size:0.66rem;">{{ fmtQ(op.quantidade) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);font-size:0.66rem;">{{ fmtR(op.strike) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);font-size:0.66rem;">{{ fmtR(op.spotPrice) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;color:var(--text-muted);font-size:0.66rem;">{{ op.moneynessCode || '' }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);font-size:0.66rem;">{{ fmtR(op.premioMedio) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);font-size:0.66rem;">{{ fmtR(op.premioAtual) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;font-size:0.66rem;" :style="op.ganhoMaximo>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(op.ganhoMaximo) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;font-size:0.66rem;" :style="op.potencialLucroPct>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(op.potencialLucroPct * 100) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:0.66rem;">{{ fmtR(op.perdaMaxima) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);font-size:0.66rem;">{{ fmtR(op.nocional) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:0.66rem;" :style="op.plTotalPct>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(op.plTotalPct * 100) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);font-size:0.66rem;">{{ fmtR(op.plTotalUnitario) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:0.66rem;" :style="op.plTotalValor>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(op.plTotalValor) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:0.66rem;">{{ fmtR(op.breakEven) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:0.66rem;">{{ op.dteCorridos || 0 }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;font-size:0.66rem;" :style="(op.dteUteis||0)<=14?'color:var(--brand-rose);font-weight:700;':(op.dteUteis||0)<=21?'color:var(--brand-amber);':'color:var(--text-secondary);'">{{ op.dteUteis || 0 }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:0.66rem;">{{ fmtN4(op.ivAtual) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:0.66rem;">{{ fmtN4(op.ivRank) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:0.66rem;">{{ fmtN4(op.variacao) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:0.66rem;">{{ fmtN4(op.moneynessRatio) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:0.66rem;">{{ fmtN4(op.delta) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:0.66rem;">{{ fmtN4(op.gamma) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:0.66rem;">{{ fmtN4(op.vega) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:0.66rem;">{{ fmtN4(op.theta) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:0.66rem;">{{ fmtN4(op.rho) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:0.66rem;">{{ fmtN4(op.volatilidadeImpl) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:0.66rem;">{{ fmtN4(op.poe) }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:0.66rem;">{{ op.directionFlag || '' }}</td>
+              <td style="padding:0.3rem 0.75rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:0.66rem;">{{ op.controlFlag || '' }}</td>
             </tr>
             <tr v-if="linhasFiltradas.length === 0">
-              <td colspan="43" style="padding:2rem;text-align:center;color:var(--text-muted);font-size:0.875rem;">
-                Nenhuma operacao encontrada.
+              <td colspan="42" style="padding:2.5rem;text-align:center;color:var(--text-muted);font-size:0.875rem;">
+                Nenhuma operacao encontrada com os filtros selecionados.
               </td>
             </tr>
           </tbody>
@@ -205,109 +534,78 @@ window.CockpitSummary = {
 
   data: function() {
     return {
-      filtros: { status:[], tradeMonth:[], expiryMonth:[], opcaoTicker:[], ticker:[], side:[], tipo:[], moneyness:[] },
-      colunas: [
-        { k:'tradeId',          label:'ID_TRADE'       },
-        { k:'estrategiaId',     label:'ID_STRATEGY'    },
-        { k:'status',           label:'STATUS'         },
-        { k:'dataTrade',        label:'TRADE_DATE'     },
-        { k:'tradeMonth',       label:'TRADE_MONTH'    },
-        { k:'dataVencimento',   label:'EXPIRY'         },
-        { k:'expiryMonth',      label:'EXPIRY_MONTH'   },
-        { k:'simboloOpcao',     label:'OPTION_TICKER'  },
-        { k:'tickerAtivo',      label:'TICKER'         },
-        { k:'nomeEmpresa',      label:'COMPANY_NAME'   },
-        { k:'setor',            label:'SECTOR'         },
-        { k:'direcaoTrade',     label:'SIDE'           },
-        { k:'tipoOpcao',        label:'OPTION_TYPE'    },
-        { k:'quantidade',       label:'QUANTITY'       },
-        { k:'strike',           label:'STRIKE'         },
-        { k:'spotPrice',        label:'SPOT'           },
-        { k:'moneynessCode',    label:'MONEYNESS'      },
-        { k:'premioMedio',      label:'ENTRY_PRICE'    },
-        { k:'premioAtual',      label:'LAST_PREMIUM'   },
-        { k:'ganhoMaximo',      label:'MAX_GAIN'       },
-        { k:'potencialLucroPct',label:'MAX_PROFIT_PCT' },
-        { k:'perdaMaxima',      label:'MAX_LOSS'       },
-        { k:'nocional',         label:'NOTIONAL'       },
-        { k:'plTotalPct',       label:'PL_PCT'         },
-        { k:'plTotalUnitario',  label:'PL_TOTAL'       },
-        { k:'plTotalValor',     label:'PL_VALUE'       },
-        { k:'breakEven',        label:'BREAK_EVEN'     },
-        { k:'dteCorridos',      label:'DTE_CALENDAR'   },
-        { k:'dteUteis',         label:'DTE'            },
-        { k:'ivAtual',          label:'IV'             },
-        { k:'ivRank',           label:'IV_RANK'        },
-        { k:'variacao',         label:'VARIATION'      },
-        { k:'moneynessRatio',   label:'MONEYNESS_RATIO'},
-        { k:'delta',            label:'DELTA'          },
-        { k:'gamma',            label:'GAMMA'          },
-        { k:'vega',             label:'VEGA'           },
-        { k:'theta',            label:'THETA'          },
-        { k:'rho',              label:'RHO'            },
-        { k:'volatilidadeImpl', label:'IV_CALC'        },
-        { k:'poe',              label:'POE'            },
-        { k:'directionFlag',    label:'DIRECTION_FLAG' },
-        { k:'controlFlag',      label:'CONTROL_FLAG'   }
-      ]
+      filtros:        {tradeId:[], estrategiaId:[], status:[], tradeDateTxt:[], tradeMonth:[], expiryTxt:[], expiryMonth:[], opcaoTicker:[], ticker:[], nomeEmpresa:[], setor:[], side:[], tipo:[], moneyness:[], dirFlag:[], ctrlFlag:[]},
+      buscas:         {tradeId:"", estrategiaId:"", status:"", tradeDateTxt:"", tradeMonth:"", expiryTxt:"", expiryMonth:"", opcaoTicker:"", ticker:"", nomeEmpresa:"", setor:"", side:"", tipo:"", quantidade:"", strike:"", spot:"", moneyness:"", premioMedio:"", premioAtual:"", ganhoMaximo:"", maxProfPct:"", perdaMaxima:"", nocional:"", plPct:"", plTotal:"", plValor:"", breakEven:"", dteCorridos:"", dteUteis:"", iv:"", ivRank:"", variacao:"", moneynessR:"", delta:"", gamma:"", vega:"", theta:"", rho:"", ivCalc:"", poe:"", dirFlag:"", ctrlFlag:""},
+      dropdownAberto: {tradeId:false, estrategiaId:false, status:false, tradeDateTxt:false, tradeMonth:false, expiryTxt:false, expiryMonth:false, opcaoTicker:false, ticker:false, nomeEmpresa:false, setor:false, side:false, tipo:false, moneyness:false, dirFlag:false, ctrlFlag:false}
     };
   },
 
   computed: {
 
     temFiltro: function() {
-      var f = this.filtros;
-      return f.status.length>0||f.tradeMonth.length>0||f.expiryMonth.length>0||
-             f.opcaoTicker.length>0||f.ticker.length>0||f.side.length>0||
-             f.tipo.length>0||f.moneyness.length>0;
-    },
-
-    gruposFiltro: function() {
-      var self=this, data=this.cockpit;
-      function u(arr){ var s={},r=[]; arr.forEach(function(v){if(v&&!s[v]){s[v]=true;r.push(v);}}); return r.sort(); }
-      function uMes(campo){ var s={},r=[];
-        data.forEach(function(o){ var v=self.mesVal(o[campo]),l=self.mesLabel(o[campo]);
-          if(v&&!s[v]){s[v]=true;r.push({val:v,label:l});} });
-        return r.sort(function(a,b){return a.val.localeCompare(b.val);}); }
-      function to(arr){ return arr.map(function(v){return{val:v,label:v};}); }
-      return [
-        {campo:'status',      label:'Status',        opcoes:to(u(data.map(function(o){return String(o.status||'').trim().toUpperCase();})))},
-        {campo:'tradeMonth',  label:'Mes Trade',     opcoes:uMes('dataTrade')},
-        {campo:'expiryMonth', label:'Mes Venc.',     opcoes:uMes('dataVencimento')},
-        {campo:'opcaoTicker', label:'Option Ticker', opcoes:to(u(data.map(function(o){return String(o.simboloOpcao||'').trim().toUpperCase();})))},
-        {campo:'ticker',      label:'Ticker',        opcoes:to(u(data.map(function(o){return String(o.tickerAtivo||'').trim().toUpperCase();})))},
-        {campo:'side',        label:'Side',          opcoes:to(u(data.map(function(o){return String(o.direcaoTrade||'').trim().toUpperCase();})))},
-        {campo:'tipo',        label:'Option Type',   opcoes:to(u(data.map(function(o){return String(o.tipoOpcao||'').trim().toUpperCase();})))},
-        {campo:'moneyness',   label:'Moneyness',     opcoes:to(u(data.map(function(o){return String(o.moneynessCode||'').trim().toUpperCase();})))}
-      ];
+      var f = this.filtros, b = this.buscas;
+      if (f.tradeId.length>0 || f.estrategiaId.length>0 || f.status.length>0 || f.tradeDateTxt.length>0 || f.tradeMonth.length>0 || f.expiryTxt.length>0 || f.expiryMonth.length>0 || f.opcaoTicker.length>0 || f.ticker.length>0 || f.nomeEmpresa.length>0 || f.setor.length>0 || f.side.length>0 || f.tipo.length>0 || f.moneyness.length>0 || f.dirFlag.length>0 || f.ctrlFlag.length>0) return true;
+      return Object.keys(b).some(function(k){return (b[k]||'').trim()!==''; });
     },
 
     linhasFiltradas: function() {
-      var f=this.filtros, self=this;
+      var f = this.filtros, b = this.buscas, self = this;
       return this.cockpit.filter(function(o) {
-        if(f.status.length      && f.status.indexOf(String(o.status        ||'').trim().toUpperCase())<0) return false;
-        if(f.tradeMonth.length  && f.tradeMonth.indexOf(self.mesVal(o.dataTrade))<0)                      return false;
-        if(f.expiryMonth.length && f.expiryMonth.indexOf(self.mesVal(o.dataVencimento))<0)                return false;
-        if(f.opcaoTicker.length && f.opcaoTicker.indexOf(String(o.simboloOpcao ||'').trim().toUpperCase())<0) return false;
-        if(f.ticker.length      && f.ticker.indexOf(String(o.tickerAtivo    ||'').trim().toUpperCase())<0) return false;
-        if(f.side.length        && f.side.indexOf(String(o.direcaoTrade     ||'').trim().toUpperCase())<0) return false;
-        if(f.tipo.length        && f.tipo.indexOf(String(o.tipoOpcao        ||'').trim().toUpperCase())<0) return false;
-        if(f.moneyness.length   && f.moneyness.indexOf(String(o.moneynessCode||'').trim().toUpperCase())<0) return false;
+        if (f.tradeId.length && f.tradeId.indexOf(String(o.tradeId||'').trim().toUpperCase())<0) return false;
+        if (f.estrategiaId.length && f.estrategiaId.indexOf(String(o.estrategiaId||'').trim().toUpperCase())<0) return false;
+        if (f.status.length && f.status.indexOf(String(o.status||'').trim().toUpperCase())<0) return false;
+        if (f.tradeDateTxt.length && f.tradeDateTxt.indexOf(String(o.dataTrade||'').trim().toUpperCase())<0) return false;
+        if (f.tradeMonth.length && f.tradeMonth.indexOf(self.mesVal(o.dataTrade))<0) return false;
+        if (f.expiryTxt.length && f.expiryTxt.indexOf(String(o.dataVencimento||'').trim().toUpperCase())<0) return false;
+        if (f.expiryMonth.length && f.expiryMonth.indexOf(self.mesVal(o.dataVencimento))<0) return false;
+        if (f.opcaoTicker.length && f.opcaoTicker.indexOf(String(o.simboloOpcao||'').trim().toUpperCase())<0) return false;
+        if (f.ticker.length && f.ticker.indexOf(String(o.tickerAtivo||'').trim().toUpperCase())<0) return false;
+        if (f.nomeEmpresa.length && f.nomeEmpresa.indexOf(String(o.nomeEmpresa||'').trim().toUpperCase())<0) return false;
+        if (f.setor.length && f.setor.indexOf(String(o.setor||'').trim().toUpperCase())<0) return false;
+        if (f.side.length && f.side.indexOf(String(o.direcaoTrade||'').trim().toUpperCase())<0) return false;
+        if (f.tipo.length && f.tipo.indexOf(String(o.tipoOpcao||'').trim().toUpperCase())<0) return false;
+        if (b.quantidade && String(o.quantidade||'').indexOf(b.quantidade)<0) return false;
+        if (b.strike && String(o.strike||'').indexOf(b.strike)<0) return false;
+        if (b.spot && String(o.spotPrice||'').indexOf(b.spot)<0) return false;
+        if (f.moneyness.length && f.moneyness.indexOf(String(o.moneynessCode||'').trim().toUpperCase())<0) return false;
+        if (b.premioMedio && String(o.premioMedio||'').indexOf(b.premioMedio)<0) return false;
+        if (b.premioAtual && String(o.premioAtual||'').indexOf(b.premioAtual)<0) return false;
+        if (b.ganhoMaximo && String(o.ganhoMaximo||'').indexOf(b.ganhoMaximo)<0) return false;
+        if (b.maxProfPct && String(o.potencialLucroPct||'').indexOf(b.maxProfPct)<0) return false;
+        if (b.perdaMaxima && String(o.perdaMaxima||'').indexOf(b.perdaMaxima)<0) return false;
+        if (b.nocional && String(o.nocional||'').indexOf(b.nocional)<0) return false;
+        if (b.plPct && String(o.plTotalPct||'').indexOf(b.plPct)<0) return false;
+        if (b.plTotal && String(o.plTotalUnitario||'').indexOf(b.plTotal)<0) return false;
+        if (b.plValor && String(o.plTotalValor||'').indexOf(b.plValor)<0) return false;
+        if (b.breakEven && String(o.breakEven||'').indexOf(b.breakEven)<0) return false;
+        if (b.dteCorridos && String(o.dteCorridos||'').indexOf(b.dteCorridos)<0) return false;
+        if (b.dteUteis && String(o.dteUteis||'').indexOf(b.dteUteis)<0) return false;
+        if (b.iv && String(o.ivAtual||'').indexOf(b.iv)<0) return false;
+        if (b.ivRank && String(o.ivRank||'').indexOf(b.ivRank)<0) return false;
+        if (b.variacao && String(o.variacao||'').indexOf(b.variacao)<0) return false;
+        if (b.moneynessR && String(o.moneynessRatio||'').indexOf(b.moneynessR)<0) return false;
+        if (b.delta && String(o.delta||'').indexOf(b.delta)<0) return false;
+        if (b.gamma && String(o.gamma||'').indexOf(b.gamma)<0) return false;
+        if (b.vega && String(o.vega||'').indexOf(b.vega)<0) return false;
+        if (b.theta && String(o.theta||'').indexOf(b.theta)<0) return false;
+        if (b.rho && String(o.rho||'').indexOf(b.rho)<0) return false;
+        if (b.ivCalc && String(o.volatilidadeImpl||'').indexOf(b.ivCalc)<0) return false;
+        if (b.poe && String(o.poe||'').indexOf(b.poe)<0) return false;
+        if (f.dirFlag.length && f.dirFlag.indexOf(String(o.directionFlag||'').trim().toUpperCase())<0) return false;
+        if (f.ctrlFlag.length && f.ctrlFlag.indexOf(String(o.controlFlag||'').trim().toUpperCase())<0) return false;
         return true;
       });
     },
 
     resumoCalculado: function() {
-      // Calcula sobre linhasFiltradas
-      // Estrutura FIXA: VENDA PUT -> COMPRA PUT -> SUB PUT -> VENDA CALL -> COMPRA CALL -> SUB CALL -> TOTAL
-      var dados=this.linhasFiltradas, acc={};
-      dados.forEach(function(o){
-        var side=String(o.direcaoTrade||'').trim().toUpperCase();
-        var tipo=String(o.tipoOpcao||'').trim().toUpperCase();
-        if(!side||!tipo) return;
-        var k=side+'_'+tipo;
-        if(!acc[k]) acc[k]={side:side,tipo:tipo,qtd:0,gmax:0,lmp:0,noc:0,pmax:0,pm:0,pa:0,plp:0,plv:0};
-        var g=acc[k];
+      var dados = this.linhasFiltradas, acc = {};
+      dados.forEach(function(o) {
+        var side = String(o.direcaoTrade||'').trim().toUpperCase();
+        var tipo = String(o.tipoOpcao||'').trim().toUpperCase();
+        if (!side || !tipo) return;
+        var k = side + '_' + tipo;
+        if (!acc[k]) acc[k] = { side:side, tipo:tipo, qtd:0, gmax:0, lmp:0, noc:0, pmax:0, pm:0, pa:0, plp:0, plv:0 };
+        var g = acc[k];
         g.qtd  += parseFloat(o.quantidade)||0;
         g.gmax += parseFloat(o.ganhoMaximo)||0;
         g.lmp  += (parseFloat(o.potencialLucroPct)||0)*100;
@@ -318,81 +616,109 @@ window.CockpitSummary = {
         g.plp  += (parseFloat(o.plTotalPct)||0)*100;
         g.plv  += parseFloat(o.plTotalValor)||0;
       });
-
-      function soma(lista){
-        var r={qtd:0,gmax:0,lmp:0,noc:0,pmax:0,pm:0,pa:0,plp:0,plv:0};
+      function soma(lista) {
+        var r = {qtd:0,gmax:0,lmp:0,noc:0,pmax:0,pm:0,pa:0,plp:0,plv:0};
         lista.forEach(function(g){r.qtd+=g.qtd;r.gmax+=g.gmax;r.lmp+=g.lmp;r.noc+=g.noc;r.pmax+=g.pmax;r.pm+=g.pm;r.pa+=g.pa;r.plp+=g.plp;r.plv+=g.plv;});
         return r;
       }
-
+      function row(g, id, t, tipoLabel) {
+        return {id:id,t:t,side:g.side||'',tipo:tipoLabel!==undefined?tipoLabel:g.tipo,
+          qtd:g.qtd,gmax:g.gmax,lmp:g.lmp,noc:g.noc,pmax:g.pmax,pm:g.pm,pa:g.pa,plp:g.plp,plv:g.plv};
+      }
       var res=[], tudo=[];
-      ['PUT','CALL'].forEach(function(tipo){
+      ['PUT','CALL'].forEach(function(tipo) {
         var it=[];
-        ['VENDA','COMPRA'].forEach(function(side){
+        ['VENDA','COMPRA'].forEach(function(side) {
           var k=side+'_'+tipo;
-          if(!acc[k]) return;
-          var g=acc[k];
-          res.push({id:k,t:'d',side:side,tipo:tipo,qtd:g.qtd,gmax:g.gmax,lmp:g.lmp,noc:g.noc,pmax:g.pmax,pm:g.pm,pa:g.pa,plp:g.plp,plv:g.plv});
-          it.push(g); tudo.push(g);
+          if (acc[k]) { res.push(row(acc[k],k,'d',null)); it.push(acc[k]); tudo.push(acc[k]); }
         });
-        if(it.length){var s=soma(it);res.push({id:'s_'+tipo,t:'s',side:'',tipo:tipo,qtd:s.qtd,gmax:s.gmax,lmp:s.lmp,noc:s.noc,pmax:s.pmax,pm:s.pm,pa:s.pa,plp:s.plp,plv:s.plv});}
+        if (it.length) { var s=soma(it); s.side=''; s.tipo=tipo; res.push(row(s,'s_'+tipo,'s',tipo)); }
       });
-      if(tudo.length){var t=soma(tudo);res.push({id:'T',t:'T',side:'',tipo:'',qtd:t.qtd,gmax:t.gmax,lmp:t.lmp,noc:t.noc,pmax:t.pmax,pm:t.pm,pa:t.pa,plp:t.plp,plv:t.plv});}
+      if (tudo.length) { var t=soma(tudo); t.side=''; t.tipo=''; res.push(row(t,'T','T','')); }
       return res;
     }
-
   },
 
   methods: {
-    toggle: function(campo,valor){
-      var l=this.filtros[campo], i=l.indexOf(valor);
-      if(i>=0) l.splice(i,1); else l.push(valor);
+
+    toggle: function(campo, valor) {
+      var l = this.filtros[campo], i = l.indexOf(valor);
+      if (i >= 0) l.splice(i, 1); else l.push(valor);
     },
-    limparFiltros: function(){
-      var self=this;
-      Object.keys(this.filtros).forEach(function(k){self.filtros[k]=[];});
+
+    limparFiltros: function() {
+      var self = this;
+      Object.keys(this.filtros).forEach(function(k) { self.filtros[k] = []; });
+      Object.keys(this.buscas).forEach(function(k)  { self.buscas[k]  = ''; });
+      Object.keys(this.dropdownAberto).forEach(function(k) { self.dropdownAberto[k] = false; });
     },
-    mesVal: function(val){
-      if(!val) return '';
-      var d=val instanceof Date?val:new Date(val);
-      if(isNaN(d.getTime())){var s=String(val).trim();return s.length>=7?s.substring(0,7):s;}
-      return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+
+    fecharDelay: function(campo) {
+      var self = this;
+      setTimeout(function() {
+        self.dropdownAberto[campo] = false;
+        self.buscas[campo] = '';
+      }, 200);
     },
-    mesLabel: function(val){
-      var M=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-      if(!val) return '';
-      var d=val instanceof Date?val:new Date(val);
-      if(isNaN(d.getTime())) return String(val).trim();
-      return M[d.getMonth()]+'/'+d.getFullYear();
+
+    // opcoesCol: gera lista de opcoes unicas para dropdown de uma coluna
+    // campoFiltro = chave em filtros/buscas, campoObj = campo no objeto cockpit, isMes = bool
+    opcoesCol: function(campoFiltro, campoObj, isMes) {
+      var busca = (this.buscas[campoFiltro] || '').toLowerCase().trim();
+      var self  = this, data = this.cockpit;
+      if (isMes) {
+        var seen = {}, res = [];
+        data.forEach(function(o) {
+          var v = self.mesVal(o[campoObj]), l = self.mesLabel(o[campoObj]);
+          if (v && !seen[v]) { seen[v]=true; res.push({val:v, label:l}); }
+        });
+        res.sort(function(a,b){ return a.val.localeCompare(b.val); });
+        return busca ? res.filter(function(o){ return o.label.toLowerCase().indexOf(busca)>=0; }) : res;
+      }
+      var set = {}, arr = [];
+      data.forEach(function(o) {
+        var v = String(o[campoObj]||'').trim().toUpperCase();
+        if (v && !set[v]) { set[v]=true; arr.push(v); }
+      });
+      arr.sort();
+      return busca ? arr.filter(function(v){ return v.toLowerCase().indexOf(busca)>=0; }) : arr;
     },
-    mesNum: function(val){
-      if(!val) return '';
-      var d=val instanceof Date?val:new Date(val);
-      if(isNaN(d.getTime())) return '';
-      return d.getMonth()+1;
+
+    mesVal: function(val) {
+      if (!val) return '';
+      var d = val instanceof Date ? val : new Date(val);
+      if (isNaN(d.getTime())) { var s = String(val).trim(); return s.length >= 7 ? s.substring(0,7) : s; }
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
     },
-    fmtData: function(val){
-      if(!val) return '';
-      var d=val instanceof Date?val:new Date(val);
-      if(isNaN(d.getTime())) return String(val).substring(0,10);
+    mesLabel: function(val) {
+      var M = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+      if (!val) return '';
+      var d = val instanceof Date ? val : new Date(val);
+      if (isNaN(d.getTime())) return String(val).trim();
+      return M[d.getMonth()] + '/' + d.getFullYear();
+    },
+    mesNum: function(val) {
+      if (!val) return '';
+      var d = val instanceof Date ? val : new Date(val);
+      if (isNaN(d.getTime())) return '';
+      return d.getMonth() + 1;
+    },
+    fmtData: function(val) {
+      if (!val) return '';
+      var d = val instanceof Date ? val : new Date(val);
+      if (isNaN(d.getTime())) return String(val).substring(0,10);
       return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
     },
-    fmtR: function(v){
-      var n=parseFloat(v)||0;
+    fmtR: function(v) {
+      var n = parseFloat(v)||0;
       return (n<0?'-R$ ':'R$ ')+Math.abs(n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
     },
-    fmtP: function(v){
-      var n=parseFloat(v)||0;
+    fmtP: function(v) {
+      var n = parseFloat(v)||0;
       return (n>=0?'+':'')+n.toFixed(2)+'%';
     },
-    fmtQ: function(v){
-      return (parseFloat(v)||0).toLocaleString('pt-BR');
-    },
-    fmtN4: function(v){
-      var n=parseFloat(v);
-      if(isNaN(n)||n===0) return '';
-      return n.toFixed(4);
-    }
+    fmtQ: function(v) { return (parseFloat(v)||0).toLocaleString('pt-BR'); },
+    fmtN4: function(v) { var n=parseFloat(v); if(isNaN(n)||n===0) return ''; return n.toFixed(4); }
   }
 };
 </script>
