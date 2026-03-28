@@ -1,0 +1,529 @@
+<template id="page-ranking-put-template">
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+
+    <!-- ================================================================
+         BANNER EXPLICATIVO (aparece so uma vez, pode ser fechado)
+         ================================================================ -->
+    <div v-if="mostrarBanner"
+         style="display:flex;align-items:flex-start;gap:1rem;padding:1rem 1.25rem;border-radius:var(--radius-xl);background:var(--brand-indigo-light);border:1px solid var(--brand-indigo-muted);">
+      <i data-lucide="info" style="width:1.125rem;height:1.125rem;color:var(--brand-indigo);flex-shrink:0;margin-top:1px;display:block;"></i>
+      <div style="flex:1;">
+        <p style="font-size:0.78rem;font-weight:700;color:var(--brand-indigo);margin-bottom:0.25rem;">Como ler este ranking</p>
+        <p style="font-size:0.72rem;color:var(--text-secondary);line-height:1.6;">
+          O <strong>Score</strong> combina VE/Strike (gordura do premio), IV Rank (se a vol esta cara), liquidez e tendencia do ativo.
+          Opcoes com Score alto e IV Rank acima de 50% sao as melhores oportunidades para venda de PUT.
+          Semaforo verde = todas as condicoes favoraveis. Amarelo = atencao a algum fator. Vermelho = risco elevado.
+        </p>
+      </div>
+      <button @click="mostrarBanner = false"
+              style="background:none;border:none;color:var(--brand-indigo);cursor:pointer;padding:0.25rem;flex-shrink:0;">
+        <i data-lucide="x" style="width:1rem;height:1rem;display:block;"></i>
+      </button>
+    </div>
+
+    <!-- ================================================================
+         CONTROLES
+         ================================================================ -->
+    <div class="premium-card" style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:1.25rem;padding:1rem 1.5rem;">
+
+      <!-- DTE -->
+      <div style="display:flex;flex-direction:column;gap:0.35rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Vencimento (DTE)</label>
+        <div style="display:flex;gap:0.375rem;">
+          <button v-for="d in opsDTE" :key="d.val" @click="filtroDTE = d.val"
+                  style="padding:0.375rem 0.75rem;border-radius:99px;font-size:0.7rem;font-weight:700;cursor:pointer;border:1px solid;transition:all 0.15s;"
+                  :style="filtroDTE === d.val
+                    ? 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);'
+                    : 'background:var(--surface-base);color:var(--text-secondary);border-color:var(--border-default);'">
+            {{ d.label }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Volume minimo -->
+      <div style="display:flex;flex-direction:column;gap:0.35rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Volume minimo</label>
+        <div style="display:flex;gap:0.375rem;">
+          <button v-for="v in opsVol" :key="v.val" @click="filtroVol = v.val"
+                  style="padding:0.375rem 0.75rem;border-radius:99px;font-size:0.7rem;font-weight:700;cursor:pointer;border:1px solid;transition:all 0.15s;"
+                  :style="filtroVol === v.val
+                    ? 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);'
+                    : 'background:var(--surface-base);color:var(--text-secondary);border-color:var(--border-default);'">
+            {{ v.label }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Tendencia -->
+      <div style="display:flex;flex-direction:column;gap:0.35rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Tendencia M9M21</label>
+        <div style="display:flex;gap:0.375rem;">
+          <button @click="filtroTendencia = 'TODOS'"
+                  style="padding:0.375rem 0.75rem;border-radius:99px;font-size:0.7rem;font-weight:700;cursor:pointer;border:1px solid;transition:all 0.15s;"
+                  :style="filtroTendencia === 'TODOS'
+                    ? 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);'
+                    : 'background:var(--surface-base);color:var(--text-secondary);border-color:var(--border-default);'">
+            Todos
+          </button>
+          <button @click="filtroTendencia = 'POSITIVA'"
+                  style="padding:0.375rem 0.75rem;border-radius:99px;font-size:0.7rem;font-weight:700;cursor:pointer;border:1px solid;transition:all 0.15s;"
+                  :style="filtroTendencia === 'POSITIVA'
+                    ? 'background:var(--brand-emerald);color:#fff;border-color:var(--brand-emerald);'
+                    : 'background:var(--surface-base);color:var(--text-secondary);border-color:var(--border-default);'">
+            Alta / Neutra
+          </button>
+        </div>
+      </div>
+
+      <!-- Setor -->
+      <div style="display:flex;flex-direction:column;gap:0.35rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Setor</label>
+        <select v-model="filtroSetor"
+                style="padding:0.4rem 0.75rem;background:var(--surface-base);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.78rem;cursor:pointer;outline:none;"
+                onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+          <option value="">Todos os setores</option>
+          <option v-for="s in setoresDisponiveis" :key="s" :value="s">{{ s }}</option>
+        </select>
+      </div>
+
+      <!-- Contagem + aviso IV -->
+      <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:0.25rem;">
+        <span style="font-size:0.78rem;color:var(--text-muted);">
+          <span style="font-weight:700;color:var(--text-primary);">{{ listaFinal.length }}</span> opcoes
+        </span>
+        <span v-if="semIVRank > 0"
+              style="font-size:0.65rem;color:var(--brand-amber);font-weight:700;">
+          {{ semIVRank }} sem IV Rank (score estimado)
+        </span>
+      </div>
+    </div>
+
+    <!-- ================================================================
+         KPI STRIP
+         ================================================================ -->
+    <div style="display:flex;gap:1px;background:var(--border-subtle);border-radius:var(--radius-xl);overflow:hidden;overflow-x:auto;">
+      <div v-for="kpi in kpis" :key="kpi.label"
+           style="flex:1 1 0%;min-width:130px;padding:1rem 1.25rem;background:var(--surface-base);display:flex;flex-direction:column;gap:4px;">
+        <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">{{ kpi.label }}</span>
+        <span style="font-size:1.2rem;font-weight:800;font-family:'JetBrains Mono',monospace;line-height:1;"
+              :style="kpi.cor ? 'color:' + kpi.cor : 'color:var(--text-primary)'">{{ kpi.valor }}</span>
+        <span v-if="kpi.sub" style="font-size:0.65rem;color:var(--text-muted);">{{ kpi.sub }}</span>
+      </div>
+    </div>
+
+    <!-- ================================================================
+         TABELA PRINCIPAL
+         ================================================================ -->
+    <div class="premium-card" style="overflow:hidden;">
+      <div v-if="listaFinal.length === 0"
+           style="padding:4rem 2rem;text-align:center;color:var(--text-muted);">
+        <i data-lucide="search-x" style="width:2.5rem;height:2.5rem;margin-bottom:1rem;opacity:0.4;display:block;margin-left:auto;margin-right:auto;"></i>
+        <p style="font-weight:700;">Nenhuma opcao encontrada com os filtros atuais.</p>
+        <p style="font-size:0.8rem;margin-top:0.5rem;">Tente ampliar o DTE ou reduzir o volume minimo.</p>
+      </div>
+      <div v-else style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:separate;border-spacing:0;min-width:900px;">
+          <thead>
+            <tr style="background:var(--surface-overlay);">
+              <th v-for="col in colunas" :key="col.key"
+                  @click="col.sortable !== false ? ordenarPor(col.key) : null"
+                  style="padding:0.625rem 0.875rem;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;border-bottom:1px solid var(--border-subtle);white-space:nowrap;user-select:none;"
+                  :style="[
+                    col.align === 'right' ? 'text-align:right;' : col.align === 'center' ? 'text-align:center;' : 'text-align:left;',
+                    col.sortable !== false ? 'cursor:pointer;' : '',
+                    ordemChave === col.key ? 'color:var(--brand-indigo);' : 'color:var(--text-muted);'
+                  ]">
+                {{ col.label }}
+                <span v-if="ordemChave === col.key" style="margin-left:2px;opacity:0.8;">{{ ordemAsc ? '^' : 'v' }}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(op, idx) in listaFinal" :key="op.OPTION_TICKER + idx"
+                style="transition:background 0.1s;"
+                :style="idx % 2 === 0 ? 'background:var(--surface-base);' : 'background:var(--surface-sunken);'"
+                onmouseover="this.style.background='var(--surface-overlay)'"
+                onmouseout="this.style.background=''">
+
+              <!-- Semaforo + Score -->
+              <td style="padding:0.5rem 0.875rem;border-bottom:1px solid var(--border-subtle);white-space:nowrap;">
+                <div style="display:flex;align-items:center;gap:0.5rem;">
+                  <div :style="'width:10px;height:10px;border-radius:50%;flex-shrink:0;' + semaforo(op).bg"
+                       :title="semaforo(op).titulo"></div>
+                  <span style="font-size:0.9rem;font-weight:900;font-family:JetBrains Mono,monospace;"
+                        :style="'color:' + semaforo(op).cor">
+                    {{ op._score !== undefined ? op._score.toFixed(2) : '--' }}
+                  </span>
+                </div>
+              </td>
+
+              <!-- Ativo + Opcao -->
+              <td style="padding:0.5rem 0.875rem;border-bottom:1px solid var(--border-subtle);">
+                <div style="display:flex;flex-direction:column;gap:2px;">
+                  <span style="font-size:0.85rem;font-weight:800;color:var(--text-primary);font-family:JetBrains Mono,monospace;">{{ op.TICKER }}</span>
+                  <span style="font-size:0.7rem;color:var(--text-muted);font-family:JetBrains Mono,monospace;">{{ op.OPTION_TICKER }}</span>
+                  <span style="font-size:0.65rem;color:var(--text-muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" :title="op.COMPANY_NAME">{{ op.COMPANY_NAME }}</span>
+                </div>
+              </td>
+
+              <!-- VE/Strike — metrica central -->
+              <td style="padding:0.5rem 0.875rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:1rem;font-weight:900;color:var(--brand-emerald);font-family:JetBrains Mono,monospace;">
+                  {{ fmtPct(op.VE_OVER_STRIKE) }}
+                </span>
+              </td>
+
+              <!-- IV Rank -->
+              <td style="padding:0.5rem 0.875rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
+                <div v-if="op._ivRank !== null && op._ivRank !== undefined">
+                  <!-- Barra de progresso compacta -->
+                  <div style="width:60px;height:6px;background:var(--border-subtle);border-radius:99px;overflow:hidden;margin:0 auto 3px;">
+                    <div :style="'height:100%;border-radius:99px;width:' + Math.min(op._ivRank,100) + '%;background:' + ivRankCor(op._ivRank) + ';'"></div>
+                  </div>
+                  <span style="font-size:0.75rem;font-weight:700;font-family:JetBrains Mono,monospace;"
+                        :style="'color:' + ivRankCor(op._ivRank)">
+                    {{ op._ivRank.toFixed(0) }}%
+                  </span>
+                </div>
+                <span v-else style="font-size:0.65rem;color:var(--text-muted);">n/d</span>
+              </td>
+
+              <!-- Tendencia M9M21 -->
+              <td style="padding:0.5rem 0.875rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
+                <div style="display:flex;align-items:center;justify-content:center;gap:0.25rem;">
+                  <span v-if="op._m9trend === 1"
+                        style="font-size:0.85rem;font-weight:900;color:var(--brand-emerald);"
+                        title="Alta: MM9 acima de MM21">&#9650;</span>
+                  <span v-else-if="op._m9trend === -1"
+                        style="font-size:0.85rem;font-weight:900;color:var(--brand-rose);"
+                        title="Baixa: MM9 abaixo de MM21">&#9660;</span>
+                  <span v-else
+                        style="font-size:0.85rem;font-weight:900;color:var(--text-muted);"
+                        title="Neutro">&#9644;</span>
+                </div>
+              </td>
+
+              <!-- Strike -->
+              <td style="padding:0.5rem 0.875rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.8rem;font-weight:700;color:var(--text-primary);font-family:JetBrains Mono,monospace;">{{ fmtR(op.STRIKE) }}</span>
+              </td>
+
+              <!-- Spot + distancia -->
+              <td style="padding:0.5rem 0.875rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                <div style="display:flex;flex-direction:column;gap:1px;align-items:flex-end;">
+                  <span style="font-size:0.8rem;font-weight:700;font-family:JetBrains Mono,monospace;color:var(--text-primary);">
+                    {{ op._spot > 0 ? fmtR(op._spot) : 'n/d' }}
+                  </span>
+                  <span v-if="op._ssr > 0"
+                        style="font-size:0.65rem;font-weight:700;font-family:JetBrains Mono,monospace;padding:1px 5px;border-radius:4px;"
+                        :style="op._ssr >= 1
+                          ? 'background:var(--brand-emerald-light);color:var(--brand-emerald);'
+                          : 'background:var(--brand-rose-light);color:var(--brand-rose);'">
+                    {{ op._ssr >= 1 ? '+' : '' }}{{ ((op._ssr - 1)*100).toFixed(1) }}%
+                  </span>
+                </div>
+              </td>
+
+              <!-- DTE -->
+              <td style="padding:0.5rem 0.875rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.8rem;font-weight:700;font-family:JetBrains Mono,monospace;"
+                      :style="Number(op.DTE_CALENDAR) <= 14 ? 'color:var(--brand-rose);'
+                            : Number(op.DTE_CALENDAR) <= 21 ? 'color:var(--brand-amber);'
+                            : 'color:var(--text-secondary);'">
+                  {{ op.DTE_CALENDAR }}d
+                </span>
+              </td>
+
+              <!-- Volume financeiro -->
+              <td style="padding:0.5rem 0.875rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.75rem;font-family:JetBrains Mono,monospace;"
+                      :style="Number(op.VOLUME_FIN) < 5000 ? 'color:var(--text-muted);' : 'color:var(--text-secondary);'">
+                  {{ fmtCompact(op.VOLUME_FIN) }}
+                </span>
+              </td>
+
+              <!-- Setor -->
+              <td style="padding:0.5rem 0.875rem;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.65rem;color:var(--text-muted);display:block;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" :title="op.SECTOR">
+                  {{ op.SECTOR }}
+                </span>
+              </td>
+
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</template>
+
+<script>
+window.PageRankingPUT = {
+  template: '#page-ranking-put-template',
+  props: {
+    dados:      { type: Array,  default: function() { return []; } },
+    dadosAtivos:{ type: Array,  default: function() { return []; } },
+    dadosM9M21: { type: Array,  default: function() { return []; } },
+    isMobile:   { type: Boolean, default: false }
+  },
+
+  setup: function(props) {
+    var ref      = Vue.ref;
+    var computed = Vue.computed;
+
+    // ----------------------------------------------------------------
+    // ESTADO
+    // ----------------------------------------------------------------
+    var mostrarBanner    = ref(true);
+    var filtroDTE        = ref(60);
+    var filtroVol        = ref(1000);
+    var filtroTendencia  = ref('TODOS');
+    var filtroSetor      = ref('');
+    var ordemChave       = ref('_score');
+    var ordemAsc         = ref(false);
+
+    var opsDTE = [
+      { val: 21,  label: 'ate 21d' },
+      { val: 60,  label: 'ate 60d' },
+      { val: 120, label: 'ate 120d' },
+      { val: 9999,label: 'Todos' }
+    ];
+
+    var opsVol = [
+      { val: 0,    label: 'Qualquer' },
+      { val: 1000, label: '>1k'      },
+      { val: 5000, label: '>5k'      },
+      { val: 20000,label: '>20k'     }
+    ];
+
+    // ----------------------------------------------------------------
+    // LOOKUPS (recalculados quando os props chegam)
+    // ----------------------------------------------------------------
+    var mapaAtivos = computed(function() {
+      var m = {};
+      (props.dadosAtivos || []).forEach(function(r) {
+        var tk = String(r.TICKER || r.tickerAtivo || '').trim().toUpperCase();
+        if (tk) m[tk] = r;
+      });
+      return m;
+    });
+
+    var mapaM9M21 = computed(function() {
+      var m = {};
+      (props.dadosM9M21 || []).forEach(function(r) {
+        var tk = String(r.TICKER || r.ticker || '').trim().toUpperCase();
+        if (tk) {
+          var t = r.M9M21_TREND !== undefined ? r.M9M21_TREND
+                : r.m9Trend    !== undefined ? r.m9Trend
+                : r.m9m21      !== undefined ? (r.m9m21.trend || 0)
+                : null;
+          m[tk] = (t !== null && t !== undefined && t !== '') ? parseFloat(t) : null;
+        }
+      });
+      return m;
+    });
+
+    // ----------------------------------------------------------------
+    // ENRIQUECIMENTO + SCORE
+    // ----------------------------------------------------------------
+    var listaEnriquecida = computed(function() {
+      var puts = (props.dados || []).filter(function(r) {
+        return r && String(r.CATEGORY || '').toUpperCase() === 'PUT'
+            && parseFloat(r.PROFIT_RATE_IF_EXERCISED || 0) > 0;
+      });
+
+      return puts.map(function(r) {
+        var ticker = String(r.TICKER || '').trim().toUpperCase();
+        var strike = parseFloat(r.STRIKE  || 0);
+        var ve     = parseFloat(r.VE_OVER_STRIKE  || 0);
+        var vol    = parseFloat(r.VOLUME_FIN || 0);
+        var dte    = parseFloat(r.DTE_CALENDAR || 999);
+
+        // Tenta SSR da planilha primeiro (coluna SPOT_STRIKE_RATIO)
+        // Se zero (bug), tenta recalcular via dadosAtivos
+        var ssrBruto = parseFloat(r.SPOT_STRIKE_RATIO || r.SPOT_STRIKE || 0);
+        var atv      = mapaAtivos.value[ticker] || {};
+        var spot     = parseFloat(r.SPOT || atv.SPOT || atv.spotPrice || atv.spot || 0);
+        var ssr      = (ssrBruto > 0) ? ssrBruto : (spot > 0 && strike > 0 ? spot / strike : 0);
+
+        // IV Rank: tenta planilha, depois dadosAtivos
+        var ivRankBruto = parseFloat(r.IV_RANK || r.ivRank || 0);
+        var ivRank = (ivRankBruto > 0) ? ivRankBruto
+                   : (parseFloat(atv.IV_RANK || atv.iv_rank || atv.ivRank || 0) || null);
+
+        // M9M21 Trend: tenta planilha, depois lookup
+        var m9Bruto  = r.M9M21_TREND !== undefined ? parseFloat(r.M9M21_TREND || 0) : null;
+        var m9Lookup = mapaM9M21.value[ticker];
+        var m9trend  = (m9Bruto !== null && !isNaN(m9Bruto) && m9Bruto !== 0) ? m9Bruto
+                     : (m9Lookup !== null && m9Lookup !== undefined) ? m9Lookup
+                     : null;
+
+        // ---- SCORE COMPOSTO ----
+        // VE_OVER_STRIKE * bonus_iv_rank * fator_liquidez * multiplicador_tendencia
+        var ivBonus  = ivRank !== null ? (0.5 + ivRank / 100) : 1.0; // neutro 1.0 se sem IV
+        var liqLog   = Math.log10(Math.max(vol, 1)) / Math.log10(500000);
+        var liqFator = Math.min(Math.max(liqLog, 0), 1);
+        var trendMult = (m9trend === null) ? 1.0
+                      : (m9trend >= 0)     ? 1.1
+                      :                      0.7;
+        var score = ve * ivBonus * liqFator * trendMult;
+
+        return Object.assign({}, r, {
+          _spot:    spot,
+          _ssr:     ssr,
+          _ivRank:  ivRank,
+          _m9trend: m9trend,
+          _score:   parseFloat(score.toFixed(3))
+        });
+      });
+    });
+
+    // ----------------------------------------------------------------
+    // FILTROS
+    // ----------------------------------------------------------------
+    var listaFinal = computed(function() {
+      var lista = listaEnriquecida.value.filter(function(op) {
+        var dte = parseFloat(op.DTE_CALENDAR || 9999);
+        var vol = parseFloat(op.VOLUME_FIN   || 0);
+        if (dte > filtroDTE.value) return false;
+        if (vol < filtroVol.value) return false;
+        if (filtroTendencia.value === 'POSITIVA' && op._m9trend !== null && op._m9trend < 0) return false;
+        if (filtroSetor.value && op.SECTOR !== filtroSetor.value) return false;
+        return true;
+      });
+
+      lista.sort(function(a, b) {
+        var va = a[ordemChave.value];
+        var vb = b[ordemChave.value];
+        if (va == null) return 1;
+        if (vb == null) return -1;
+        var na = parseFloat(va), nb = parseFloat(vb);
+        if (!isNaN(na) && !isNaN(nb)) return ordemAsc.value ? na - nb : nb - na;
+        return ordemAsc.value
+          ? String(va).localeCompare(String(vb), 'pt-BR')
+          : String(vb).localeCompare(String(va), 'pt-BR');
+      });
+
+      return lista;
+    });
+
+    // ----------------------------------------------------------------
+    // COMPUTEDS AUXILIARES
+    // ----------------------------------------------------------------
+    var semIVRank = computed(function() {
+      return listaFinal.value.filter(function(op) {
+        return op._ivRank === null || op._ivRank === undefined;
+      }).length;
+    });
+
+    var setoresDisponiveis = computed(function() {
+      var s = new Set((props.dados || [])
+        .filter(function(r) { return String(r.CATEGORY || '').toUpperCase() === 'PUT'; })
+        .map(function(r) { return r.SECTOR; })
+        .filter(Boolean));
+      return Array.from(s).sort();
+    });
+
+    var kpis = computed(function() {
+      var lista = listaFinal.value;
+      if (!lista.length) return [];
+
+      var melhorScore = Math.max.apply(null, lista.map(function(r) { return r._score || 0; }));
+      var melhorVE    = Math.max.apply(null, lista.map(function(r) { return parseFloat(r.VE_OVER_STRIKE || 0); }));
+      var comIV       = lista.filter(function(r) { return r._ivRank !== null && r._ivRank !== undefined; });
+      var ivMedio     = comIV.length ? comIV.reduce(function(s,r) { return s + r._ivRank; }, 0) / comIV.length : null;
+      var tendAlta    = lista.filter(function(r) { return r._m9trend === 1; }).length;
+
+      return [
+        { label: 'Opcoes no ranking', valor: lista.length, cor: null },
+        { label: 'Melhor score',      valor: melhorScore.toFixed(2), cor: 'var(--brand-emerald)', sub: 'Score composto' },
+        { label: 'Maior VE/Strike',   valor: fmtPct(melhorVE),       cor: 'var(--brand-indigo)',  sub: 'Premio/Strike' },
+        { label: 'IV Rank medio',     valor: ivMedio !== null ? ivMedio.toFixed(0) + '%' : 'n/d', cor: ivMedio >= 50 ? 'var(--brand-amber)' : 'var(--text-muted)', sub: comIV.length + ' com dado' },
+        { label: 'Alta / Neutra',     valor: tendAlta + '/' + lista.length, cor: 'var(--brand-emerald)', sub: 'Tendencia MM9>MM21' }
+      ];
+    });
+
+    // ----------------------------------------------------------------
+    // SEMAFORO (logica de qualidade da opcao)
+    // ----------------------------------------------------------------
+    function semaforo(op) {
+      var problemas = [];
+
+      if (op._m9trend !== null && op._m9trend < 0) problemas.push('Tendencia negativa');
+      if (op._ivRank !== null && op._ivRank < 30)  problemas.push('IV Rank baixa (< 30%)');
+      if (parseFloat(op.VOLUME_FIN || 0) < 5000)   problemas.push('Liquidez baixa (< R$5k)');
+      if (op._ssr > 0 && op._ssr < 1)              problemas.push('Opcao ITM (spot < strike)');
+
+      var alertas = [];
+      if (op._m9trend === null)                    alertas.push('Tendencia sem dado');
+      if (op._ivRank === null)                     alertas.push('IV Rank sem dado');
+      if (op._ivRank !== null && op._ivRank < 50 && op._ivRank >= 30) alertas.push('IV Rank moderada');
+
+      if (problemas.length > 0) {
+        return { bg: 'background:var(--brand-rose);', cor: 'var(--brand-rose)', titulo: problemas.join(' | ') };
+      }
+      if (alertas.length > 0) {
+        return { bg: 'background:var(--brand-amber);', cor: 'var(--brand-amber)', titulo: alertas.join(' | ') };
+      }
+      return { bg: 'background:var(--brand-emerald);', cor: 'var(--brand-emerald)', titulo: 'Todas as condicoes favoraveis' };
+    }
+
+    function ivRankCor(v) {
+      if (v >= 70) return 'var(--brand-emerald)';
+      if (v >= 40) return 'var(--brand-amber)';
+      return 'var(--brand-rose)';
+    }
+
+    // ----------------------------------------------------------------
+    // FORMATADORES
+    // ----------------------------------------------------------------
+    function fmtR(v) {
+      var n = parseFloat(v);
+      if (isNaN(n) || n === 0) return '--';
+      return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function fmtPct(v) {
+      var n = parseFloat(v);
+      if (isNaN(n)) return '--';
+      return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+    }
+    function fmtCompact(v) {
+      var n = parseFloat(v);
+      if (isNaN(n) || n === 0) return '--';
+      if (n >= 1e6) return 'R$ ' + (n / 1e6).toFixed(1) + 'M';
+      if (n >= 1e3) return 'R$ ' + (n / 1e3).toFixed(0) + 'k';
+      return 'R$ ' + n.toFixed(0);
+    }
+
+    function ordenarPor(chave) {
+      if (ordemChave.value === chave) {
+        ordemAsc.value = !ordemAsc.value;
+      } else {
+        ordemChave.value = chave;
+        ordemAsc.value = false;
+      }
+    }
+
+    var colunas = [
+      { key: '_score',          label: 'Score',        align: 'left'   },
+      { key: 'TICKER',          label: 'Ativo / Opcao',align: 'left'   },
+      { key: 'VE_OVER_STRIKE',  label: 'VE/Strike',    align: 'right'  },
+      { key: '_ivRank',         label: 'IV Rank',      align: 'center' },
+      { key: '_m9trend',        label: 'M9M21',        align: 'center' },
+      { key: 'STRIKE',          label: 'Strike',       align: 'right'  },
+      { key: '_spot',           label: 'Spot / Dist.', align: 'right'  },
+      { key: 'DTE_CALENDAR',    label: 'DTE',          align: 'center' },
+      { key: 'VOLUME_FIN',      label: 'Vol. Fin.',    align: 'right'  },
+      { key: 'SECTOR',          label: 'Setor',        align: 'left',  sortable: false }
+    ];
+
+    return {
+      mostrarBanner, filtroDTE, filtroVol, filtroTendencia, filtroSetor,
+      ordemChave, ordemAsc, opsDTE, opsVol,
+      listaFinal, semIVRank, setoresDisponiveis, kpis, colunas,
+      semaforo, ivRankCor, fmtR, fmtPct, fmtCompact, ordenarPor
+    };
+  }
+};
+</script>

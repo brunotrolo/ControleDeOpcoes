@@ -124,6 +124,14 @@
           v-else-if="paginaAtiva === 'historico'"
           :dados="dadosHistorico" :is-mobile="isMobile">
         </page-historico>
+
+        <page-ranking-put
+          v-else-if="paginaAtiva === 'ranking-put'"
+          :dados="dadosTaxas"
+          :dados-ativos="dadosAtivos"
+          :dados-m9m21="dadosM9M21"
+          :is-mobile="isMobile">
+        </page-ranking-put>
       </template>
     </div>
 
@@ -151,8 +159,9 @@ window.OpLabHub = {
     const dadosHistorico  = ref([]);
     const dadosCorrel     = ref([]);
     const dadosFund       = ref([]);
+    const dadosAtivos     = ref([]);
 
-    const carregandoAbas = ref({ series:false, taxas:false, volumes:false, variacoes:false, m9m21:false, score:false, historico:false });
+    const carregandoAbas = ref({ series:false, taxas:false, volumes:false, variacoes:false, m9m21:false, score:false, historico:false, 'ranking-put':false });
 
     const tabs = [
       { id: 'series',    label: 'Cadeia',    icone: 'layers',      cor: 'var(--brand-indigo)'  },
@@ -164,6 +173,7 @@ window.OpLabHub = {
       { id: 'historico', label: 'Historico', icone: 'clock',       cor: 'var(--text-secondary)'},
       { id: 'correl',    label: 'Correl IBOV',  icone: 'git-branch',  cor: 'var(--brand-rose)'    },
       { id: 'fund',      label: 'Fundamentals', icone: 'trending-up', cor: 'var(--brand-emerald)' },
+      { id: 'ranking-put', label: 'Ranking PUT',  icone: 'target',      cor: 'var(--brand-amber)'   },
     ];
 
     const mapa = {
@@ -175,6 +185,7 @@ window.OpLabHub = {
       score:     { dados: dadosScore,     aba: 'RANKING_OPLAB_SCORE' },
       historico: { dados: dadosHistorico, aba: 'HISTORICO_OPCOES' },
       correl:    { dados: dadosCorrel,   aba: 'RANKING_CORREL_IBOV' },
+      'ranking-put': { dados: dadosTaxas,  aba: 'SELECAO_OPCOES_MAIORES_LUCROS' },
       fund:      { dados: dadosFund,     aba: 'RANKING_FUNDAMENTALISTA' },
     };
 
@@ -187,6 +198,7 @@ window.OpLabHub = {
       score:     dadosScore.value.length    || null,
       historico: dadosHistorico.value.length|| null,
       correl:    dadosCorrel.value.length   || null,
+      'ranking-put': dadosTaxas.value.filter(function(r){ return String(r.CATEGORY||'').toUpperCase()==='PUT'; }).length || null,
       fund:      dadosFund.value.length     || null,
     }));
 
@@ -224,14 +236,16 @@ window.OpLabHub = {
       erro.value = null;
       Object.values(mapa).forEach(m => { m.dados.value = []; });
       try {
-        const [series, m9m21, score] = await Promise.all([
+        const [series, m9m21, score, ativos] = await Promise.all([
           lerAba('SERIES_OPCOES_INSTRUMENTO'),
           lerAba('RANKING_TENDENCIA_M9M21'),
           lerAba('RANKING_OPLAB_SCORE'),
+          lerAba('DADOS_ATIVOS'),
         ]);
         dadosSeries.value = series || [];
         dadosM9M21.value  = m9m21  || [];
         dadosScore.value  = score  || [];
+        dadosAtivos.value = ativos || [];
         ultimaAtualizacao.value = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       } catch(e) {
         erro.value = String(e.message || e);
@@ -251,7 +265,7 @@ window.OpLabHub = {
     return {
       paginaAtiva, carregando, erro, ultimaAtualizacao, tabs,
       contagens, carregandoAbas, algumDadoDisponivel,
-      dadosSeries, dadosTaxas, dadosVolumes, dadosVariacoes,
+      dadosSeries, dadosTaxas, dadosVolumes, dadosVariacoes, dadosAtivos,
       dadosM9M21, dadosScore, dadosHistorico, dadosCorrel, dadosFund,
       carregarTodosDados, navegarPara,
     };

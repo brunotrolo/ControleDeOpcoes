@@ -116,10 +116,11 @@
             <p class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.18em;margin-top:0.2rem;">
               {{ historyFiltrado.length }} registro{{ historyFiltrado.length !== 1 ? 's' : '' }}
               <span v-if="historyFiltrado.length !== history.length" style="color:var(--brand-amber);"> (filtrado de {{ history.length }})</span>
+              <span v-if="temMais" style="color:var(--text-muted);"> &mdash; exibindo {{ historyPaginado.length }}</span>
             </p>
           </div>
         </div>
-        <button @click="$emit('refresh')" class="btn-action"
+        <button @click="carregarDados(); $emit('refresh')" class="btn-action"
           style="background:var(--surface-base);border:1px solid var(--border-default);color:var(--text-muted);padding:0.5rem 0.75rem;"
           title="Atualizar Histórico">
           <i data-lucide="refresh-cw" style="width:16px;height:16px;display:block;"></i>
@@ -190,7 +191,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in historyFiltrado" :key="item.linhaReal" class="necton-hist-row"
+            <tr v-for="item in historyPaginado" :key="item.linhaReal" class="necton-hist-row"
               style="border-bottom:1px solid var(--border-subtle);">
               <td style="padding:0.75rem 1.25rem;color:var(--text-muted);" class="t-label-sm">#{{ item.linhaReal }}</td>
               <td style="padding:0.75rem 1.25rem;font-weight:700;color:var(--text-primary);" class="t-value-sm font-mono-data">{{ item.ativo }}</td>
@@ -256,6 +257,17 @@
             </tr>
           </tbody>
         </table>
+        <!-- Botao Ver mais -->
+        <div v-if="temMais"
+          style="padding:1rem;text-align:center;border-top:1px solid var(--border-subtle);background:var(--surface-base);">
+          <button @click="verMais"
+            style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.5rem 1.5rem;border-radius:var(--radius-full);border:1px solid var(--border-default);background:var(--surface-base);color:var(--text-secondary);font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;cursor:pointer;transition:all 0.15s;"
+            onmouseover="this.style.background='var(--brand-indigo-light)';this.style.color='var(--brand-indigo)';this.style.borderColor='var(--brand-indigo-muted)'"
+            onmouseout="this.style.background='var(--surface-base)';this.style.color='var(--text-secondary)';this.style.borderColor='var(--border-default)'">
+            <i data-lucide="chevron-down" style="width:14px;height:14px;display:block;"></i>
+            Ver mais {{ Math.min(tamanhoPagina, historyFiltrado.length - historyPaginado.length) }} de {{ historyFiltrado.length - historyPaginado.length }} restantes
+          </button>
+        </div>
       </div>
     </div>
 
@@ -324,6 +336,10 @@ window.NectonImport = {
       filtro: { ticker: '', category: '', direcao: '', statusOp: '' },
       sortCol: 'linhaReal',
       sortDir: 'desc',
+      paginaAtual: 1,
+      tamanhoPagina: 20,
+      dadosLocais: null,
+      carregandoLocal: false,
       colunasTabela: [
         { key: 'linhaReal',   label: 'Linha',      sortable: true  },
         { key: 'ativo',       label: 'Ativo',      sortable: true  },
@@ -343,38 +359,37 @@ window.NectonImport = {
   },
   computed: {
     history() {
-      if (!this.data || this.data.length === 0) return [];
-      
-      return this.data.map((item, index) => {
-        let dataFormatada = '---';
+      var fonte = (this.dadosLocais !== null) ? this.dadosLocais : (this.data || []);
+      if (!fonte || fonte.length === 0) return [];
+      var self = this;
+      return fonte.map(function(item, index) {
+        var dataFormatada = '---';
         if (item.timestampOrdem instanceof Date) {
-            dataFormatada = item.timestampOrdem.toLocaleString('pt-BR');
+          dataFormatada = item.timestampOrdem.toLocaleString('pt-BR');
         } else if (item.timestampOrdem) {
-            dataFormatada = String(item.timestampOrdem);
+          dataFormatada = String(item.timestampOrdem);
         }
-
-        const fmt = window.Formatador;
+        var fmt = window.Formatador;
         return {
-          linhaReal:    item.linhaRealExcel || (index + 2),
-          ativo:        item.simboloOpcao   || '---',
-          status:       item.orderStatus    || '---',
-          tipo:         item.orderType      || '---',
-          direcao:      item.direcaoTrade   || '---',
-          qtd:          item.quantidade     || item.quantidadeOferta || 0,
-          preco:        fmt ? fmt.campo('premioAtual', item.premioAtual) : item.premioAtual,
-          data:         dataFormatada,
-          // Novos campos
-          totalPremio:  fmt ? fmt.campo('plTotalValor', item.premioTotalOrdem) : item.premioTotalOrdem,
-          ticker:       item.tickerAtivo    || '---',
-          expiry:       fmt ? fmt.data(item.dataVencimento) : '---',
-          strike:       fmt ? fmt.campo('strike', item.strike) : item.strike,
-          category:     item.categoria      || '---',
-          statusOp:     item.statusOp       || '---'
+          linhaReal:   item.linhaRealExcel || (index + 2),
+          ativo:       item.simboloOpcao   || '---',
+          status:      item.orderStatus    || '---',
+          tipo:        item.orderType      || '---',
+          direcao:     item.direcaoTrade   || '---',
+          qtd:         item.quantidade     || item.quantidadeOferta || 0,
+          preco:       fmt ? fmt.campo('premioMedioEntrada', item.premioMedioEntrada) : item.premioMedioEntrada,
+          data:        dataFormatada,
+          totalPremio: fmt ? fmt.campo('plTotalValor', item.premioTotalOrdem) : item.premioTotalOrdem,
+          ticker:      item.tickerAtivo    || '---',
+          expiry:      fmt ? fmt.data(item.dataVencimento) : '---',
+          strike:      fmt ? fmt.campo('strike', item.strike) : item.strike,
+          category:    item.categoria      || '---',
+          statusOp:    item.statusOp       || '---'
         };
       });
     },
     isLoadingHistory() {
-      return false;
+      return this.carregandoLocal;
     },
     tickersUnicos() {
       return [...new Set(this.history.map(i => i.ticker).filter(Boolean))].sort();
@@ -401,12 +416,27 @@ window.NectonImport = {
         if (!isNaN(na) && !isNaN(nb)) return (na - nb) * dir;
         return String(va).localeCompare(String(vb), 'pt-BR') * dir;
       });
+    },
+    historyPaginado() {
+      return this.historyFiltrado.slice(0, this.paginaAtual * this.tamanhoPagina);
+    },
+    temMais() {
+      return this.historyPaginado.length < this.historyFiltrado.length;
     }
   },
   mounted() {
     if (typeof lucide !== 'undefined') {
       lucide.createIcons();
     }
+    this.carregarDados();
+  },
+  watch: {
+    filtro: {
+      deep: true,
+      handler() { this.paginaAtual = 1; }
+    },
+    sortCol() { this.paginaAtual = 1; },
+    sortDir() { this.paginaAtual = 1; }
   },
   // 🚀 A SOLUÇÃO DO BOTÃO INVISÍVEL ESTÁ AQUI:
   updated() {
@@ -522,6 +552,7 @@ window.NectonImport = {
             .withSuccessHandler(() => {
               this.isSaving = false;
               this.limpar();
+              this.carregarDados();
               this.$emit('refresh');
             })
             .withFailureHandler((err) => {
@@ -529,6 +560,7 @@ window.NectonImport = {
               // Dados foram gravados mas a atualização falhou — avisa sem bloquear
               alert('Dados gravados, mas a atualização automática falhou: ' + err + '\nAtualize manualmente.');
               this.limpar();
+              this.carregarDados();
               this.$emit('refresh');
             })
             .AtualizarNecton_Menu();
@@ -549,8 +581,57 @@ window.NectonImport = {
       }
     },
 
+    carregarDados() {
+      var self = this;
+      if (typeof google === 'undefined') return;
+      self.carregandoLocal = true;
+      google.script.run
+        .withSuccessHandler(function(rows) {
+          if (!rows || !Array.isArray(rows)) {
+            self.carregandoLocal = false;
+            return;
+          }
+          // lerAbaComoJSON retorna [{ENTRY_PRICE: '0.15', TICKER: 'PETR4', ...}, ...]
+          // Precisa traduzir para chaves semanticas usando o mapa do Tradutor
+          var mapa = (window.Tradutor && window.Tradutor.DICIONARIO && window.Tradutor.DICIONARIO['NECTON_IMPORT'])
+            ? window.Tradutor.DICIONARIO['NECTON_IMPORT'].map
+            : null;
+
+          self.dadosLocais = rows.map(function(raw, index) {
+            if (!mapa) return raw; // fallback: usa raw direto se Tradutor nao disponivel
+            var obj = {};
+            obj.linhaRealExcel = index + 2; // linha 1 = cabecalho, dados comecam na 2
+            Object.keys(mapa).forEach(function(colOriginal) {
+              var regra = mapa[colOriginal];
+              var valor = raw[colOriginal];
+              if (valor !== undefined && valor !== null) {
+                obj[regra.key] = window.Tradutor._sanitizarDado(valor, regra.type);
+              } else if (regra.fallback !== undefined) {
+                obj[regra.key] = regra.fallback;
+              }
+            });
+            return obj;
+          });
+
+          self.carregandoLocal = false;
+          self.paginaAtual = 1;
+          if (typeof lucide !== 'undefined') {
+            self.$nextTick(function() { lucide.createIcons(); });
+          }
+        })
+        .withFailureHandler(function() {
+          self.carregandoLocal = false;
+        })
+        .lerAbaComoJSON('Necton_Import');
+    },
+
+    verMais() {
+      this.paginaAtual += 1;
+    },
+
     limparFiltros() {
       this.filtro = { ticker: '', category: '', direcao: '', statusOp: '' };
+      this.paginaAtual = 1;
     },
 
     salvarStatusOp(item, novoStatus) {

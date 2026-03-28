@@ -6,8 +6,13 @@
 
       <div style="display:flex;align-items:center;gap:1.5rem;">
         <div style="display:flex;align-items:center;gap:0.5rem;">
-          <span style="width:8px;height:8px;background:var(--brand-emerald);border-radius:50%;animation:log-pulse 1.5s infinite;display:inline-block;"></span>
-          <span class="t-label-sm" style="font-weight:700;text-transform:uppercase;letter-spacing:0.18em;color:var(--text-muted);">Orchestrator Terminal v2.0</span>
+          <span style="width:8px;height:8px;border-radius:50%;display:inline-block;"
+            :style="estaCarregando
+              ? 'background:var(--brand-amber);animation:log-pulse 0.6s infinite;'
+              : 'background:var(--brand-emerald);animation:log-pulse 1.5s infinite;'"></span>
+          <span class="t-label-sm" style="font-weight:700;text-transform:uppercase;letter-spacing:0.18em;color:var(--text-muted);">
+            {{ estaCarregando ? 'Carregando...' : 'Orchestrator Terminal v2.0' }}
+          </span>
         </div>
         <div style="display:none;" class="log-cols-hint">
           <span class="t-label-sm" style="color:var(--text-muted);opacity:0.5;">Time &nbsp; Service &nbsp; Status &nbsp; Summary</span>
@@ -62,7 +67,7 @@
 
       <div v-if="formattedLogs.length === 0"
         style="color:var(--text-muted);font-style:italic;padding:1rem;">
-        Aguardando atividade do sistema...
+        {{ estaCarregando ? 'Buscando logs...' : 'Aguardando atividade do sistema...' }}
       </div>
     </div>
   </div>
@@ -82,36 +87,44 @@ window.LogConsole = {
     logs: { type: Array, default: () => [] }
   },
   template: '#log-console-template',
+  data() {
+    return {
+      logsLocais: null,
+      carregandoLocal: false
+    };
+  },
 
   mounted() {
     if (typeof lucide !== 'undefined') {
       lucide.createIcons();
     }
+    this.carregarLogs();
   },
   
   computed: {
     formattedLogs() {
-      if (!this.logs || this.logs.length === 0) return [];
-      
-      const recentLogs = this.logs.slice(-100);
-
-      return recentLogs.map(l => {
-        let rawTime = '---';
+      var fonte = (this.logsLocais !== null) ? this.logsLocais : (this.logs || []);
+      if (!fonte || fonte.length === 0) return [];
+      var recentes = fonte.slice(-100);
+      return recentes.map(function(l) {
+        var rawTime = '---';
         if (l.timestampLog instanceof Date) {
           rawTime = l.timestampLog.toLocaleString('pt-BR');
         } else if (l.timestampLog) {
           rawTime = String(l.timestampLog);
         }
-        let shortTime = rawTime.includes(' ') ? rawTime.split(' ')[1] : rawTime;
-
+        var shortTime = rawTime.includes(' ') ? rawTime.split(' ')[1] : rawTime;
         return {
           timestamp: shortTime,
-          service:   l.servico          || 'SYSTEM',
-          status:    l.status           || 'INFO',
-          message:   l.mensagemResumo   || '',
+          service:   l.servico           || 'SYSTEM',
+          status:    l.status            || 'INFO',
+          message:   l.mensagemResumo    || '',
           context:   l.contextoDetalhado || ''
         };
       });
+    },
+    estaCarregando() {
+      return this.carregandoLocal;
     }
   },
 
@@ -151,31 +164,67 @@ window.LogConsole = {
       return 'background:var(--text-muted);color:#fff;';
     },
 
-    refreshLogs() {
-      console.log("🔥 Disparando Refresh via Console...");
-      this.logs.splice(0, this.logs.length); 
-      this.$emit('refresh'); 
-      if (typeof lucide !== 'undefined') {
-        setTimeout(() => lucide.createIcons(), 100);
-      }
+    carregarLogs() {
+      var self = this;
+      if (typeof google === 'undefined') return;
+      self.carregandoLocal = true;
+      google.script.run
+        .withSuccessHandler(function(rows) {
+          if (!rows || !Array.isArray(rows)) {
+            self.carregandoLocal = false;
+            return;
+          }
+          var mapa = (window.Tradutor && window.Tradutor.DICIONARIO && window.Tradutor.DICIONARIO['LOGS'])
+            ? window.Tradutor.DICIONARIO['LOGS'].map
+            : null;
+          self.logsLocais = rows.map(function(raw) {
+            if (!mapa) return raw;
+            var obj = {};
+            Object.keys(mapa).forEach(function(colOriginal) {
+              var regra = mapa[colOriginal];
+              var valor = raw[colOriginal];
+              if (valor !== undefined && valor !== null) {
+                obj[regra.key] = window.Tradutor._sanitizarDado(valor, regra.type);
+              }
+            });
+            return obj;
+          });
+          self.carregandoLocal = false;
+          if (typeof lucide !== 'undefined') {
+            self.$nextTick(function() { lucide.createIcons(); });
+          }
+        })
+        .withFailureHandler(function() {
+          self.carregandoLocal = false;
+        })
+        .lerAbaComoJSON('Logs');
     },
 
-    async limparLogs() {
-      this.logs.splice(0, this.logs.length); 
-      
+    refreshLogs() {
+      this.logsLocais = null;
+      this.$emit('refresh');
+      this.carregarLogs();
+    },
+
+    limparLogs() {
+      var self = this;
+      self.logsLocais = [];
       if (typeof google !== 'undefined') {
         google.script.run
-          .withSuccessHandler((res) => {
+          .withSuccessHandler(function(res) {
             if (res && res.success) {
-              setTimeout(() => { this.$emit('refresh'); }, 800);
+              setTimeout(function() {
+                self.carregarLogs();
+                self.$emit('refresh');
+              }, 800);
             } else {
-              alert("Erro ao limpar logs: " + (res.error || res.message));
+              alert('Erro ao limpar logs: ' + (res.error || res.message));
             }
           })
-          .withFailureHandler((err) => {
-            alert("Falha de conexão: " + err);
+          .withFailureHandler(function(err) {
+            alert('Falha de conexao: ' + err);
           })
-          .apiLimparAba('Logs', 1, 'HISTÓRICO DE LOGS FOI LIMPO PELO USUÁRIO');
+          .apiLimparAba('Logs', 1, 'HISTORICO DE LOGS FOI LIMPO PELO USUARIO');
       }
     }
   }

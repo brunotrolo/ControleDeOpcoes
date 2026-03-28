@@ -68,7 +68,7 @@
         Nenhuma opcao encontrada com os filtros atuais.
       </div>
       <div v-else style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:separate;border-spacing:0;min-width:700px;">
+        <table style="width:100%;border-collapse:separate;border-spacing:0;min-width:1100px;">
           <thead>
             <tr style="background:var(--surface-overlay);">
               <th v-for="col in colunas" :key="col.key"
@@ -87,15 +87,29 @@
                 :style="idx % 2 === 0 ? 'background:var(--surface-base);' : 'background:var(--surface-sunken);'"
                 onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="">
 
-              <!-- Opcao + ativo -->
+              <!-- OPTION_TICKER -->
               <td style="padding:0.625rem 0.875rem;border-bottom:1px solid var(--border-subtle);">
-                <div style="display:flex;flex-direction:column;gap:2px;">
-                  <span style="font-size:0.8rem;font-weight:800;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ linha.OPTION_TICKER }}</span>
-                  <span style="font-size:0.7rem;color:var(--text-muted);">{{ linha.TICKER }} - {{ linha.COMPANY_NAME }}</span>
-                </div>
+                <span style="font-size:0.8rem;font-weight:800;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ linha.OPTION_TICKER }}</span>
               </td>
 
-              <!-- Tipo badge -->
+              <!-- EXPIRY -->
+              <td style="padding:0.625rem 0.875rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.75rem;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">{{ linha.EXPIRY }}</span>
+              </td>
+
+              <!-- VOLUME_FIN -->
+              <td style="padding:0.625rem 0.875rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.75rem;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">{{ fmtCompact(linha.VOLUME_FIN) }}</span>
+              </td>
+
+              <!-- PROFIT_RATE_IF_EXERCISED -->
+              <td style="padding:0.625rem 0.875rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:1rem;font-weight:900;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;">
+                  {{ fmtPct(linha.PROFIT_RATE_IF_EXERCISED) }}
+                </span>
+              </td>
+
+              <!-- CATEGORY badge -->
               <td style="padding:0.625rem 0.5rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
                 <span style="font-size:0.65rem;font-weight:800;padding:2px 7px;border-radius:99px;"
                       :style="linha.CATEGORY === 'CALL'
@@ -105,32 +119,40 @@
                 </span>
               </td>
 
-              <!-- Taxa de lucro -- destaque principal -->
+              <!-- TICKER -->
+              <td style="padding:0.625rem 0.875rem;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.8rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ linha.TICKER }}</span>
+              </td>
+
+              <!-- UPDATED_AT -->
+              <td style="padding:0.625rem 0.875rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.7rem;color:var(--text-muted);">{{ linha.UPDATED_AT }}</span>
+              </td>
+
+              <!-- IV_RANK -->
               <td style="padding:0.625rem 0.875rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
-                <span style="font-size:1rem;font-weight:900;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;">
-                  {{ fmtPct(linha.PROFIT_RATE_IF_EXERCISED) }}
+                <span style="font-size:0.8rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                      :style="Number(linha.IV_RANK) >= 70 ? 'color:var(--brand-emerald);'
+                            : Number(linha.IV_RANK) >= 40 ? 'color:var(--brand-amber);'
+                            : Number(linha.IV_RANK) >  0  ? 'color:var(--brand-rose);'
+                            :                               'color:var(--text-muted);'">
+                  {{ linha.IV_RANK ? fmtPct(linha.IV_RANK) : '--' }}
                 </span>
               </td>
 
-              <!-- Strike -->
+              <!-- IV_CURRENT -->
               <td style="padding:0.625rem 0.875rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
-                <span style="font-size:0.8rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ fmt(linha.STRIKE) }}</span>
+                <span style="font-size:0.8rem;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">
+                  {{ linha.IV_CURRENT ? fmtPct(linha.IV_CURRENT) : '--' }}
+                </span>
               </td>
 
-              <!-- VE/Strike -->
+              <!-- VE_OVER_STRIKE -->
               <td style="padding:0.625rem 0.875rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
                 <span style="font-size:0.8rem;font-weight:600;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;">{{ fmtPct(linha.VE_OVER_STRIKE) }}</span>
               </td>
 
-              <!-- Spot/Strike ratio -->
-              <td style="padding:0.625rem 0.875rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
-                <span style="font-size:0.8rem;font-weight:600;font-family:'JetBrains Mono',monospace;"
-                      :style="Number(linha.SPOT_STRIKE_RATIO) >= 1 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'">
-                  {{ fmtNum(linha.SPOT_STRIKE_RATIO, 3) }}
-                </span>
-              </td>
-
-              <!-- DTE -->
+              <!-- DTE_CALENDAR -->
               <td style="padding:0.625rem 0.875rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
                 <span style="font-size:0.8rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
                       :style="Number(linha.DTE_CALENDAR) <= 7 ? 'color:var(--brand-rose);' : Number(linha.DTE_CALENDAR) <= 21 ? 'color:var(--brand-amber);' : 'color:var(--text-secondary);'">
@@ -138,17 +160,30 @@
                 </span>
               </td>
 
-              <!-- Vencimento -->
-              <td style="padding:0.625rem 0.875rem;text-align:center;border-bottom:1px solid var(--border-subtle);">
-                <span style="font-size:0.75rem;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">{{ linha.EXPIRY }}</span>
-              </td>
-
-              <!-- Volume financeiro -->
+              <!-- SPOT -->
               <td style="padding:0.625rem 0.875rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
-                <span style="font-size:0.75rem;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">{{ fmtCompact(linha.VOLUME_FIN) }}</span>
+                <span style="font-size:0.8rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ linha.SPOT ? fmt(linha.SPOT) : '--' }}</span>
               </td>
 
-              <!-- Setor -->
+              <!-- STRIKE -->
+              <td style="padding:0.625rem 0.875rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.8rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ fmt(linha.STRIKE) }}</span>
+              </td>
+
+              <!-- SPOT_STRIKE_RATIO -->
+              <td style="padding:0.625rem 0.875rem;text-align:right;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.8rem;font-weight:600;font-family:'JetBrains Mono',monospace;"
+                      :style="Number(linha.SPOT_STRIKE_RATIO) >= 1 ? 'color:var(--brand-emerald);' : Number(linha.SPOT_STRIKE_RATIO) > 0 ? 'color:var(--brand-rose);' : 'color:var(--text-muted);'">
+                  {{ linha.SPOT_STRIKE_RATIO ? fmtNum(linha.SPOT_STRIKE_RATIO, 2) : '--' }}
+                </span>
+              </td>
+
+              <!-- COMPANY_NAME -->
+              <td style="padding:0.625rem 0.875rem;border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.7rem;color:var(--text-secondary);display:block;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" :title="linha.COMPANY_NAME">{{ linha.COMPANY_NAME || '--' }}</span>
+              </td>
+
+              <!-- SECTOR -->
               <td style="padding:0.625rem 0.875rem;border-bottom:1px solid var(--border-subtle);">
                 <span style="font-size:0.65rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;display:block;">{{ linha.SECTOR }}</span>
               </td>
@@ -239,16 +274,22 @@ window.PageMelhoresTaxas = {
     });
 
     const colunas = [
-      { key: 'OPTION_TICKER',            label: 'Opcao',          align: 'left' },
-      { key: 'CATEGORY',                 label: 'Tipo',           align: 'center' },
-      { key: 'PROFIT_RATE_IF_EXERCISED', label: 'Taxa Lucro',     align: 'right' },
-      { key: 'STRIKE',                   label: 'Strike',         align: 'right' },
-      { key: 'VE_OVER_STRIKE',           label: 'VE/Strike',      align: 'right' },
-      { key: 'SPOT_STRIKE_RATIO',        label: 'Spot/Strike',    align: 'right' },
-      { key: 'DTE_CALENDAR',             label: 'DTE',            align: 'center' },
+      { key: 'OPTION_TICKER',            label: 'Opcao',          align: 'left'   },
       { key: 'EXPIRY',                   label: 'Vencimento',     align: 'center' },
-      { key: 'VOLUME_FIN',               label: 'Vol. Fin.',      align: 'right' },
-      { key: 'SECTOR',                   label: 'Setor',          align: 'left' },
+      { key: 'VOLUME_FIN',               label: 'Vol. Fin.',      align: 'right'  },
+      { key: 'PROFIT_RATE_IF_EXERCISED', label: 'Taxa Lucro',     align: 'right'  },
+      { key: 'CATEGORY',                 label: 'Tipo',           align: 'center' },
+      { key: 'TICKER',                   label: 'Ativo',          align: 'left'   },
+      { key: 'UPDATED_AT',               label: 'Atualizado',     align: 'center' },
+      { key: 'IV_RANK',                  label: 'IV Rank',        align: 'right'  },
+      { key: 'IV_CURRENT',               label: 'IV Atual',       align: 'right'  },
+      { key: 'VE_OVER_STRIKE',           label: 'VE/Strike',      align: 'right'  },
+      { key: 'DTE_CALENDAR',             label: 'DTE',            align: 'center' },
+      { key: 'SPOT',                     label: 'Spot',           align: 'right'  },
+      { key: 'STRIKE',                   label: 'Strike',         align: 'right'  },
+      { key: 'SPOT_STRIKE_RATIO',        label: 'Spot/Strike',    align: 'right'  },
+      { key: 'COMPANY_NAME',             label: 'Empresa',        align: 'left'   },
+      { key: 'SECTOR',                   label: 'Setor',          align: 'left'   },
     ];
 
     return { filtroTipo, filtroSetor, filtroDTE, ordemChave, ordemAsc,
