@@ -1,0 +1,147 @@
+<script>
+/**
+ * AcademiaConfig.html
+ * Catalogo completo da Academia de Opcoes.
+ * Estrutura leve -- carrega com o app.
+ * O conteudo pedagogico fica no AcademiaKB.html.
+ */
+window.AcademiaConfig = {
+
+  modulos: [
+    {
+      id: 'fundacao',
+      nivel: 1,
+      label: 'Fundacao',
+      descricao: 'O alicerce. Entenda por que voce e vendedor de volatilidade, nao apostador de direcao.',
+      cor: 'var(--brand-emerald)',
+      icone: 'layers',
+      prereq: null
+    },
+    {
+      id: 'intermediario',
+      nivel: 2,
+      label: 'Intermediario',
+      descricao: 'Limite seu risco sem limitar demais seu ganho. Travas, Collars e estruturas de credito protegidas.',
+      cor: 'var(--brand-indigo)',
+      icone: 'trending-up',
+      prereq: 'fundacao'
+    },
+    {
+      id: 'avancado',
+      nivel: 3,
+      label: 'Avancado',
+      descricao: 'Opere cenarios em vez de direcoes. Condors, Borboletas, Calendarios e estruturas multi-perna.',
+      cor: 'var(--brand-amber)',
+      icone: 'zap',
+      prereq: 'intermediario'
+    },
+    {
+      id: 'ultra',
+      nivel: 4,
+      label: 'Ultra Avancado',
+      descricao: 'Estruturas exoticas, sinteticos e arbitragem. Para quem domina Greeks de segunda ordem.',
+      cor: 'var(--brand-rose)',
+      icone: 'cpu',
+      prereq: 'avancado'
+    },
+    {
+      id: 'gestao',
+      nivel: 0,
+      label: 'Gestao e Manejo',
+      descricao: 'Nao sao estrategias de montagem. Sao tecnicas para gerenciar posicoes abertas.',
+      cor: 'var(--text-secondary)',
+      icone: 'settings-2',
+      prereq: null
+    }
+  ],
+
+  estrategias: [
+    // -- MODULO 1: FUNDACAO ------------------------------------------------
+    { id: 'venda-put',         modulo: 'fundacao',      num: 1,  label: 'Venda de PUT',            labelEN: 'Short Put',                tipo: 'credito',    cenario: 'Alta / Lateral',  risco: 'Ilimitado abaixo', estrelas: 1 },
+    { id: 'venda-coberta',     modulo: 'fundacao',      num: 2,  label: 'Venda Coberta',           labelEN: 'Covered Call',             tipo: 'credito',    cenario: 'Lateral',         risco: 'Limitado',         estrelas: 1 },
+    { id: 'venda-coberta-smart',modulo: 'fundacao',     num: 3,  label: 'Venda Coberta Smart',     labelEN: 'Smart Covered Call',       tipo: 'credito',    cenario: 'Lateral / Alta',  risco: 'Limitado',         estrelas: 2 },
+    { id: 'covered-strangle',  modulo: 'fundacao',      num: 4,  label: 'Covered Strangle',        labelEN: 'Covered Strangle',         tipo: 'credito',    cenario: 'Lateral forte',   risco: 'Dobrado',          estrelas: 2 },
+
+    // -- MODULO 2: INTERMEDIARIO -------------------------------------------
+    { id: 'bull-put-spread',   modulo: 'intermediario', num: 5,  label: 'Trava de Alta com PUT',   labelEN: 'Bull Put Spread',          tipo: 'credito',    cenario: 'Alta / Lateral',  risco: 'Limitado',         estrelas: 2 },
+    { id: 'bull-call-spread',  modulo: 'intermediario', num: 6,  label: 'Trava de Alta com CALL',  labelEN: 'Bull Call Spread',         tipo: 'debito',     cenario: 'Alta moderada',   risco: 'Limitado',         estrelas: 2 },
+    { id: 'bear-call-spread',  modulo: 'intermediario', num: 7,  label: 'Trava de Baixa com CALL', labelEN: 'Bear Call Spread',         tipo: 'credito',    cenario: 'Baixa / Lateral', risco: 'Limitado',         estrelas: 2 },
+    { id: 'bear-put-spread',   modulo: 'intermediario', num: 8,  label: 'Trava de Baixa com PUT',  labelEN: 'Bear Put Spread',          tipo: 'debito',     cenario: 'Baixa moderada',  risco: 'Limitado',         estrelas: 2 },
+    { id: 'collar',            modulo: 'intermediario', num: 9,  label: 'Collar',                  labelEN: 'Collar',                   tipo: 'misto',      cenario: 'Custodia + hedge', risco: 'Limitado',        estrelas: 2 },
+    { id: 'fence',             modulo: 'intermediario', num: 10, label: 'Fence',                   labelEN: 'Fence',                    tipo: 'misto',      cenario: 'Protecao parcial', risco: 'Assimetrico',     estrelas: 2 },
+    { id: 'seagull',           modulo: 'intermediario', num: 11, label: 'Seagull',                 labelEN: 'Seagull',                  tipo: 'misto',      cenario: 'Altista s/ custo', risco: 'Limitado',        estrelas: 2 },
+    { id: 'jade-lizard',       modulo: 'intermediario', num: 12, label: 'Jade Lizard',             labelEN: 'Jade Lizard',              tipo: 'credito',    cenario: 'Lateral / Alta',  risco: 'Limitado acima',   estrelas: 3 },
+    { id: 'broken-wing-put',   modulo: 'intermediario', num: 13, label: 'Broken Wing Short PUT',   labelEN: 'Broken Wing Put',          tipo: 'credito',    cenario: 'Altista',         risco: 'Assimetrico',      estrelas: 3 },
+    { id: 'pmcc',              modulo: 'intermediario', num: 14, label: 'PMCC',                    labelEN: 'Poor Mans Covered Call',   tipo: 'misto',      cenario: 'Lateral / Alta',  risco: 'Limitado',         estrelas: 3 },
+
+    // -- MODULO 3: AVANCADO ------------------------------------------------
+    { id: 'short-strangle',    modulo: 'avancado',      num: 15, label: 'Short Strangle',          labelEN: 'Short Strangle',           tipo: 'credito',    cenario: 'Lateral forte',   risco: 'Ilimitado',        estrelas: 3 },
+    { id: 'short-strangle-cob',modulo: 'avancado',      num: 16, label: 'Short Strangle Coberto',  labelEN: 'Covered Short Strangle',   tipo: 'credito',    cenario: 'Lateral + acao',  risco: 'Reduzido',         estrelas: 3 },
+    { id: 'short-straddle',    modulo: 'avancado',      num: 17, label: 'Short Straddle',          labelEN: 'Short Straddle',           tipo: 'credito',    cenario: 'Lateral absoluta', risco: 'Ilimitado',       estrelas: 3 },
+    { id: 'iron-condor-short', modulo: 'avancado',      num: 18, label: 'Iron Condor Vendido',     labelEN: 'Short Iron Condor',        tipo: 'credito',    cenario: 'Lateral + range', risco: 'Limitado',         estrelas: 3 },
+    { id: 'iron-condor-long',  modulo: 'avancado',      num: 19, label: 'Iron Condor Comprado',    labelEN: 'Long Iron Condor',         tipo: 'debito',     cenario: 'Movimento forte', risco: 'Limitado',         estrelas: 3 },
+    { id: 'iron-butterfly-short',modulo:'avancado',     num: 20, label: 'Iron Butterfly Vendido',  labelEN: 'Short Iron Butterfly',     tipo: 'credito',    cenario: 'Lateral absoluta', risco: 'Limitado',        estrelas: 3 },
+    { id: 'iron-butterfly-long', modulo:'avancado',     num: 21, label: 'Iron Butterfly Comprado', labelEN: 'Long Iron Butterfly',      tipo: 'debito',     cenario: 'Movimento forte', risco: 'Limitado',         estrelas: 3 },
+    { id: 'butterfly-call-short',modulo:'avancado',     num: 22, label: 'Borboleta CALL Vendida',  labelEN: 'Short Call Butterfly',     tipo: 'credito',    cenario: 'Movimento moderado', risco: 'Limitado',      estrelas: 3 },
+    { id: 'butterfly-put-short', modulo:'avancado',     num: 23, label: 'Borboleta PUT Vendida',   labelEN: 'Short Put Butterfly',      tipo: 'credito',    cenario: 'Movimento moderado', risco: 'Limitado',      estrelas: 3 },
+    { id: 'butterfly-call-long', modulo:'avancado',     num: 24, label: 'Borboleta CALL Comprada', labelEN: 'Long Call Butterfly',      tipo: 'debito',     cenario: 'Lateral num ponto', risco: 'Limitado',       estrelas: 3 },
+    { id: 'butterfly-put-long',  modulo:'avancado',     num: 25, label: 'Borboleta PUT Comprada',  labelEN: 'Long Put Butterfly',       tipo: 'debito',     cenario: 'Lateral num ponto', risco: 'Limitado',       estrelas: 3 },
+    { id: 'calendar-call',     modulo: 'avancado',      num: 26, label: 'Calendario CALL',         labelEN: 'Calendar Call',            tipo: 'debito',     cenario: 'Lateral + IV baixa', risco: 'Limitado',      estrelas: 3 },
+    { id: 'calendar-put',      modulo: 'avancado',      num: 27, label: 'Calendario PUT',          labelEN: 'Calendar Put',             tipo: 'debito',     cenario: 'Lateral + IV baixa', risco: 'Limitado',      estrelas: 3 },
+    { id: 'diagonal-call',     modulo: 'avancado',      num: 28, label: 'Diagonal CALL',           labelEN: 'Diagonal Call',            tipo: 'misto',      cenario: 'Lateral / Alta',  risco: 'Limitado',         estrelas: 3 },
+    { id: 'diagonal-put',      modulo: 'avancado',      num: 29, label: 'Diagonal PUT',            labelEN: 'Diagonal Put',             tipo: 'misto',      cenario: 'Lateral / Baixa', risco: 'Limitado',         estrelas: 3 },
+    { id: 'mannerheim',        modulo: 'avancado',      num: 30, label: 'Linha de Mannerheim',     labelEN: 'Mannerheim Line',          tipo: 'credito',    cenario: 'Lateral forte',   risco: 'Exp. descoberta',  estrelas: 4 },
+    { id: 'thl-calendario',    modulo: 'avancado',      num: 31, label: 'THL / Calendario BR',     labelEN: 'THL',                      tipo: 'misto',      cenario: 'Lateral + theta', risco: 'Limitado',         estrelas: 3 },
+    { id: 'slide-estrutural',  modulo: 'avancado',      num: 32, label: 'Slide Estrutural',        labelEN: 'Structural Slide',         tipo: 'credito',    cenario: 'Lateral + perna', risco: 'Exp. parcial',     estrelas: 4 },
+
+    // -- MODULO 4: ULTRA AVANCADO ------------------------------------------
+    { id: 'ratio-call',        modulo: 'ultra',         num: 33, label: 'Booster / Ratio CALL',    labelEN: 'Ratio Call Spread',        tipo: 'credito',    cenario: 'Alta moderada',   risco: 'Ilimitado acima',  estrelas: 4 },
+    { id: 'ratio-put',         modulo: 'ultra',         num: 34, label: 'Booster / Ratio PUT',     labelEN: 'Ratio Put Spread',         tipo: 'credito',    cenario: 'Baixa moderada',  risco: 'Ilimitado abaixo', estrelas: 4 },
+    { id: 'backspread-call',   modulo: 'ultra',         num: 35, label: 'Back Spread CALL',        labelEN: 'Call Ratio Backspread',    tipo: 'debito',     cenario: 'Movimento explosivo alta',  risco: 'Limitado', estrelas: 4 },
+    { id: 'backspread-put',    modulo: 'ultra',         num: 36, label: 'Back Spread PUT',         labelEN: 'Put Ratio Backspread',     tipo: 'debito',     cenario: 'Movimento explosivo baixa', risco: 'Limitado', estrelas: 4 },
+    { id: 'synthetic-straddle',modulo: 'ultra',         num: 37, label: 'Straddle Sintetico PUT',  labelEN: 'Long Put Synthetic Straddle', tipo: 'misto', cenario: 'Movimento forte qualquer lado', risco: 'Limitado', estrelas: 4 },
+    { id: 'straddle-ha',       modulo: 'ultra',         num: 38, label: 'Short Straddle HA',       labelEN: 'Short Straddle High Alpha',tipo: 'credito',    cenario: 'Vol com hedge',   risco: 'Parcial',          estrelas: 4 },
+    { id: 'hedge-assimetrico', modulo: 'ultra',         num: 39, label: 'Hedge Assimetrico',       labelEN: 'Asymmetric Hedge',         tipo: 'debito',     cenario: 'Protecao alavancada', risco: 'Limitado',     estrelas: 4 },
+    { id: 'christmas-call',    modulo: 'ultra',         num: 40, label: 'Christmas Tree CALL',     labelEN: 'Call Christmas Tree',      tipo: 'misto',      cenario: 'Alta moderada assimetrica', risco: 'Limitado', estrelas: 4 },
+    { id: 'christmas-put',     modulo: 'ultra',         num: 41, label: 'Christmas Tree PUT',      labelEN: 'Put Christmas Tree',       tipo: 'misto',      cenario: 'Baixa moderada assimetrica', risco: 'Limitado', estrelas: 4 },
+    { id: 'skip-butterfly',    modulo: 'ultra',         num: 42, label: 'Skip Strike Butterfly',   labelEN: 'Skip Strike Butterfly',    tipo: 'misto',      cenario: 'Lateral ampliada', risco: 'Limitado',        estrelas: 4 },
+    { id: 'synthetic-long',    modulo: 'ultra',         num: 43, label: 'Synthetic Long',          labelEN: 'Synthetic Long Stock',     tipo: 'misto',      cenario: 'Alta forte',      risco: 'Ilimitado',        estrelas: 4 },
+    { id: 'synthetic-short',   modulo: 'ultra',         num: 44, label: 'Synthetic Short',         labelEN: 'Synthetic Short Stock',    tipo: 'misto',      cenario: 'Baixa forte',     risco: 'Ilimitado',        estrelas: 4 },
+    { id: 'long-combo',        modulo: 'ultra',         num: 45, label: 'Long Combo',              labelEN: 'Long Combo',               tipo: 'misto',      cenario: 'Alta com custo zero', risco: 'Ilimitado abaixo', estrelas: 4 },
+    { id: 'short-combo',       modulo: 'ultra',         num: 46, label: 'Short Combo',             labelEN: 'Short Combo',              tipo: 'misto',      cenario: 'Baixa com custo zero', risco: 'Ilimitado acima', estrelas: 4 },
+    { id: 'box-3',             modulo: 'ultra',         num: 47, label: 'Box 3 Pontas',            labelEN: '3-Leg Box',                tipo: 'arbitragem', cenario: 'Distorcao de preco', risco: 'Minimo',          estrelas: 5 },
+    { id: 'box-3-smart',       modulo: 'ultra',         num: 48, label: 'Box 3 Pontas Smart',      labelEN: 'Smart 3-Leg Box',          tipo: 'arbitragem', cenario: 'Distorcao planejada', risco: 'Minimo',         estrelas: 5 },
+    { id: 'box-4-smart',       modulo: 'ultra',         num: 49, label: 'Box 4 Pontas Smart',      labelEN: 'Smart 4-Leg Box',          tipo: 'arbitragem', cenario: 'Distorcao saida fixa', risco: 'Minimo',        estrelas: 5 },
+    { id: 'origami',           modulo: 'ultra',         num: 50, label: 'Origami',                 labelEN: 'Origami',                  tipo: 'complexo',   cenario: 'Multi-perna customizado', risco: 'Variavel',   estrelas: 5 },
+    { id: 'wheel-leap',        modulo: 'ultra',         num: 51, label: 'Wheel com LEAP',          labelEN: 'LEAP Wheel',               tipo: 'misto',      cenario: 'Roda com menos capital', risco: 'Limitado',    estrelas: 4 },
+    { id: 'delta-hedging',     modulo: 'ultra',         num: 52, label: 'Delta Hedging Dinamico',  labelEN: 'Dynamic Delta Hedging',    tipo: 'tecnica',    cenario: 'Neutralizar direcional', risco: 'Variavel',    estrelas: 5 },
+
+    // -- GESTAO E MANEJO ---------------------------------------------------
+    { id: 'rolagem-tempo',     modulo: 'gestao',        num: 53, label: 'Rolagem no Tempo',        labelEN: 'Roll Out',                 tipo: 'gestao',     cenario: 'Estender vencimento',    risco: 'Variavel',   estrelas: 2 },
+    { id: 'rolagem-baixo',     modulo: 'gestao',        num: 54, label: 'Rolagem para Baixo',      labelEN: 'Roll Down',                tipo: 'gestao',     cenario: 'Reduzir strike PUT',     risco: 'Variavel',   estrelas: 2 },
+    { id: 'rolagem-cima',      modulo: 'gestao',        num: 55, label: 'Rolagem para Cima',       labelEN: 'Roll Up',                  tipo: 'gestao',     cenario: 'Aumentar strike CALL',   risco: 'Variavel',   estrelas: 2 },
+    { id: 'rolagem-diagonal',  modulo: 'gestao',        num: 56, label: 'Rolagem Diagonal',        labelEN: 'Diagonal Roll',            tipo: 'gestao',     cenario: 'Muda strike e vencimento', risco: 'Variavel', estrelas: 3 },
+    { id: 'conversao',         modulo: 'gestao',        num: 57, label: 'Conversao de Estrutura',  labelEN: 'Structure Conversion',     tipo: 'gestao',     cenario: 'PUT vira Spread',        risco: 'Variavel',   estrelas: 3 },
+    { id: 'fechamento-parcial',modulo: 'gestao',        num: 58, label: 'Fechamento Parcial',      labelEN: 'Partial Close',            tipo: 'gestao',     cenario: 'Fechar perna lucrativa', risco: 'Variavel',   estrelas: 2 },
+    { id: 'kelly',             modulo: 'gestao',        num: 59, label: 'Criterio de Kelly',       labelEN: 'Kelly Criterion',          tipo: 'tecnica',    cenario: 'Dimensionar posicao',    risco: 'N/A',        estrelas: 3 },
+    { id: 'regra-50',          modulo: 'gestao',        num: 60, label: 'Regra dos 50%',           labelEN: '50% Profit Target',        tipo: 'tecnica',    cenario: 'Fechar com 50% do premio', risco: 'N/A',      estrelas: 1 },
+    { id: 'regra-21dte',       modulo: 'gestao',        num: 61, label: 'Regra do 21 DTE',         labelEN: '21 DTE Rule',              tipo: 'tecnica',    cenario: 'Fechar ou rolar',        risco: 'N/A',        estrelas: 1 },
+    { id: 'ajuste-delta',      modulo: 'gestao',        num: 62, label: 'Ajuste de Delta',         labelEN: 'Delta Adjustment',         tipo: 'tecnica',    cenario: 'Neutralizar direcional', risco: 'Variavel',   estrelas: 4 }
+  ],
+
+  // Helper: retorna estrategias de um modulo
+  getByModulo: function(moduloId) {
+    return this.estrategias.filter(function(e) { return e.modulo === moduloId; });
+  },
+
+  // Helper: retorna metadados de um modulo
+  getModulo: function(moduloId) {
+    return this.modulos.find(function(m) { return m.id === moduloId; }) || null;
+  },
+
+  // Helper: retorna estrategia por id
+  getEstrategia: function(id) {
+    return this.estrategias.find(function(e) { return e.id === id; }) || null;
+  }
+};
+</script>

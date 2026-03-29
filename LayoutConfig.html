@@ -4,21 +4,22 @@
  */
 window.APP_MENU = [
   { id: 'cockpit',       label: 'Cockpit',                icon: 'layout-dashboard' },
-  { id: 'calc-bs',       label: 'Calculadora BS',         icon: 'calculator',  modal: true },
-  { separator: true },           // ← linha divisória
+  { separator: true },           // <- linha divisoria
   { id: 'wheel',         label: 'Estrategia Wheel',       icon: 'rotate-cw' },
   { id: 'consultor-ia',  label: 'Consultor IA',           icon: 'brain-circuit' },
   { id: 'comparador',    label: 'Comparador de PUT',      icon: 'crosshair' },
-  { separator: true },           // ← linha divisória
+  { separator: true },           // <- linha divisoria
   { id: 'dashboards-ia', label: 'Dashboards & IA',        icon: 'pie-chart' },
   { id: 'oplab-market',  label: 'OPLab Market',           icon: 'bar-chart-2' },
-  { separator: true },           // ← linha divisória
+  { id: 'academia',      label: 'Academia de Opcoes',     icon: 'graduation-cap' },
+  { separator: true },           // <- linha divisoria
   { id: 'necton-import', label: 'Importacao Necton',      icon: 'file-down' },
   { id: 'automacao',     label: 'Automacao',              icon: 'zap' },
   { id: 'bancodedados',  label: 'Base de Dados',          icon: 'database' },
-  { separator: true },           // ← linha divisória
+  { separator: true },           // <- linha divisoria
   { id: 'oplab-explorer',label: 'OpLab API Explorer',     icon: 'terminal' },
-  { id: 'config',        label: 'Configuracoes',          icon: 'settings' }
+  { id: 'config',        label: 'Configuracoes',          icon: 'settings' },
+  { id: 'calc-bs',       label: 'Calculadora BS',         icon: 'calculator',  modal: true }
 ];
 
 /**
@@ -92,6 +93,7 @@ window.LAYOUT_MAP = {
   'dados-ativos':   [{ id: 'painel-gestao-ativos',  component: 'gestao-ativos',       cols: 'col-span-12', props: {} }],
   'comparador':     [{ id: 'painel-comparador',     component: 'comparativo-view',    cols: 'col-span-12', props: {} }],
   'oplab-market':   [{ id: 'oplab-hub',            component: 'oplab-hub',           cols: 'col-span-12', props: {} }],
+  'academia':       [{ id: 'painel-academia',      component: 'academia-opcoes',     cols: 'col-span-12', props: {} }],
   'bancodedados':   [{ id: 'tela-bancodedados',     component: 'bancodedados-view',   cols: 'col-span-12', props: {} }],
   'oplab-explorer': [{ id: 'painel-oplab-explorer', component: 'oplab-explorer-view', cols: 'col-span-12', props: {} }],
   'consultoria':    [{ id: 'painel-consultoria',    component: 'consultoria-view',    cols: 'col-span-12', props: {} }]

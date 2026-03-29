@@ -1,0 +1,398 @@
+<template id="academia-opcoes-template">
+  <div :style="isMobile ? 'padding:0.5rem;' : 'max-width:1100px;margin:0 auto;padding:1.5rem;'"
+       style="display:flex;flex-direction:column;gap:1.25rem;min-height:100vh;">
+
+    <!-- ============================================================
+         MODAL DE ESTRATEGIA
+         ============================================================ -->
+    <transition name="acad-fade">
+      <div v-if="estrategiaAberta"
+           style="position:fixed;inset:0;z-index:9998;display:flex;align-items:center;justify-content:center;"
+           @click.self="fecharEstrategia">
+        <div style="position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(3px);"></div>
+        <div style="position:relative;z-index:1;display:flex;flex-direction:column;overflow:hidden;border-radius:var(--radius-xl);background:var(--surface-base);border:1px solid var(--border-subtle);box-shadow:0 24px 64px rgba(0,0,0,0.4);"
+             :style="isMobile ? 'width:100%;height:100%;border-radius:0;' : 'width:760px;max-height:90vh;'">
+
+          <!-- Header do modal -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem;border-bottom:1px solid var(--border-subtle);flex-shrink:0;background:var(--surface-overlay);">
+            <div style="display:flex;align-items:center;gap:0.875rem;">
+              <div :style="'padding:0.5rem;border-radius:var(--radius-md);background:' + corModuloAtual + '20;border:1px solid ' + corModuloAtual + '40;'">
+                <i data-lucide="book-open" style="width:1.125rem;height:1.125rem;display:block;" :style="'color:' + corModuloAtual"></i>
+              </div>
+              <div>
+                <div style="display:flex;align-items:center;gap:0.5rem;">
+                  <h3 style="font-size:0.95rem;font-weight:800;color:var(--text-primary);">{{ estrategiaAberta ? estrategiaAberta.label : '' }}</h3>
+                  <span style="font-size:0.65rem;font-weight:600;padding:1px 7px;border-radius:99px;background:var(--surface-sunken);color:var(--text-muted);">
+                    {{ estrategiaAberta ? estrategiaAberta.labelEN : '' }}
+                  </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.5rem;margin-top:3px;">
+                  <span v-for="n in (estrategiaAberta ? estrategiaAberta.estrelas : 0)" :key="n"
+                        style="font-size:0.6rem;" :style="'color:' + corModuloAtual">&#9733;</span>
+                  <span style="font-size:0.65rem;color:var(--text-muted);">{{ badgeTipo(estrategiaAberta ? estrategiaAberta.tipo : '') }}</span>
+                </div>
+              </div>
+            </div>
+            <button @click="fecharEstrategia"
+                    style="padding:0.375rem;border-radius:var(--radius-md);background:none;border:none;color:var(--text-muted);cursor:pointer;"
+                    onmouseover="this.style.background='var(--border-subtle)'" onmouseout="this.style.background='none'">
+              <i data-lucide="x" style="width:1.125rem;height:1.125rem;display:block;"></i>
+            </button>
+          </div>
+
+          <!-- Abas de navegacao -->
+          <div style="display:flex;border-bottom:1px solid var(--border-subtle);background:var(--surface-base);overflow-x:auto;flex-shrink:0;">
+            <button v-for="aba in abas" :key="aba.id" @click="abaAtiva = aba.id"
+                    style="padding:0.625rem 1rem;border:none;cursor:pointer;font-size:0.72rem;font-weight:700;white-space:nowrap;border-bottom:2px solid transparent;transition:all 0.15s;background:none;"
+                    :style="abaAtiva === aba.id
+                      ? 'border-bottom-color:' + corModuloAtual + ';color:' + corModuloAtual + ';'
+                      : 'color:var(--text-muted);'">
+              {{ aba.label }}
+            </button>
+          </div>
+
+          <!-- Conteudo das abas -->
+          <div style="overflow-y:auto;flex:1;padding:1.5rem;">
+            <div v-if="!conteudoAtual" style="padding:2rem;text-align:center;color:var(--text-muted);">
+              <i data-lucide="loader-2" style="width:1.5rem;height:1.5rem;margin:0 auto 0.5rem;display:block;animation:acad-spin 1s linear infinite;"></i>
+              <p style="font-size:0.8rem;">Carregando conteudo...</p>
+            </div>
+            <template v-else>
+
+              <!-- ABA: Analogia -->
+              <div v-if="abaAtiva === 'analogia'" style="display:flex;flex-direction:column;gap:1rem;">
+                <div style="padding:1.25rem;background:var(--surface-sunken);border-radius:var(--radius-xl);border-left:4px solid;"
+                     :style="'border-color:' + corModuloAtual">
+                  <p style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;" :style="'color:' + corModuloAtual">A analogia</p>
+                  <p style="font-size:0.9rem;line-height:1.7;color:var(--text-primary);">{{ conteudoAtual.analogia }}</p>
+                </div>
+                <div v-if="conteudoAtual.quando_usar" style="display:flex;flex-direction:column;gap:0.5rem;">
+                  <p style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">Quando usar</p>
+                  <div v-for="(item, i) in conteudoAtual.quando_usar" :key="i"
+                       style="display:flex;align-items:flex-start;gap:0.625rem;padding:0.625rem 0.875rem;background:var(--surface-base);border-radius:var(--radius-md);border:1px solid var(--border-subtle);">
+                    <span style="font-size:0.75rem;margin-top:1px;" :style="'color:' + corModuloAtual">&#10003;</span>
+                    <span style="font-size:0.82rem;color:var(--text-secondary);line-height:1.5;">{{ item }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ABA: Como montar -->
+              <div v-if="abaAtiva === 'como_montar'" style="display:flex;flex-direction:column;gap:1rem;">
+                <div style="padding:1.25rem;background:var(--surface-sunken);border-radius:var(--radius-xl);">
+                  <p style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.75rem;color:var(--text-muted);">Exemplo pratico</p>
+                  <p style="font-size:0.875rem;line-height:1.75;color:var(--text-primary);">{{ conteudoAtual.como_montar }}</p>
+                </div>
+              </div>
+
+              <!-- ABA: Linha do tempo -->
+              <div v-if="abaAtiva === 'linha_do_tempo'" style="display:flex;flex-direction:column;gap:0;">
+                <div v-for="(evento, i) in conteudoAtual.linha_do_tempo" :key="i"
+                     style="display:flex;gap:1rem;position:relative;">
+                  <div style="display:flex;flex-direction:column;align-items:center;">
+                    <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;flex-shrink:0;"
+                         :style="'background:' + corModuloAtual + '20;color:' + corModuloAtual + ';border:2px solid ' + corModuloAtual">
+                      {{ evento.dte }}d
+                    </div>
+                    <div v-if="i < conteudoAtual.linha_do_tempo.length - 1"
+                         style="width:2px;flex:1;min-height:24px;"
+                         :style="'background:' + corModuloAtual + '30;'"></div>
+                  </div>
+                  <div style="flex:1;padding-bottom:1.25rem;">
+                    <p style="font-size:0.8rem;font-weight:700;color:var(--text-primary);margin-bottom:0.25rem;">{{ evento.titulo }}</p>
+                    <p style="font-size:0.78rem;color:var(--text-secondary);line-height:1.55;">{{ evento.descricao }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ABA: Cenarios -->
+              <div v-if="abaAtiva === 'cenarios'" style="display:flex;flex-direction:column;gap:0.75rem;">
+                <div v-for="(c, i) in conteudoAtual.cenarios" :key="i"
+                     style="border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--border-subtle);">
+                  <div style="padding:0.75rem 1rem;display:flex;align-items:center;justify-content:space-between;"
+                       :style="c.cor === 'emerald' ? 'background:var(--brand-emerald-light);'
+                              : c.cor === 'amber'   ? 'background:var(--brand-amber-light);'
+                              :                       'background:var(--brand-rose-light);'">
+                    <span style="font-size:0.82rem;font-weight:700;"
+                          :style="c.cor === 'emerald' ? 'color:var(--brand-emerald);'
+                                 : c.cor === 'amber'   ? 'color:var(--brand-amber);'
+                                 :                       'color:var(--brand-rose);'">{{ c.titulo }}</span>
+                    <span style="font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:99px;background:rgba(0,0,0,0.08);"
+                          :style="c.cor === 'emerald' ? 'color:var(--brand-emerald);'
+                                 : c.cor === 'amber'   ? 'color:var(--brand-amber);'
+                                 :                       'color:var(--brand-rose);'">{{ c.resultado }}</span>
+                  </div>
+                  <div style="padding:0.75rem 1rem;background:var(--surface-base);">
+                    <p style="font-size:0.8rem;color:var(--text-secondary);line-height:1.55;">{{ c.descricao }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ABA: Manejo -->
+              <div v-if="abaAtiva === 'manejo'" style="display:flex;flex-direction:column;gap:0.75rem;">
+                <div v-for="(m, i) in conteudoAtual.manejo" :key="i"
+                     style="border-radius:var(--radius-lg);border:1px solid var(--border-subtle);overflow:hidden;">
+                  <div style="padding:0.625rem 1rem;background:var(--surface-overlay);">
+                    <p style="font-size:0.72rem;font-weight:700;color:var(--text-muted);">SE: {{ m.condicao }}</p>
+                  </div>
+                  <div style="padding:0.625rem 1rem;background:var(--surface-base);display:flex;gap:0.5rem;align-items:flex-start;">
+                    <span style="font-size:0.75rem;flex-shrink:0;" :style="'color:' + corModuloAtual">&#10132;</span>
+                    <p style="font-size:0.82rem;color:var(--text-primary);line-height:1.5;">{{ m.acao }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ABA: Comparativo -->
+              <div v-if="abaAtiva === 'comparativo'" style="display:flex;flex-direction:column;gap:1rem;">
+                <div style="padding:1.25rem;background:var(--surface-sunken);border-radius:var(--radius-xl);border-left:4px solid var(--brand-indigo);">
+                  <p style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;color:var(--brand-indigo);">Comparativo com Venda de PUT</p>
+                  <p style="font-size:0.875rem;line-height:1.75;color:var(--text-primary);">{{ conteudoAtual.comparativo }}</p>
+                </div>
+              </div>
+
+            </template>
+          </div>
+
+        </div>
+      </div>
+    </transition>
+
+    <!-- ============================================================
+         HEADER DA ACADEMIA
+         ============================================================ -->
+    <div class="premium-card" style="padding:1.5rem 2rem;display:flex;align-items:center;gap:1.25rem;">
+      <div style="padding:0.75rem;background:var(--brand-indigo-light);color:var(--brand-indigo);border-radius:var(--radius-lg);border:1px solid var(--brand-indigo-muted);">
+        <i data-lucide="graduation-cap" style="width:1.5rem;height:1.5rem;display:block;"></i>
+      </div>
+      <div style="flex:1;">
+        <h2 class="t-title" style="color:var(--text-primary);letter-spacing:-0.02em;">Academia de Opcoes</h2>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem;">
+          {{ totalEstrategias }} estrategias em {{ totalModulos }} modulos -- do basico ao ultra avancado
+        </p>
+      </div>
+      <!-- Busca -->
+      <div style="position:relative;flex-shrink:0;" :style="isMobile ? 'display:none;' : ''">
+        <i data-lucide="search" style="position:absolute;left:0.625rem;top:50%;transform:translateY(-50%);width:0.8rem;height:0.8rem;color:var(--text-muted);display:block;pointer-events:none;"></i>
+        <input v-model="busca" type="text" placeholder="Buscar estrategia..."
+               style="padding:0.4rem 0.75rem 0.4rem 2rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.78rem;width:200px;outline:none;"
+               onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+      </div>
+    </div>
+
+    <!-- Busca mobile -->
+    <div v-if="isMobile" style="position:relative;">
+      <i data-lucide="search" style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);width:0.8rem;height:0.8rem;color:var(--text-muted);display:block;pointer-events:none;"></i>
+      <input v-model="busca" type="text" placeholder="Buscar estrategia..."
+             style="padding:0.5rem 0.75rem 0.5rem 2.25rem;background:var(--surface-base);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.82rem;width:100%;outline:none;box-sizing:border-box;"
+             onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+    </div>
+
+    <!-- ============================================================
+         RESULTADOS DE BUSCA
+         ============================================================ -->
+    <div v-if="busca.trim().length > 1" style="display:flex;flex-direction:column;gap:0.5rem;">
+      <p style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">
+        {{ resultadosBusca.length }} resultado(s) para "{{ busca }}"
+      </p>
+      <div style="display:grid;gap:0.5rem;" :style="isMobile ? 'grid-template-columns:1fr;' : 'grid-template-columns:repeat(3,1fr);'">
+        <button v-for="e in resultadosBusca" :key="e.id"
+                @click="abrirEstrategia(e)"
+                style="text-align:left;padding:0.75rem 1rem;background:var(--surface-base);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);cursor:pointer;transition:all 0.15s;"
+                onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="this.style.background='var(--surface-base)'">
+          <p style="font-size:0.8rem;font-weight:700;color:var(--text-primary);">{{ e.label }}</p>
+          <p style="font-size:0.65rem;color:var(--text-muted);margin-top:2px;">{{ labelModulo(e.modulo) }}</p>
+        </button>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         MODULOS + CARDS DE ESTRATEGIA
+         ============================================================ -->
+    <template v-else>
+      <div v-for="modulo in modulosConfig" :key="modulo.id" style="display:flex;flex-direction:column;gap:0.875rem;">
+
+        <!-- Header do modulo -->
+        <div style="display:flex;align-items:center;gap:0.875rem;">
+          <div style="padding:0.5rem;border-radius:var(--radius-md);"
+               :style="'background:' + modulo.cor + '20;border:1px solid ' + modulo.cor + '40;'">
+            <i :data-lucide="modulo.icone" style="width:1rem;height:1rem;display:block;" :style="'color:' + modulo.cor"></i>
+          </div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <h3 style="font-size:0.875rem;font-weight:800;color:var(--text-primary);">
+                {{ modulo.nivel > 0 ? 'Modulo ' + modulo.nivel + ' --' : '' }} {{ modulo.label }}
+              </h3>
+              <span style="font-size:0.6rem;font-weight:800;padding:1px 6px;border-radius:99px;"
+                    :style="'background:' + modulo.cor + '20;color:' + modulo.cor">
+                {{ estrategiasPorModulo(modulo.id).length }} estrategias
+              </span>
+            </div>
+            <p style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">{{ modulo.descricao }}</p>
+          </div>
+        </div>
+
+        <!-- Grid de cards -->
+        <div style="display:grid;gap:0.625rem;"
+             :style="isMobile ? 'grid-template-columns:1fr 1fr;' : 'grid-template-columns:repeat(4,1fr);'">
+          <button v-for="e in estrategiasPorModulo(modulo.id)" :key="e.id"
+                  @click="abrirEstrategia(e)"
+                  style="text-align:left;padding:0.875rem;border-radius:var(--radius-lg);border:1px solid var(--border-subtle);cursor:pointer;transition:all 0.15s;display:flex;flex-direction:column;gap:0.375rem;position:relative;overflow:hidden;background:var(--surface-base);"
+                  onmouseover="this.style.background='var(--surface-overlay)';this.style.transform='translateY(-1px)'"
+                  onmouseout="this.style.background='var(--surface-base)';this.style.transform='translateY(0)'">
+            <!-- Barra de cor do modulo no topo -->
+            <div style="position:absolute;top:0;left:0;right:0;height:3px;border-radius:3px 3px 0 0;"
+                 :style="'background:' + modulo.cor"></div>
+            <!-- Numero -->
+            <span style="font-size:0.58rem;font-weight:700;color:var(--text-muted);">#{{ e.num }}</span>
+            <!-- Nome -->
+            <span style="font-size:0.78rem;font-weight:700;color:var(--text-primary);line-height:1.3;">{{ e.label }}</span>
+            <!-- Nome EN -->
+            <span style="font-size:0.62rem;color:var(--text-muted);">{{ e.labelEN }}</span>
+            <!-- Footer: tipo + estrelas -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:0.25rem;">
+              <span style="font-size:0.58rem;font-weight:700;padding:1px 5px;border-radius:99px;"
+                    :style="tipoStyle(e.tipo)">
+                {{ badgeTipo(e.tipo) }}
+              </span>
+              <span style="font-size:0.55rem;" :style="'color:' + modulo.cor">
+                {{ '&#9733;'.repeat(e.estrelas) }}
+              </span>
+            </div>
+            <!-- Indicador de conteudo disponivel -->
+            <div v-if="temConteudo(e.id)"
+                 style="position:absolute;top:8px;right:8px;width:6px;height:6px;border-radius:50%;background:var(--brand-emerald);"
+                 title="Conteudo disponivel"></div>
+          </button>
+        </div>
+
+      </div>
+    </template>
+
+  </div>
+</template>
+
+<script>
+window.AcademiaOpcoes = {
+  template: '#academia-opcoes-template',
+  props: {
+    isMobile: { type: Boolean, default: false }
+  },
+
+  setup: function(props) {
+    var ref      = Vue.ref;
+    var computed = Vue.computed;
+
+    var config = window.AcademiaConfig || { modulos: [], estrategias: [], getByModulo: function() { return []; }, getModulo: function() { return null; }, getEstrategia: function() { return null; } };
+    var kb     = window.AcademiaKB    || {};
+
+    var busca            = ref('');
+    var estrategiaAberta = ref(null);
+    var abaAtiva         = ref('analogia');
+
+    var abas = [
+      { id: 'analogia',      label: 'Analogia & Quando Usar' },
+      { id: 'como_montar',   label: 'Como Montar' },
+      { id: 'linha_do_tempo',label: 'Linha do Tempo' },
+      { id: 'cenarios',      label: 'Cenarios' },
+      { id: 'manejo',        label: 'Manejo' },
+      { id: 'comparativo',   label: 'Comparativo' }
+    ];
+
+    var modulosConfig = config.modulos;
+
+    var totalEstrategias = config.estrategias.length;
+    var totalModulos     = config.modulos.filter(function(m) { return m.nivel > 0; }).length;
+
+    var conteudoAtual = computed(function() {
+      if (!estrategiaAberta.value) return null;
+      return kb[estrategiaAberta.value.id] || null;
+    });
+
+    var corModuloAtual = computed(function() {
+      if (!estrategiaAberta.value) return 'var(--brand-indigo)';
+      var mod = config.getModulo(estrategiaAberta.value.modulo);
+      return mod ? mod.cor : 'var(--brand-indigo)';
+    });
+
+    var resultadosBusca = computed(function() {
+      var q = busca.value.trim().toLowerCase();
+      if (q.length < 2) return [];
+      return config.estrategias.filter(function(e) {
+        return e.label.toLowerCase().includes(q) ||
+               e.labelEN.toLowerCase().includes(q) ||
+               e.tipo.toLowerCase().includes(q) ||
+               e.cenario.toLowerCase().includes(q);
+      });
+    });
+
+    function estrategiasPorModulo(moduloId) {
+      return config.getByModulo(moduloId);
+    }
+
+    function labelModulo(moduloId) {
+      var m = config.getModulo(moduloId);
+      return m ? (m.nivel > 0 ? 'Modulo ' + m.nivel + ' -- ' + m.label : m.label) : '';
+    }
+
+    function temConteudo(id) {
+      return !!kb[id];
+    }
+
+    function abrirEstrategia(e) {
+      estrategiaAberta.value = e;
+      abaAtiva.value         = 'analogia';
+      Vue.nextTick(function() {
+        if (window.lucide) window.lucide.createIcons();
+      });
+    }
+
+    function fecharEstrategia() {
+      estrategiaAberta.value = null;
+    }
+
+    function badgeTipo(tipo) {
+      var mapa = {
+        'credito':    'Credito',
+        'debito':     'Debito',
+        'misto':      'Misto',
+        'arbitragem': 'Arbitragem',
+        'gestao':     'Gestao',
+        'tecnica':    'Tecnica',
+        'complexo':   'Complexo'
+      };
+      return mapa[tipo] || tipo;
+    }
+
+    function tipoStyle(tipo) {
+      var estilos = {
+        'credito':    'background:var(--brand-emerald-light);color:var(--brand-emerald);',
+        'debito':     'background:var(--brand-rose-light);color:var(--brand-rose);',
+        'misto':      'background:var(--brand-amber-light);color:var(--brand-amber);',
+        'arbitragem': 'background:var(--brand-indigo-light);color:var(--brand-indigo);',
+        'gestao':     'background:var(--surface-sunken);color:var(--text-muted);',
+        'tecnica':    'background:var(--surface-sunken);color:var(--text-muted);',
+        'complexo':   'background:var(--brand-rose-light);color:var(--brand-rose);'
+      };
+      return estilos[tipo] || 'background:var(--surface-sunken);color:var(--text-muted);';
+    }
+
+    Vue.onMounted(function() {
+      if (window.lucide) window.lucide.createIcons();
+    });
+
+    return {
+      busca, estrategiaAberta, abaAtiva, abas,
+      modulosConfig, totalEstrategias, totalModulos,
+      conteudoAtual, corModuloAtual, resultadosBusca,
+      estrategiasPorModulo, labelModulo, temConteudo,
+      abrirEstrategia, fecharEstrategia,
+      badgeTipo, tipoStyle
+    };
+  }
+};
+</script>
+
+<style>
+@keyframes acad-spin { to { transform: rotate(360deg); } }
+.acad-fade-enter-active, .acad-fade-leave-active { transition: opacity 0.2s ease; }
+.acad-fade-enter-from,  .acad-fade-leave-to      { opacity: 0; }
+</style>

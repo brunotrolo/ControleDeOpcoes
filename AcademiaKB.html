@@ -1,0 +1,1490 @@
+<script>
+/**
+ * AcademiaKB.html
+ * Knowledge Base de conteudo pedagogico da Academia de Opcoes.
+ * Cada entrada mapeia um id de estrategia para suas 7 secoes de aprendizado.
+ * Carregado sob demanda pelo AcademiaOpcoes quando o usuario abre uma estrategia.
+ */
+window.AcademiaKB = {
+
+  'venda-put': {
+    analogia: 'Imagine que voce e uma seguradora de automovel. O motorista paga um premio todo mes para se proteger de um acidente. Se o acidente nao acontecer, voce fica com o dinheiro. Na venda de PUT, voce e a seguradora: recebe o premio do comprador que quer se proteger de uma queda da acao. Se a acao nao cair ate o strike, voce fica com tudo.',
+    quando_usar: [
+      'Acao com tendencia de alta ou lateralizacao -- voce acredita que nao vai cair muito',
+      'IV Rank acima de 50% -- volatilidade esta cara, voce vende caro',
+      'Voce esta disposto a comprar a acao pelo strike se for exercido'
+    ],
+    como_montar: 'Acao X esta em R$ 10. Voce vende uma PUT no strike 9, com vencimento em 30 dias, recebendo R$ 0,50 de premio. Voce recebe R$ 50 por contrato (100 acoes) na hora. Seu risco: se a acao cair para R$ 8, voce e obrigado a comprar por R$ 9 -- prejuizo de R$ 1 por acao, menos o premio recebido.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Montagem', descricao: 'Voce vende a PUT e recebe o premio. Theta comeca a trabalhar a seu favor.' },
+      { dte: 30, titulo: 'Zona confortavel', descricao: 'Se a acao ficou parada ou subiu, ja perdeu 30-40% do valor. Pode fechar com lucro parcial.' },
+      { dte: 21, titulo: 'Ponto de decisao', descricao: 'Regra do 21 DTE: se ainda nao atingiu 50% de lucro, avalie fechar ou rolar. Gamma aumenta.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Se acao acima do strike: PUT vira po, voce fica com 100% do premio. Se abaixo: voce e exercido.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao subiu para R$ 11', resultado: 'Otimo', descricao: 'A PUT vira po. Voce fica com os R$ 50 de premio. Ganho maximo atingido.', cor: 'emerald' },
+      { titulo: 'Acao ficou em R$ 9,50', resultado: 'Bom',   descricao: 'A PUT expira sem valor. Voce fica com os R$ 50. A margem de seguranca funcionou.', cor: 'emerald' },
+      { titulo: 'Acao caiu para R$ 8',   resultado: 'Ruim',  descricao: 'Voce e exercido e compra a acao por R$ 9. Prejuizo de R$ 1,00 menos o premio de R$ 0,50 = R$ 0,50 por acao.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Atingiu 50% do premio antes do vencimento', acao: 'Fechar a posicao. Voce ja capturou metade do ganho maximo com menos tempo de risco.' },
+      { condicao: 'Acao caiu 5% e faltam mais de 21 dias', acao: 'Observar. O theta ainda esta trabalhando. Considere rolar para baixo e fora se a queda continuar.' },
+      { condicao: 'Acao caiu para proximo do strike com menos de 21 DTE', acao: 'Fechar ou rolar para o proximo vencimento com strike mais baixo, coletando credito adicional.' },
+      { condicao: 'Foi exercido', acao: 'Voce agora tem a acao em custodia. Inicie a Fase 2 da Roda: venda uma CALL coberta no mes seguinte.' }
+    ],
+    comparativo: 'Comparado com comprar a acao diretamente: voce tem um custo medio menor (preco da acao menos o premio recebido). A desvantagem: seu ganho e limitado ao premio se a acao subir muito. Ideal para quem quer a acao de qualquer jeito mas quer pagar mais barato.'
+  },
+
+  'venda-coberta': {
+    analogia: 'Voce tem um apartamento (a acao) e decide aluga-lo. O inquilino paga aluguel todo mes (o premio da CALL). Se o preco do imovel subir muito, o inquilino pode exercer uma opcao de compra pelo preco combinado -- e voce vende. Enquanto isso nao acontece, voce recebe aluguel todo mes.',
+    quando_usar: [
+      'Voce ja tem a acao em custodia e quer gerar renda sobre ela',
+      'Acao em lateralizacao -- sem catalisador forte de alta no curto prazo',
+      'IV Rank acima de 40% -- voce vende a CALL cara'
+    ],
+    como_montar: 'Voce tem 100 acoes X compradas a R$ 10. Vende uma CALL no strike 11, vencimento em 30 dias, recebendo R$ 0,40 de premio. Voce recebe R$ 40 por contrato. Se a acao subir acima de R$ 11, suas acoes sao vendidas por R$ 11. Se ficar abaixo, voce fica com as acoes e com o premio.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Montagem', descricao: 'Vende a CALL contra as acoes em carteira. Premio entra na conta.' },
+      { dte: 21, titulo: 'Theta acelerado', descricao: 'Decaimento do theta aumenta. CALL perde valor mais rapido.' },
+      { dte: 7,  titulo: 'Reta final', descricao: 'Se acao abaixo do strike, a CALL praticamente virou po. Pode fechar ou deixar expirar.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'CALL abaixo do strike: expira sem valor, voce fica com acoes e premio. Acima: acoes sao vendidas no strike.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao ficou em R$ 10,50', resultado: 'Perfeito', descricao: 'CALL expira. Voce fica com as acoes e com R$ 40 de premio. Reinicia o ciclo no mes seguinte.', cor: 'emerald' },
+      { titulo: 'Acao subiu para R$ 13',  resultado: 'OK',       descricao: 'Suas acoes sao vendidas por R$ 11. Voce perdeu a alta acima de R$ 11, mas lucrou R$ 1 por acao mais o premio.', cor: 'amber' },
+      { titulo: 'Acao caiu para R$ 8',    resultado: 'Ruim',     descricao: 'A CALL expira (otimo) mas voce tem prejuizo nas acoes. O premio de R$ 0,40 amortece levemente a queda.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao subiu para proximo do strike antes do vencimento', acao: 'Rolar a CALL para cima e para fora: recompra a CALL atual e vende uma CALL com strike maior no proximo vencimento.' },
+      { condicao: 'Acao caiu muito', acao: 'A CALL perdeu valor -- voce pode recompra-la barata e vender uma nova CALL no proximo mes com strike mais baixo, coletando mais premio.' },
+      { condicao: 'Atingiu 50% do premio', acao: 'Fechar a CALL vendida. Voce libera a posicao e pode abrir uma nova mais longe.' }
+    ],
+    comparativo: 'Comparado com segurar a acao sem vender CALL: voce renuncia ao upside acima do strike, mas recebe renda mensal. Em mercados laterais, o retorno da Venda Coberta bate a compra simples da acao no longo prazo.'
+  },
+
+  'venda-coberta-smart': {
+    analogia: 'A mesma ideia do apartamento alugado, mas agora voce negocia o aluguel de forma mais inteligente: escolhe o inquilino certo, no momento certo, pela taxa certa. O Smart e sobre timing e selecao de strike com base na volatilidade real do ativo.',
+    quando_usar: [
+      'Mesmas condicoes da Venda Coberta classica',
+      'IV Rank muito elevado -- voce espera o momento de pico de volatilidade para vender',
+      'Strike escolhido com base no Delta de 0.20 a 0.30 -- nao na sensacao de que nao vai subir'
+    ],
+    como_montar: 'Acao X a R$ 10. IV Rank em 80%. Voce calcula o strike com Delta 0.25 -- digamos R$ 11,50. Vende a CALL nesse strike. O premio e maior que o da CALL convencional porque a vol esta cara. Voce recebe R$ 0,60 em vez de R$ 0,40.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Montagem no pico de IV', descricao: 'Esperar IV Rank alto para vender. Mais premio com o mesmo risco.' },
+      { dte: 21, titulo: 'IV cai -- voce ganha dos dois lados', descricao: 'Acao lateral + IV caindo = CALL perde valor mais rapido que o esperado.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Mesma logica da Venda Coberta classica, mas com mais premio na partida.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao lateral + IV caiu',    resultado: 'Excelente', descricao: 'Voce ganhou com theta E com a queda da IV. Premio se evaporou mais rapido.', cor: 'emerald' },
+      { titulo: 'Acao subiu moderadamente',  resultado: 'Bom',       descricao: 'Strike mais afastado por causa do Delta 0.25 -- mais espaco para a acao subir antes de ser exercido.', cor: 'emerald' },
+      { titulo: 'Acao caiu com IV subindo', resultado: 'Ruim',       descricao: 'A CALL pode ter subido de valor por causa da IV mesmo com a acao caindo. Paradoxo do Vega.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'IV caiu muito apos a montagem', acao: 'Fechar antes do vencimento -- voce ja capturou o ganho de Vega.' },
+      { condicao: 'IV subiu apos montagem', acao: 'Aguardar. O theta ainda trabalha. Nao feche com prejuizo de Vega se o DTE ainda e alto.' }
+    ],
+    comparativo: 'Versus Venda Coberta classica: mais premio, strike mais longe, mas exige mais tecnica na escolha do momento e do strike. Em IV baixa, a Smart pode virar uma Coberta comum -- nao ha vantagem em vender quando a vol esta barata.'
+  },
+
+  'covered-strangle': {
+    analogia: 'O apartamento alugado novamente -- mas agora voce assina dois contratos ao mesmo tempo: um com o inquilino de cima (CALL) e outro com um potencial comprador que te paga para ter o direito de comprar um segundo imovel mais barato (PUT). Voce recebe dois alugueis mas assume risco duplo.',
+    quando_usar: [
+      'Acao em lateralizacao forte -- pouca chance de movimento grande em qualquer direcao',
+      'Voce ja tem a acao e esta disposto a comprar mais se cair',
+      'IV elevada nos dois lados do mercado'
+    ],
+    como_montar: 'Voce tem 100 acoes X a R$ 10. Vende uma CALL no strike 12 (recebe R$ 0,30) E vende uma PUT no strike 8 (recebe R$ 0,40). Premio total: R$ 0,70 por acao = R$ 70 por contrato.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Dois premios entram', descricao: 'R$ 70 na conta. Dois thetas trabalhando simultaneamente.' },
+      { dte: 21, titulo: 'Acompanhar os dois lados', descricao: 'Verificar se acao se aproximou de algum dos strikes. Gamma aumenta nos dois lados.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Se acao entre 8 e 12: ambas expiram, voce fica com os R$ 70. Fora desse range: um lado e exercido.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao ficou entre R$ 8 e R$ 12', resultado: 'Perfeito', descricao: 'As duas opcoes expiram sem valor. Voce fica com R$ 70 de premio total.', cor: 'emerald' },
+      { titulo: 'Acao subiu para R$ 14',          resultado: 'OK',       descricao: 'CALL exercida: suas acoes vendidas por R$ 12. Voce lucrou R$ 2 na acao + R$ 0,70 de premio.', cor: 'amber' },
+      { titulo: 'Acao caiu para R$ 6',            resultado: 'Atencao',  descricao: 'PUT exercida: voce compra mais 100 acoes por R$ 8. Agora tem 200 acoes com preco medio reduzido pelo premio.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao se aproxima da CALL', acao: 'Rolar a CALL para cima e fora. Mesma logica da Venda Coberta.' },
+      { condicao: 'Acao se aproxima da PUT', acao: 'Rolar a PUT para baixo e fora. Aceitar mais capital sendo alocado ou fechar a PUT.' }
+    ],
+    comparativo: 'Versus Venda Coberta simples: dobra o premio coletado, mas dobra a complexidade e a exposicao. Nao recomendado como primeira estrategia -- e uma evolucao natural apos dominar a Venda Coberta.'
+  },
+
+  // -- MODULO 2: INTERMEDIARIO (amostra) ---------------------------------
+
+  'bull-put-spread': {
+    analogia: 'Voce ainda e a seguradora -- mas agora voce tambem compra um resseguro. Voce vende a apolice ao motorista (recebe o premio da PUT) mas compra uma protecao em caso de acidente catastrofico (compra uma PUT mais barata ainda abaixo). Seu lucro e menor, mas seu prejuizo maximo tambem e conhecido.',
+    quando_usar: [
+      'Mesmo cenario da Venda de PUT -- alta ou lateral',
+      'Voce quer risco limitado -- saber exatamente o pior caso antes de entrar',
+      'Conta menor que nao comporta o risco ilimitado da PUT simples'
+    ],
+    como_montar: 'Acao X a R$ 10. Voce vende uma PUT no strike 9 (recebe R$ 0,50) e compra uma PUT no strike 8 (paga R$ 0,20). Credito liquido: R$ 0,30 por acao. Ganho maximo: R$ 30. Perda maxima: R$ 70 (diferenca dos strikes menos credito: R$ 1,00 - R$ 0,30).',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Montagem', descricao: 'Entra com credito de R$ 0,30. Ambas as PUTs trabalham, mas a vendida decai mais rapido.' },
+      { dte: 21, titulo: 'Zona de conforto', descricao: 'Acao acima de R$ 9: spread esta lucrativo. Pode fechar com lucro parcial.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Acao acima de R$ 9: as duas expiram, fica com os R$ 30. Entre 8 e 9: perda parcial. Abaixo de 8: perda maxima de R$ 70.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao ficou acima de R$ 9', resultado: 'Perfeito', descricao: 'Ambas as PUTs expiram sem valor. Voce fica com os R$ 30 de credito.', cor: 'emerald' },
+      { titulo: 'Acao caiu para R$ 8,50',   resultado: 'Parcial',  descricao: 'A PUT vendida tem valor de R$ 0,50, a comprada vale zero. Perda de R$ 20 (R$ 0,50 - R$ 0,30 de credito).', cor: 'amber' },
+      { titulo: 'Acao caiu para R$ 7',      resultado: 'Max Loss', descricao: 'Perda maxima de R$ 70. Mas esse e o pior caso possivel -- voce sabia disso antes de entrar.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Atingiu 50% do credito', acao: 'Fechar o spread. Voce capturou R$ 15 com muito menos risco de gamma.' },
+      { condicao: 'Acao caiu para o strike vendido', acao: 'Avaliar fechar o spread inteiro ou rolar para baixo e fora.' },
+      { condicao: 'Acao caiu abaixo do strike comprado', acao: 'Fechar imediatamente -- o spread chegou perto da perda maxima.' }
+    ],
+    comparativo: 'Versus Venda de PUT simples: voce recebe menos premio (R$ 0,30 vs R$ 0,50) mas seu risco maximo e R$ 70 em vez de R$ 900 (se a acao fosse a zero). Para contas menores ou gestao de risco mais rigorosa, o spread e superior.'
+  },
+
+  'iron-condor-short': {
+    analogia: 'Voce aposta que um passaro vai voar dentro de um corredor especifico -- nem muito alto, nem muito baixo. Voce recebe premio dos dois lados: do corredor de baixo (Bull Put Spread) e do corredor de cima (Bear Call Spread). Se o passaro ficar no meio, voce ganha tudo. O Iron Condor e literalmente dois spreads ao mesmo tempo.',
+    quando_usar: [
+      'Acao ou indice em lateralizacao definida -- voce consegue tracar um range de preco para o mes',
+      'IV Rank acima de 50% -- as asas do Condor sao vendidas caras',
+      'Proximo de eventos que historicamente nao causam grandes movimentos'
+    ],
+    como_montar: 'Acao X a R$ 10. Vende PUT no strike 9, compra PUT no strike 8 (credito R$ 0,30). Vende CALL no strike 11, compra CALL no strike 12 (credito R$ 0,25). Credito total: R$ 0,55. Lucro maximo: R$ 55. Perda maxima: R$ 45 (se romper qualquer um dos lados).',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Dois spreads montados', descricao: 'R$ 55 de credito. Quatro opcoes trabalhando. Range de lucro: entre R$ 9 e R$ 11.' },
+      { dte: 21, titulo: 'Medio prazo', descricao: 'Se acao no meio do range, ambos os spreads ja perderam valor. Lucro latente crescendo.' },
+      { dte: 7,  titulo: 'Reta final', descricao: 'Gamma risco aumenta. Se acao proximo das asas, fechar e preservar lucro.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Acao entre 9 e 11: ganho maximo de R$ 55. Fora do range: perda maxima de R$ 45 no lado rompido.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao ficou entre R$ 9 e R$ 11', resultado: 'Perfeito', descricao: 'Os quatro contratos expiram sem valor. Voce fica com R$ 55.', cor: 'emerald' },
+      { titulo: 'Acao subiu para R$ 11,50',       resultado: 'Parcial',  descricao: 'O lado de cima foi testado. Perda parcial no Bear Call Spread. Bull Put Spread expirou no lucro.', cor: 'amber' },
+      { titulo: 'Acao caiu para R$ 7',            resultado: 'Max Loss', descricao: 'O Bull Put Spread atingiu perda maxima (R$ 100). Bear Call Spread expirou no lucro (R$ 25). Perda liq: R$ 75.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Atingiu 50% do credito total', acao: 'Fechar todo o Condor. Regra de ouro: nao deixe ganhar mais que o necessario com risco de gamma.' },
+      { condicao: 'Uma das asas ameacada', acao: 'Fechar o lado ameacado (o spread que esta perdendo) e manter o lado lucrativo.' },
+      { condicao: 'Acao rompe uma das asas', acao: 'Fechar o spread rompido imediatamente. A perna comprada limita o prejuizo maximo.' }
+    ],
+    comparativo: 'Versus Short Strangle: o Condor tem risco limitado (as asas protegem). O Strangle tem risco ilimitado mas coleta mais premio. Para iniciantes no mercado de dois lados, o Condor e mais seguro e pedagogico.'
+  },
+
+  // -- GESTAO: entradas fundamentais -------------------------------------
+
+  'regra-50': {
+    analogia: 'Voce entra num cassino e ganha R$ 100 logo no inicio. O cassino oferece dobrar ou nada. Voce ja ganhou o suficiente -- sair com R$ 100 certos e melhor que arriscar por mais R$ 100 incertos. A Regra dos 50% e exatamente isso: embolsar o lucro certo antes que o acaso mude de lado.',
+    quando_usar: [
+      'Qualquer venda de opcao ou spread que ja atingiu metade do valor maximo de ganho',
+      'Independente do DTE restante -- se chegou a 50%, fecha',
+      'Especialmente importante quando DTE ainda e alto e o gamma risk ainda nao e problema'
+    ],
+    como_montar: 'Voce vendeu uma PUT por R$ 1,00. Quando o valor de recompra cair para R$ 0,50, voce fecha a posicao. Voce embolsou R$ 0,50 de lucro e eliminou todo o risco restante. Pode reabrir uma nova posicao no mesmo dia.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Entrada com premio maximo', descricao: 'Voce recebe R$ 1,00. Meta de saida: recomprar por R$ 0,50.' },
+      { dte: 30, titulo: 'Opcao vale R$ 0,50', descricao: 'Fecha a posicao. Lucro de R$ 0,50 garantido. Pode reabrir nova PUT.' },
+      { dte: 0,  titulo: 'Nao chegou aqui', descricao: 'Se aplicar a regra, voce nunca chega no vencimento com posicao aberta.' }
+    ],
+    cenarios: [
+      { titulo: 'Atingiu 50% em 15 dias', resultado: 'Excelente', descricao: 'Voce capturou metade do ganho em metade do tempo. ROC anualizado e melhor do que segurar ate o vencimento.', cor: 'emerald' },
+      { titulo: 'Nao atingiu 50% em 30 dias', resultado: 'Neutro', descricao: 'Ainda lucrativo, mas abaixo da meta. Avaliar rolar para o proximo mes ou fechar.', cor: 'amber' },
+      { titulo: 'Acao caiu antes de atingir 50%', resultado: 'Aprendizado', descricao: 'A regra te salvaria se voce tivesse uma ordem de stop. Gestao de risco importa.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Sempre', acao: 'Coloque uma ordem de recompra automatica em 50% do premio ao entrar. Nao dependa de lembrar.' }
+    ],
+    comparativo: 'Estudos mostram que fechar posicoes vendidas com 50% de lucro e sistematicamente superior a esperar o vencimento em termos de retorno ajustado ao risco, mesmo perdendo os ultimos 50% de ganho potencial.'
+  },
+
+  'regra-21dte': {
+    analogia: 'Voce sabe que nas ultimas tres semanas antes de uma prova, o nivel de estresse aumenta muito. O mesmo acontece com opcoes: nos ultimos 21 dias, o gamma -- o acelerador do delta -- fica perigoso. A Regra do 21 DTE e sair antes que a aceleracao te machuque.',
+    quando_usar: [
+      'Toda vez que uma posicao vendida chega a 21 dias para o vencimento sem ter atingido a meta de lucro',
+      'Especialmente em posicoes com grande notional ou alta concentracao num unico ativo'
+    ],
+    como_montar: 'Ao entrar em qualquer venda de opcao, ja coloque no calendario: no dia em que restar 21 dias para o vencimento, voce vai revisar a posicao. Se nao atingiu 50% de lucro, fecha ou rola para o proximo mes.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Entrada', descricao: 'Prazo ideal de entrada. Theta bom, gamma ainda controlado.' },
+      { dte: 21, titulo: 'Ponto de decisao', descricao: 'Aqui voce decide: fechar, rolar ou manter com muito mais atencao.' },
+      { dte: 7,  titulo: 'Zona perigosa', descricao: 'Gamma muito alto. Uma oscilacao de 2% pode zerar o lucro do mes.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Ideal nunca chegar aqui com posicao relevante aberta.' }
+    ],
+    cenarios: [
+      { titulo: 'Com 21 DTE a posicao tem 60% de lucro', resultado: 'Fechar', descricao: 'Acima de 50%: fecha e embolsa. A regra do 21 DTE reforca a regra dos 50%.', cor: 'emerald' },
+      { titulo: 'Com 21 DTE a posicao tem 30% de lucro', resultado: 'Rolar',  descricao: 'Nao atingiu a meta. Rola para o proximo mes -- coleta novo credito e aumenta o DTE.', cor: 'amber' },
+      { titulo: 'Com 21 DTE esta no prejuizo',           resultado: 'Decisao dificil', descricao: 'Rolar para baixo e fora coletando credito. Ou fechar com prejuizo controlado antes do gamma explodir.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Sempre ao entrar', acao: 'Coloque um lembrete no calendario para 21 dias antes do vencimento. Sem excecoes.' }
+    ],
+    comparativo: 'A combinacao Regra dos 50% + Regra do 21 DTE e a base de gestao de qualquer vendedor de volatilidade consistente. Nao e opcional -- e o sistema de freios da sua estrategia.'
+  },
+
+  'kelly': {
+    analogia: 'Imagine que voce joga cara ou coroa e ganha R$ 2 no cara e perde R$ 1 no coroa. Quanto do seu capital voce apostaria em cada rodada? Tudo? Nada? Kelly encontrou a formula matematica para a aposta otima que maximiza seu crescimento de longo prazo sem te levar a falencia.',
+    quando_usar: [
+      'Toda vez que for dimensionar o tamanho de uma posicao nova',
+      'Quando tiver um historico de trades suficiente para calcular seu edge real',
+      'Para evitar apostar demais num unico trade -- o maior erro do operador de opcoes'
+    ],
+    como_montar: 'Formula: f = (p * b - q) / b. Onde p = probabilidade de ganho (ex: 0.65), q = probabilidade de perda (1-p = 0.35), b = ganho medio dividido pela perda media (ex: 1.5). f = (0.65 * 1.5 - 0.35) / 1.5 = (0.975 - 0.35) / 1.5 = 0.42. Use 20-25% do Kelly completo na pratica -- o Kelly fracionado e mais seguro.',
+    linha_do_tempo: [
+      { dte: 0,  titulo: 'Antes de entrar', descricao: 'Calcule o Kelly com seu historico. Se nao tem historico, use 2-5% do capital por trade como regra inicial.' }
+    ],
+    cenarios: [
+      { titulo: 'Kelly de 40% calculado',  resultado: 'Use 10%', descricao: 'Kelly fracionado: use 25% do Kelly completo = 10% do capital por trade. Mais seguro.', cor: 'emerald' },
+      { titulo: 'Sem historico de trades', resultado: 'Use 2%',  descricao: 'Sem dados historicos, use no maximo 2% do capital por posicao ate ter pelo menos 30 trades.', cor: 'amber' },
+      { titulo: 'Kelly negativo',          resultado: 'Nao opere', descricao: 'Kelly negativo significa que voce nao tem edge matematico nessa estrategia. Nao opere.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Apos cada serie de 20 trades', acao: 'Recalcule o Kelly com os dados mais recentes. Seu edge muda com o mercado.' }
+    ],
+    comparativo: 'A maioria dos operadores usa tamanho fixo por trade (ex: sempre 100 contratos). Kelly mostra que isso e subotimo -- voce deveria apostar mais quando seu edge e maior e menos quando e menor.'
+  },
+
+  'rolagem-tempo': {
+    analogia: 'Voce tem um contrato de aluguel prestes a vencer e o imovel ainda nao foi vendido. Em vez de desocupar, voce renova o contrato por mais um mes -- e aproveita para renegociar o preco. A Rolagem no Tempo e exatamente isso: prorrogar o vencimento da opcao para continuar coletando theta.',
+    quando_usar: [
+      'A opcao vendida esta proxima do strike (ameacada) e falta pouco para o vencimento',
+      'Voce ainda acredita na direcao da operacao e quer dar mais tempo',
+      'A rolagem gera credito adicional -- voce nunca rola pagando debito'
+    ],
+    como_montar: 'Voce vendeu uma PUT no strike 9, vencimento em 7 dias, recebeu R$ 0,50. Acao esta em R$ 9,10. Voce recompra essa PUT por R$ 0,30 (perda de R$ 0,30 do premio original) e vende uma nova PUT no strike 9, vencimento em 35 dias, recebendo R$ 0,60. Credito adicional liquido: R$ 0,30.',
+    linha_do_tempo: [
+      { dte: 7,  titulo: 'Posicao atual ameacada', descricao: 'Recompra a PUT proxima do vencimento. Fecha o ciclo atual.' },
+      { dte: 0,  titulo: 'Nova posicao aberta', descricao: 'Vende a PUT no proximo vencimento. Novo ciclo de theta comeca.' },
+      { dte: 35, titulo: 'Novo vencimento', descricao: 'Mais 35 dias de theta trabalhando. A acao tem mais tempo para se recuperar.' }
+    ],
+    cenarios: [
+      { titulo: 'Rolagem gera credito de R$ 0,30', resultado: 'Excelente', descricao: 'Voce prorrogou o prazo E ainda recebeu mais dinheiro. Custo beneficio otimo.', cor: 'emerald' },
+      { titulo: 'Rolagem e neutra (zero credito)', resultado: 'OK',        descricao: 'Voce nao recebeu mais premio mas ganhou mais 30 dias. Acceptable se acredita na direcao.', cor: 'amber' },
+      { titulo: 'Rolagem custaria debito',         resultado: 'Nao role',  descricao: 'Se rolar implica pagar, e porque a situacao piorou muito. Feche e aceite o prejuizo.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Regra de ouro', acao: 'Nunca role pagando debito. Se nao consegue credito, feche a posicao.' },
+      { condicao: 'Quantas vezes pode rolar', acao: 'Nao ha limite teorico, mas cada rolagem aumenta o tempo de exposicao. Avalie o custo de oportunidade.' }
+    ],
+    comparativo: 'A Rolagem e a ferramenta mais poderosa do vendedor de opcoes para transformar perdas temporarias em empates ou lucros -- mas exige disciplina para nao rolar indefinidamente uma posicao ruim.'
+  },
+
+  'bull-call-spread': {
+    analogia: 'Voce quer apostar que o feijao vai subir, mas nao quer gastar muito. Compra o direito de comprar feijao a R$ 10 (CALL comprada) e vende o direito de comprar a R$ 12 (CALL vendida). Se o feijao subir para R$ 12, voce ganha a diferenca. Se nao subir, perde so o que pagou.',
+    quando_usar: [
+      'Voce acredita que o ativo vai subir moderadamente -- nao explosivamente',
+      'IV esta baixa -- comprar opcoes fica mais barato, spread de debito faz mais sentido',
+      'Voce quer exposicao de alta com risco controlado e capital reduzido'
+    ],
+    como_montar: 'Acao X a R$ 10. Compra CALL no strike 10 (paga R$ 0,80) e vende CALL no strike 12 (recebe R$ 0,30). Debito liquido: R$ 0,50. Ganho maximo: R$ 1,50. Perda maxima: R$ 0,50.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Montagem com debito', descricao: 'Paga R$ 0,50. Precisa que a acao suba para lucrar.' },
+      { dte: 21, titulo: 'Avaliacao', descricao: 'Acao proximo de R$ 12? Spread perto do maximo. Considere fechar.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Abaixo de R$ 10: perda de R$ 0,50. Entre R$ 10 e R$ 12: lucro parcial. Acima de R$ 12: ganho maximo de R$ 1,50.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao subiu para R$ 13',  resultado: 'Ganho maximo',  descricao: 'Spread vale R$ 2,00. Menos debito de R$ 0,50 = lucro de R$ 1,50.', cor: 'emerald' },
+      { titulo: 'Acao subiu para R$ 11',  resultado: 'Lucro parcial', descricao: 'CALL comprada vale R$ 1,00. Lucro de R$ 0,50.', cor: 'amber' },
+      { titulo: 'Acao ficou em R$ 9',     resultado: 'Perda maxima',  descricao: 'Ambas as CALLs expiram. Perda dos R$ 0,50 de debito.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao chegou ao strike vendido antes do vencimento', acao: 'Fechar o spread -- proximo do ganho maximo, nao vale o risco de reversao.' },
+      { condicao: 'Acao caiu e o spread perdeu 50% do valor', acao: 'Fechar com stop de 50% da perda. Preservar capital.' }
+    ],
+    comparativo: 'Versus CALL simples: voce paga menos mas limita o ganho. Use Bull Call quando IV e baixa. Use Bull Put Spread quando IV e alta -- aquele e de credito, este e de debito.'
+  },
+
+  'bear-call-spread': {
+    analogia: 'Voce acha que a gasolina nao vai subir muito. Vende o direito de comprar gasolina a R$ 5 e compra protecao a R$ 6 caso suba. Se a gasolina ficar abaixo de R$ 5, voce fica com o credito. Risco maximo conhecido desde o inicio.',
+    quando_usar: [
+      'Vies de baixa ou neutro -- voce acredita que o ativo nao vai subir',
+      'IV elevada -- CALLs estao caras, bom momento para vender',
+      'Resistencia tecnica clara acima do preco atual'
+    ],
+    como_montar: 'Acao X a R$ 10. Vende CALL no strike 11 (recebe R$ 0,40) e compra CALL no strike 12 (paga R$ 0,15). Credito liquido: R$ 0,25. Perda maxima: R$ 0,75.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Credito na conta', descricao: 'R$ 0,25 recebido. Voce lucra se a acao nao passar de R$ 11.' },
+      { dte: 21, titulo: 'Monitorar resistencia', descricao: 'Acao abaixo do strike vendido: spread depreciando. Voce ganha.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Abaixo de R$ 11: fica com R$ 0,25. Entre 11 e 12: perda parcial. Acima de R$ 12: perda maxima de R$ 0,75.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao caiu para R$ 9',    resultado: 'Ganho maximo',  descricao: 'Ambas as CALLs expiram. R$ 0,25 garantido.', cor: 'emerald' },
+      { titulo: 'Acao subiu para R$ 11,50',resultado: 'Perda parcial', descricao: 'CALL vendida esta ITM por R$ 0,50. Perda de R$ 0,25.', cor: 'amber' },
+      { titulo: 'Acao subiu para R$ 13',  resultado: 'Perda maxima',  descricao: 'Spread vale R$ 1,00. Menos credito = perda de R$ 0,75.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao se aproxima do strike vendido', acao: 'Fechar o spread antes que a CALL vendida fique ITM.' },
+      { condicao: 'Atingiu 50% do credito', acao: 'Fechar e embolsar. Nao espere o vencimento.' }
+    ],
+    comparativo: 'Versus Venda de CALL nua: perda maxima conhecida (R$ 0,75 vs ilimitada). Voce recebe menos credito mas dorme tranquilo. Para a maioria dos operadores, o spread e claramente superior a venda descoberta.'
+  },
+
+  'bear-put-spread': {
+    analogia: 'Voce quer se proteger de uma queda mas sem pagar caro. Compra um seguro completo (PUT comprada) e vende parte desse seguro para outra pessoa mais abaixo (PUT vendida). Protecao parcial com custo menor.',
+    quando_usar: [
+      'Voce acredita que o ativo vai cair moderadamente',
+      'IV esta baixa -- comprar PUT fica mais barato',
+      'Quer protecao direcional de baixa com risco controlado'
+    ],
+    como_montar: 'Acao X a R$ 10. Compra PUT no strike 10 (paga R$ 0,70) e vende PUT no strike 8 (recebe R$ 0,25). Debito: R$ 0,45. Ganho maximo: R$ 1,55. Perda maxima: R$ 0,45.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Montagem com debito', descricao: 'Paga R$ 0,45. Precisa que a acao caia para lucrar.' },
+      { dte: 21, titulo: 'Avaliacao de movimento', descricao: 'Acao proximo do strike vendido? Spread perto do maximo.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Acima de R$ 10: perda de R$ 0,45. Entre R$ 8 e R$ 10: lucro parcial. Abaixo de R$ 8: ganho maximo.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao caiu para R$ 7',    resultado: 'Ganho maximo',  descricao: 'Spread vale R$ 2,00. Lucro de R$ 1,55.', cor: 'emerald' },
+      { titulo: 'Acao caiu para R$ 9',    resultado: 'Lucro parcial', descricao: 'PUT comprada vale R$ 1,00. Lucro de R$ 0,55.', cor: 'amber' },
+      { titulo: 'Acao subiu para R$ 11',  resultado: 'Perda maxima',  descricao: 'Ambas as PUTs expiram. Perda dos R$ 0,45.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao chegou ao strike vendido', acao: 'Fechar o spread -- proximo do ganho maximo.' },
+      { condicao: 'Acao subiu apos montagem', acao: 'Stop de 50% da perda maxima. Fechar com R$ 0,22 de perda.' }
+    ],
+    comparativo: 'Use Bear Put quando a queda esperada e forte e IV e baixa. Use Bear Call Spread quando voce quer credito e a queda pode ser leve ou moderada.'
+  },
+
+  'collar': {
+    analogia: 'Voce tem um carro valioso (a acao) e compra um seguro contra roubo (PUT). Para pagar o seguro, vende o direito de compradores levarem o carro por um preco alto (CALL vendida). Protegido da queda, mas limitado na alta.',
+    quando_usar: [
+      'Voce tem a acao em custodia e quer protecao contra queda sem pagar caro',
+      'Periodo de incerteza -- balanco, eleicao, evento macroeconomico',
+      'Voce aceita limitar o upside para garantir o downside'
+    ],
+    como_montar: 'Voce tem 100 acoes X a R$ 10. Compra PUT no strike 9 (paga R$ 0,50) e vende CALL no strike 11 (recebe R$ 0,40). Custo liquido: R$ 0,10. Acao protegida entre R$ 9 e R$ 11.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Protecao quase sem custo', descricao: 'R$ 0,10 saiu. Acao protegida entre R$ 9 e R$ 11.' },
+      { dte: 21, titulo: 'Periodo de protecao', descricao: 'Evento passou? Considere desmontar e voltar a posicao simples.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Entre R$ 9 e R$ 11: opcoes expiram, fica com a acao. Abaixo de R$ 9: PUT protege. Acima de R$ 11: acao vendida pela CALL.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao caiu para R$ 7',    resultado: 'Protegido',     descricao: 'PUT garante venda a R$ 9. Perda limitada a R$ 1,10 (mais o custo).', cor: 'emerald' },
+      { titulo: 'Acao ficou em R$ 10',    resultado: 'Lateral',       descricao: 'Ambas expiram. Perdeu apenas R$ 0,10 de custo.', cor: 'amber' },
+      { titulo: 'Acao subiu para R$ 14',  resultado: 'Upside capado', descricao: 'Acao vendida por R$ 11. Perdeu a alta acima do strike.', cor: 'amber' }
+    ],
+    manejo: [
+      { condicao: 'Evento passou sem grandes movimentos', acao: 'Recomprar PUT e CALL. Voltar a posicao simples de acao.' },
+      { condicao: 'Acao se aproxima da CALL vendida', acao: 'Rolar a CALL para cima e fora, aumentando o teto.' }
+    ],
+    comparativo: 'Versus Venda Coberta: o Collar adiciona a protecao de baixa que a Venda Coberta nao tem. O tradeoff e renunciar ao upside acima da CALL. Use Collar em periodos de incerteza, Venda Coberta em mercados tranquilos.'
+  },
+
+  'fence': {
+    analogia: 'O Collar mas com a cerca assimetrica. Voce compra protecao de baixa mais longe e vende upside mais longe, criando um range mais amplo com custo zero ou ate credito. Menos protecao, mais espaco.',
+    quando_usar: [
+      'Acao em custodia com necessidade de protecao parcial sem custo',
+      'Voce aceita exposicao na queda moderada mas quer protecao na queda forte',
+      'Quer custo zero e aceita range de exposicao mais amplo'
+    ],
+    como_montar: 'Tem 100 acoes X a R$ 10. Compra PUT no strike 8 (paga R$ 0,25) e vende CALL no strike 12 (recebe R$ 0,30). Credito liquido: R$ 0,05. Range de exposicao entre R$ 8 e R$ 12 -- mais amplo que o Collar (9-11).',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Custo zero ou credito', descricao: 'Protecao abaixo de R$ 8. Cap acima de R$ 12. Range de R$ 4 de exposicao.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Entre R$ 8 e R$ 12: opcoes expiram, fica com acao e credito. Fora do range: uma das pernas e exercida.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao caiu para R$ 6',    resultado: 'Protecao parcial', descricao: 'PUT protege abaixo de R$ 8. Perda entre R$ 8 e R$ 10 nao e coberta.', cor: 'amber' },
+      { titulo: 'Acao ficou lateral',      resultado: 'Perfeito',         descricao: 'Opcoes expiram. Acao intacta e ainda recebeu pequeno credito.', cor: 'emerald' },
+      { titulo: 'Acao subiu para R$ 15',  resultado: 'Upside capado',    descricao: 'CALL exercida a R$ 12. Ganhou R$ 2 por acao mais credito.', cor: 'amber' }
+    ],
+    manejo: [
+      { condicao: 'Quer mais protecao e aceita mais custo', acao: 'Converta o Fence em Collar movendo a PUT para strike mais proximo.' },
+      { condicao: 'Acao caiu para a zona de exposicao (entre spot e strike da PUT)', acao: 'Esta e a zona descoberta do Fence. Decida: fechar parte da acao ou aceitar a perda.' }
+    ],
+    comparativo: 'Versus Collar: Fence tem protecao mais distante mas custo zero. Escolha Collar quando quiser protecao proxima e aceita pequeno custo. Escolha Fence quando quiser custo zero e aceita mais exposicao na queda moderada.'
+  },
+
+  'seagull': {
+    analogia: 'Uma gaivota voa em trajetoria ascendente -- ela sobe, mas nao explosivamente. Tres pernas: compra CALL para subir, vende CALL acima para financiar, vende PUT abaixo para completar o financiamento. Resultado: exposicao de alta sem custo inicial.',
+    quando_usar: [
+      'Voce esta altista mas nao quer pagar para entrar na posicao',
+      'IV moderada a alta -- opcoes vendidas cobrem o custo da comprada',
+      'Ativo com suporte claro abaixo e resistencia acima'
+    ],
+    como_montar: 'Acao X a R$ 10. Compra CALL strike 11 (paga R$ 0,50), vende CALL strike 13 (recebe R$ 0,20), vende PUT strike 8 (recebe R$ 0,30). Custo: zero. Ganho entre R$ 11 e R$ 13. Risco: se cair abaixo de R$ 8, compra a acao.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Entrada gratuita', descricao: 'Sem desembolso. Exposicao de alta acima de R$ 11.' },
+      { dte: 21, titulo: 'Monitorar o lado de baixo', descricao: 'A PUT vendida e o ponto fraco. Acao caiu muito? Risco aumenta.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Entre R$ 11 e R$ 13: lucro do Bull Call Spread. Abaixo de R$ 8: PUT exercida.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao subiu para R$ 12',  resultado: 'Lucro',    descricao: 'Bull Call Spread lucrando. PUT expirou. Ganho de R$ 1,00 sem ter pago nada.', cor: 'emerald' },
+      { titulo: 'Acao ficou em R$ 10',    resultado: 'Neutro',   descricao: 'Tudo expira. Resultado zero -- mas tambem entrou de graca.', cor: 'amber' },
+      { titulo: 'Acao caiu para R$ 7',    resultado: 'Risco',    descricao: 'PUT exercida: compra a acao por R$ 8 quando esta a R$ 7. Perda de R$ 1 por acao.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao se aproxima do strike da PUT', acao: 'Rolar a PUT para baixo e fora ou fechar a perna de PUT.' },
+      { condicao: 'Acao subiu acima da CALL comprada', acao: 'Bull Call Spread funcionando. Aguardar ou fechar proximo do ganho maximo.' }
+    ],
+    comparativo: 'Versus Bull Call Spread: custo zero mas adiciona risco de exercicio na PUT. Versus Venda de PUT: tambem tem exposicao de alta, tornando a posicao mais direcional e completa.'
+  },
+
+  'jade-lizard': {
+    analogia: 'O lagarto jade so tem risco em uma direcao. Voce vende uma PUT (credito) e vende um Bear Call Spread (mais credito). O total de credito e calculado para ser maior que a largura do Call Spread -- isso elimina qualquer risco no lado de cima. O unico risco real e o ativo cair abaixo da PUT.',
+    quando_usar: [
+      'Voce esta neutro a levemente altista -- sem risco de alta de jeito nenhum',
+      'IV elevada nos dois lados -- da para coletar credito generoso',
+      'Antes de resultados onde voce acha que a reacao sera positiva ou lateral'
+    ],
+    como_montar: 'Acao X a R$ 10. Vende PUT strike 9 (recebe R$ 0,70). Vende CALL strike 11 (recebe R$ 0,50) e compra CALL strike 12 (paga R$ 0,20). Credito total: R$ 1,00. Largura do spread: R$ 1,00. Credito igual a largura = risco de alta ZERO.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Credito generoso', descricao: 'R$ 1,00 recebido. Risco apenas abaixo de R$ 9.' },
+      { dte: 21, titulo: 'Monitorar lado de baixo', descricao: 'PUT vendida e o ponto de atencao. Call Spread evaporando -- bom sinal.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Entre R$ 9 e R$ 11: tudo expira, R$ 1,00 garantido. Acima de R$ 12: credito cobre perda do spread. Abaixo de R$ 9: PUT exercida.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao entre R$ 9 e R$ 11', resultado: 'Perfeito',   descricao: 'Tudo expira. R$ 1,00 no bolso.', cor: 'emerald' },
+      { titulo: 'Acao subiu para R$ 13',   resultado: 'Neutro',     descricao: 'Spread de CALL perdeu R$ 1,00. Credito de R$ 1,00 cobre exatamente. Resultado zero.', cor: 'amber' },
+      { titulo: 'Acao caiu para R$ 7',     resultado: 'Risco real', descricao: 'PUT exercida: compra por R$ 9 quando esta a R$ 7. Menos credito de R$ 1,00 = perda de R$ 1,00.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao cai para o strike da PUT', acao: 'Rolar PUT para baixo e fora coletando credito adicional.' },
+      { condicao: 'Acao sobe para o spread de CALL', acao: 'Se credito total for igual ou maior que a largura, sem risco. Aguardar.' }
+    ],
+    comparativo: 'Versus Short Strangle: Jade Lizard tem o lado de cima protegido. Voce recebe menos credito mas elimina o risco de alta. Para vies neutro a altista, o Jade Lizard e superior ao Strangle.'
+  },
+
+  'broken-wing-put': {
+    analogia: 'Um condor com uma asa quebrada -- o spread dos strikes nao e simetrico. A perna comprada fica mais longe que o normal, criando mais credito mas tambem mais risco se o ativo cair muito. Vale o risco se voce confia no suporte tecnico.',
+    quando_usar: [
+      'Voce esta altista ou neutro e aceita risco assimetrico na queda forte',
+      'IV elevada -- o credito extra compensa o risco adicional',
+      'Ativo com suporte forte -- queda catastrofica improvavel'
+    ],
+    como_montar: 'Acao X a R$ 10. Vende PUT strike 9 (recebe R$ 0,60) e compra PUT strike 7 (paga R$ 0,15). Credito: R$ 0,45. Spread assimetrico de R$ 2,00. Perda maxima: R$ 1,55 se acao for a zero.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Credito maior que o spread simetrico', descricao: 'R$ 0,45 recebido. Mais credito, mais risco na queda forte.' },
+      { dte: 21, titulo: 'Monitorar queda', descricao: 'Zona de alerta: acao proximo do strike vendido. Gamma cresce.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Acima de R$ 9: fica com R$ 0,45. Entre R$ 7 e R$ 9: perda parcial. Abaixo de R$ 7: perda maxima de R$ 1,55.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao acima de R$ 9',    resultado: 'Ganho maximo',  descricao: 'Ambas expiram. R$ 0,45 garantido.', cor: 'emerald' },
+      { titulo: 'Acao caiu para R$ 8',   resultado: 'Perda parcial', descricao: 'PUT vendida vale R$ 1,00. Perda liquida de R$ 0,55.', cor: 'amber' },
+      { titulo: 'Acao caiu para R$ 5',   resultado: 'Perda maxima',  descricao: 'Spread exercido. Perda de R$ 2,00 menos R$ 0,45 = R$ 1,55.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao cai para o strike vendido', acao: 'Fechar imediatamente ou rolar. A asa quebrada cria risco crescente.' }
+    ],
+    comparativo: 'Versus Bull Put Spread simetrico: mais credito mas mais risco na queda catastrofica. Para operadores que confiam no suporte tecnico e querem maximizar credito.'
+  },
+
+  'pmcc': {
+    analogia: 'Voce quer alugar um apartamento para gerar renda mas nao tem dinheiro para comprar o imovel. Entao compra apenas a opcao de compra-lo no futuro (LEAP deep ITM) e ja comeca a aluga-lo (vende CALL mensal). Quase os mesmos direitos do dono com 65% menos capital.',
+    quando_usar: [
+      'Voce quer fazer Venda Coberta mas nao tem capital para comprar as acoes',
+      'Acoes caras onde 100 unidades exigiriam muito capital',
+      'Voce esta altista no longo prazo e quer renda mensal no curto'
+    ],
+    como_montar: 'Acao X a R$ 10. Em vez de comprar 100 acoes por R$ 1.000, compra 1 CALL de 12 meses, strike R$ 7 (deep ITM), pagando R$ 3,50. Depois vende CALL de 30 dias no strike R$ 11, recebendo R$ 0,40. Capital: R$ 350 em vez de R$ 1.000.',
+    linha_do_tempo: [
+      { dte: 365, titulo: 'Compra da LEAP', descricao: 'Paga R$ 3,50 pela LEAP. Este e o substituto das acoes.' },
+      { dte: 30,  titulo: 'Primeiro ciclo de renda', descricao: 'Vende a primeira CALL mensal. Recebe R$ 0,40.' },
+      { dte: 0,   titulo: 'Renovacao mensal', descricao: 'CALL mensal expira. Vende outra para o mes seguinte. Repete por 12 meses.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao subiu muito em 6 meses', resultado: 'Otimo',         descricao: 'LEAP valorizada + renda mensal coletada. Duplo ganho.', cor: 'emerald' },
+      { titulo: 'Acao ficou lateral',           resultado: 'Renda mensal', descricao: '12 x R$ 0,40 = R$ 4,80 de renda sobre investimento de R$ 3,50. ROC excelente.', cor: 'emerald' },
+      { titulo: 'Acao caiu muito',              resultado: 'Perda',        descricao: 'LEAP perde valor. A renda mensal nao compensa a queda do delta da LEAP.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'CALL mensal ameacada pelo preco', acao: 'Rolar a CALL para cima e fora. Mesma logica da Venda Coberta.' },
+      { condicao: 'LEAP com 3 meses para vencer', acao: 'Rolar a LEAP para novo vencimento de 12 meses.' }
+    ],
+    comparativo: 'Versus Venda Coberta classica: usa 65% menos capital. O risco: se a acao cair muito, a LEAP perde valor percentualmente mais rapido. Ideal para acoes de preco elevado.'
+  },
+
+  'short-strangle': {
+    analogia: 'Voce e o dono de uma casa de apostas. Voce nao sabe se o time vai ganhar ou perder, mas cobra de quem aposta nos dois lados. Enquanto o jogo nao sair do range esperado, voce fica com os dois premios. O risco: se o resultado for extremo demais, voce paga muito mais do que recebeu.',
+    quando_usar: [
+      'Acao em lateralizacao forte -- baixa probabilidade de movimento grande em qualquer direcao',
+      'IV Rank acima de 70% -- premios altos nos dois lados justificam o risco',
+      'Sem eventos de risco no horizonte -- balanco, eleicao, FDA, etc.'
+    ],
+    como_montar: 'Acao X a R$ 10. Vende PUT no strike 8 (recebe R$ 0,40) e vende CALL no strike 12 (recebe R$ 0,35). Credito total: R$ 0,75. Zona de lucro: entre R$ 8 e R$ 12. Risco: ilimitado se romper qualquer lado.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Dois premios na conta', descricao: 'R$ 0,75 recebido. Dois thetas trabalhando. Range de lucro de R$ 4.' },
+      { dte: 21, titulo: 'Ponto critico', descricao: 'Gamma aumenta nos dois lados. Se acao saiu do range, custo de fechar cresce rapidamente.' },
+      { dte: 7,  titulo: 'Zona de perigo', descricao: 'Gamma altissimo. Qualquer movimento brusco pode zerar o lucro do mes. Fechar se proximo dos strikes.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Entre R$ 8 e R$ 12: ambas expiram, fica com R$ 0,75. Fora do range: perda potencialmente ilimitada.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao ficou entre R$ 8 e R$ 12', resultado: 'Perfeito',  descricao: 'Ambas expiram. R$ 0,75 no bolso.', cor: 'emerald' },
+      { titulo: 'Acao subiu para R$ 13',          resultado: 'Perda',    descricao: 'CALL exercida. Perda de R$ 1,00 menos R$ 0,75 de credito = R$ 0,25 liquido.', cor: 'amber' },
+      { titulo: 'Acao subiu para R$ 16',          resultado: 'Perda grande', descricao: 'Perda de R$ 4,00 menos R$ 0,75 = R$ 3,25. Sem protecao de perna comprada.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Atingiu 50% do credito total', acao: 'Fechar todo o Strangle. Nao seja ganancioso com risco ilimitado em aberto.' },
+      { condicao: 'Acao se aproxima de um dos strikes', acao: 'Fechar a perna ameacada e manter a lucrativa. Ou fechar tudo.' },
+      { condicao: 'Rompeu um dos strikes', acao: 'Fechar imediatamente. Sem protecao de perna comprada, o risco cresce sem limite.' }
+    ],
+    comparativo: 'Versus Iron Condor: o Strangle coleta mais credito mas tem risco ilimitado. O Condor tem pernas compradas que limitam a perda maxima. Para iniciantes, o Condor e muito mais seguro. O Strangle e para quem tem conta maior e gestao disciplinada.'
+  },
+
+  'short-strangle-cob': {
+    analogia: 'O Strangle mas com seguranca. Voce tem acoes em custodia (o que cobre o lado de cima) e margem reservada (o que cobre o lado de baixo). Vende CALL e PUT simultaneamente, com a acao protegendo o exercicio da CALL e o capital reservado protegendo a PUT.',
+    quando_usar: [
+      'Voce ja tem a acao em custodia e quer dobrar a renda mensal',
+      'Lateralizacao forte -- pouca chance de movimento grande',
+      'IV elevada nos dois lados'
+    ],
+    como_montar: 'Voce tem 100 acoes X a R$ 10. Vende CALL no strike 12 (recebe R$ 0,35) e vende PUT no strike 8 (recebe R$ 0,40). Credito total: R$ 0,75. A CALL esta coberta pelas acoes. A PUT exige margem ou capital reservado.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Dobro da renda da Venda Coberta', descricao: 'R$ 0,75 em vez de R$ 0,35. Dois thetas na conta.' },
+      { dte: 21, titulo: 'Monitorar os dois lados', descricao: 'CALL: acao pode ser exercida acima de R$ 12. PUT: voce pode comprar mais acoes abaixo de R$ 8.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Entre R$ 8 e R$ 12: ambas expiram, R$ 0,75 garantido. Fora do range: exercicio num dos lados.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao ficou lateral', resultado: 'Perfeito',  descricao: 'Dobro do premio da Venda Coberta simples. R$ 0,75 coletado.', cor: 'emerald' },
+      { titulo: 'Acao subiu para R$ 14', resultado: 'OK',     descricao: 'Acoes vendidas por R$ 12. Lucro de R$ 2 na acao mais R$ 0,75 de premio.', cor: 'amber' },
+      { titulo: 'Acao caiu para R$ 6',   resultado: 'Atencao', descricao: 'PUT exercida: voce compra mais 100 acoes por R$ 8. Capital dobrado no ativo em queda.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao se aproxima da PUT vendida', acao: 'Rolar a PUT para baixo e fora ou fechar antes de acumular mais acao.' }
+    ],
+    comparativo: 'Versus Covered Strangle simples: essencialmente a mesma estrutura. Versus Venda Coberta: dobra o premio mas dobra a exposicao no lado de baixo. Nao recomendado para quem ja esta alocado demais num unico ativo.'
+  },
+
+  'short-straddle': {
+    analogia: 'O Strangle mais agressivo: voce vende PUT e CALL no MESMO strike. Voce esta apostando que o ativo vai ficar exatamente onde esta. Premio maximo, mas zone de lucro minima. E como vender seguro contra qualquer acidente, em qualquer direcao, pelo mesmo preco.',
+    quando_usar: [
+      'IV no pico historico -- as opcoes estao extremamente caras',
+      'Ativo em equilibrio total -- sem catalisadores em nenhuma direcao',
+      'Operador experiente com gestao de risco rigorosa'
+    ],
+    como_montar: 'Acao X a R$ 10. Vende PUT no strike 10 (recebe R$ 0,70) e vende CALL no strike 10 (recebe R$ 0,70). Credito total: R$ 1,40. Zona de lucro: entre R$ 8,60 e R$ 11,40 (strike +/- credito). Risco: ilimitado nos dois lados.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Premio maximo possivel', descricao: 'R$ 1,40 recebido. A maior coleta de qualquer estrutura de dois lados.' },
+      { dte: 21, titulo: 'Zona de risco', descricao: 'Qualquer movimento de 14% ja ameaca a zona de lucro. Gamma altissimo no ATM.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Acao entre R$ 8,60 e R$ 11,40: lucro. Fora desse range: perda crescente sem limite.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao ficou em R$ 10',   resultado: 'Maximo',  descricao: 'As duas opcoes expiram ATM sem valor. R$ 1,40 no bolso.', cor: 'emerald' },
+      { titulo: 'Acao foi para R$ 12',   resultado: 'Perda',   descricao: 'Perda de R$ 2,00 na CALL menos R$ 1,40 de credito = R$ 0,60 de prejuizo.', cor: 'amber' },
+      { titulo: 'Acao foi para R$ 15',   resultado: 'Perda grande', descricao: 'Perda de R$ 5,00 menos R$ 1,40 = R$ 3,60. Risco ilimitado sem protecao.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Atingiu 25-30% do credito', acao: 'Fechar. O Straddle ATM tem gamma muito alto -- nao espere 50%. Saia cedo.' },
+      { condicao: 'Acao se moveu 5% em qualquer direcao', acao: 'Avaliar fechar ou delta hedge comprando/vendendo o ativo para neutralizar.' }
+    ],
+    comparativo: 'Versus Short Strangle: maior credito mas zona de lucro menor e gamma ainda mais alto. O Straddle e a estrutura de maior risco/retorno entre as vendas de volatilidade. Somente para operadores muito experientes.'
+  },
+
+  'iron-condor-long': {
+    analogia: 'O lado oposto do Iron Condor vendido. Agora voce QUER que o passaro saia do corredor. Voce paga um debito esperando movimento forte. Como comprar seguro contra calmaria excessiva -- se o mercado se mover muito, voce ganha.',
+    quando_usar: [
+      'Voce espera movimento forte mas nao sabe a direcao',
+      'IV muito baixa -- as opcoes estao baratas para comprar',
+      'Antes de eventos com potencial de surpresa grande: balancos, macroeconomia'
+    ],
+    como_montar: 'Acao X a R$ 10. Compra PUT strike 9, vende PUT strike 8 (debito R$ 0,30). Compra CALL strike 11, vende CALL strike 12 (debito R$ 0,25). Debito total: R$ 0,55. Lucro se acao sair do range 8-12.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Paga para entrar', descricao: 'R$ 0,55 de debito. Precisa de movimento para lucrar.' },
+      { dte: 21, titulo: 'Aguardar o evento', descricao: 'Se evento de risco se aproxima, os spreads valorizam com IV subindo.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Dentro do range 8-12: perda maxima de R$ 0,55. Fora do range: ganho parcial ou maximo.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao subiu para R$ 13',  resultado: 'Lucro maximo', descricao: 'Call Spread vale R$ 1,00. Menos debito = lucro de R$ 0,45.', cor: 'emerald' },
+      { titulo: 'Acao ficou em R$ 10',    resultado: 'Perda maxima', descricao: 'Tudo expira. Perda dos R$ 0,55 de debito.', cor: 'rose' },
+      { titulo: 'Acao foi para R$ 11,30', resultado: 'Lucro parcial', descricao: 'Call Spread ganha parcialmente. Resultado proximo de zero.', cor: 'amber' }
+    ],
+    manejo: [
+      { condicao: 'Evento passou sem movimento', acao: 'Fechar para limitar perda. Nao espere o vencimento se o movimento nao veio.' },
+      { condicao: 'Acao rompeu fortemente', acao: 'Fechar o lado lucrativo e manter o perdedor como protecao adicional.' }
+    ],
+    comparativo: 'Versus Short Iron Condor: voce paga debito em vez de receber credito. Use Long quando IV esta muito baixa e voce espera evento. Use Short quando IV esta alta e voce espera calma.'
+  },
+
+  'iron-butterfly-short': {
+    analogia: 'O Iron Condor mas concentrado num ponto unico. Voce vende Straddle ATM (PUT e CALL no mesmo strike) e compra as asas protetoras mais longe. Premio maximo se o ativo ficar exatamente no strike. Como o Short Straddle mas com risco limitado pelas asas.',
+    quando_usar: [
+      'IV no pico -- as opcoes ATM estao extremamente caras',
+      'Ativo colado num nivel de preco especifico sem catalisadores',
+      'Voce quer o maior credito possivel com risco limitado'
+    ],
+    como_montar: 'Acao X a R$ 10. Vende PUT e CALL no strike 10 (recebe R$ 1,40). Compra PUT no strike 8 (paga R$ 0,25) e CALL no strike 12 (paga R$ 0,20). Credito liquido: R$ 0,95. Perda maxima: R$ 1,05.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Credito proximo do Straddle mas protegido', descricao: 'R$ 0,95 recebido. Asas garantem perda maxima de R$ 1,05.' },
+      { dte: 21, titulo: 'Zona de risco de gamma', descricao: 'Gamma ATM muito alto. Qualquer movimento ameaca o credito.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Acao em R$ 10: ganho maximo de R$ 0,95. Nas asas (R$ 8 ou R$ 12): perda maxima de R$ 1,05.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao ficou em R$ 10',    resultado: 'Maximo',  descricao: 'Straddle expira. Asas expiram. R$ 0,95 garantido.', cor: 'emerald' },
+      { titulo: 'Acao foi para R$ 11',    resultado: 'Parcial', descricao: 'CALL vendida vale R$ 1,00. CALL comprada zero. Perda parcial de R$ 0,05.', cor: 'amber' },
+      { titulo: 'Acao foi para R$ 13',    resultado: 'Max loss', descricao: 'CALL vendida e comprada exercidas. Perda maxima de R$ 1,05.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Atingiu 25% do credito', acao: 'Fechar. Gamma ATM e perigoso -- sair cedo e mais seguro que esperar 50%.' }
+    ],
+    comparativo: 'Versus Short Straddle: perda maxima conhecida. Versus Short Iron Condor: mais credito mas zona de lucro menor. Escolha o Condor quando quiser range mais amplo, Butterfly quando quiser credito maximo num ponto especifico.'
+  },
+
+  'iron-butterfly-long': {
+    analogia: 'Voce compra Straddle ATM e vende as asas. Voce QUER movimento -- quanto maior, melhor -- mas protege o custo de entrada vendendo opcoes mais distantes. Paga menos que o Long Straddle puro, mas o ganho maximo e limitado pelas asas.',
+    quando_usar: [
+      'IV muito baixa -- Straddle esta barato para comprar',
+      'Evento certo de movimento grande mas direcao incerta',
+      'Voce quer limitar o debito da compra de volatilidade'
+    ],
+    como_montar: 'Acao X a R$ 10. Compra PUT e CALL no strike 10 (paga R$ 0,80 cada = R$ 1,60). Vende PUT no strike 8 (recebe R$ 0,25) e CALL no strike 12 (recebe R$ 0,20). Debito liquido: R$ 1,15. Ganho maximo: R$ 0,85 nas asas.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Paga pelo movimento', descricao: 'R$ 1,15 de debito. Precisa de movimento para recuperar.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Acao em R$ 10: perda maxima de R$ 1,15. Nas asas (R$ 8 ou R$ 12): ganho maximo de R$ 0,85.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao foi para R$ 12',   resultado: 'Ganho maximo', descricao: 'CALL spread lucrativo. Lucro de R$ 0,85.', cor: 'emerald' },
+      { titulo: 'Acao ficou em R$ 10',   resultado: 'Perda maxima', descricao: 'Tudo expira ATM. Perda de R$ 1,15.', cor: 'rose' },
+      { titulo: 'Acao foi para R$ 11',   resultado: 'Parcial',      descricao: 'Movimento insuficiente para cobrir o debito. Perda parcial.', cor: 'amber' }
+    ],
+    manejo: [
+      { condicao: 'IV subiu muito antes do vencimento', acao: 'Fechar para capturar o ganho de Vega mesmo sem movimento de preco.' }
+    ],
+    comparativo: 'Versus Long Straddle: menor custo mas ganho limitado. Versus Short Iron Butterfly: voce inverte os papeis -- paga debito esperando movimento em vez de receber credito esperando calma.'
+  },
+
+  'butterfly-call-short': {
+    analogia: 'Uma borboleta vendida com CALLs. Voce acredita que o ativo vai se mover -- para cima ou para baixo -- mas nao ficara preso no strike do meio. Recebe credito por isso. E como apostar que uma flecha nao vai acertar o alvo especifico.',
+    quando_usar: [
+      'Voce espera movimento moderado mas nao sabe a magnitude exata',
+      'IV moderada a alta -- credito suficiente para valer a pena',
+      'Ativo que historicamente nao fica colado num preco por muito tempo'
+    ],
+    como_montar: 'Acao X a R$ 10. Vende 2 CALLs no strike 10 (recebe R$ 1,40). Compra CALL no strike 8 (paga R$ 0,60) e CALL no strike 12 (paga R$ 0,60). Credito liquido: R$ 0,20. Lucro se acao NAO ficar em R$ 10.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Credito pequeno na conta', descricao: 'R$ 0,20 recebido. Lucro em qualquer preco exceto proximo de R$ 10.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Acao em R$ 10: perda maxima de R$ 1,80. Abaixo de R$ 8 ou acima de R$ 12: lucro de R$ 0,20.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao subiu para R$ 14',  resultado: 'Lucro',       descricao: 'As tres CALLs estao ITM de forma equilibrada. Fica com R$ 0,20.', cor: 'emerald' },
+      { titulo: 'Acao ficou em R$ 10',    resultado: 'Perda maxima', descricao: 'As duas CALLs vendidas valem R$ 2,00. As compradas zero. Perda de R$ 1,80.', cor: 'rose' },
+      { titulo: 'Acao caiu para R$ 8',    resultado: 'Lucro',       descricao: 'Todas expiram. Fica com R$ 0,20.', cor: 'emerald' }
+    ],
+    manejo: [
+      { condicao: 'Acao esta se aproximando do strike do meio', acao: 'Fechar o spread -- risco de perda maxima aumenta.' }
+    ],
+    comparativo: 'Versus Short Strangle: a Borboleta vendida tem risco limitado pelas asas. O Strangle tem risco ilimitado. Para quem quer posicao de movimento com risco conhecido, a Borboleta vendida e mais segura.'
+  },
+
+  'butterfly-put-short': {
+    analogia: 'Identica a Borboleta de CALL vendida, mas construida com PUTs. Mesmo resultado economico -- voce acredita no movimento, nao na lateralizacao. A escolha entre CALL e PUT e mais uma questao de preco e disponibilidade de opcoes.',
+    quando_usar: [
+      'Mesmas condicoes da Borboleta CALL Vendida',
+      'PUTs mais liquidas que as CALLs no ativo especifico',
+      'Queda esperada e mais provavel que a alta -- vies de baixa no movimento'
+    ],
+    como_montar: 'Acao X a R$ 10. Vende 2 PUTs no strike 10 (recebe R$ 1,40). Compra PUT no strike 8 (paga R$ 0,60) e PUT no strike 12 (paga R$ 0,60). Credito liquido: R$ 0,20. Mesmo payoff da Borboleta de CALL vendida.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Credito pequeno', descricao: 'R$ 0,20 recebido. Mesmo payoff da versao com CALLs.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Identico a Borboleta CALL vendida. Perda se ficar em R$ 10, lucro fora do range.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao caiu para R$ 7',   resultado: 'Lucro',        descricao: 'As tres PUTs estao ITM equilibradamente. Fica com R$ 0,20.', cor: 'emerald' },
+      { titulo: 'Acao ficou em R$ 10',   resultado: 'Perda maxima', descricao: 'As PUTs vendidas valem R$ 2,00. Perda de R$ 1,80.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao esta colada no strike do meio', acao: 'Fechar o spread para limitar a perda.' }
+    ],
+    comparativo: 'Economicamente equivalente a Borboleta CALL Vendida. A escolha depende de qual versao oferece melhor liquidez e spread bid-ask no ativo operado.'
+  },
+
+  'butterfly-call-long': {
+    analogia: 'Uma aposta de precisao. Voce acredita que o ativo vai terminar EXATAMENTE num preco especifico no vencimento. Quanto mais perto desse preco, maior o lucro. E como apontar uma flecha para um alvo pontual -- acertando o centro, premio maximo.',
+    quando_usar: [
+      'Voce tem forte conviccao de que o ativo vai terminar proximo de um nivel especifico',
+      'IV baixa -- custo de entrada pequeno para uma aposta direcional precisa',
+      'Ativo proximo de um nivel tecnico importante com tendencia de ficar ali'
+    ],
+    como_montar: 'Acao X a R$ 10. Compra CALL strike 8 (paga R$ 0,60), vende 2 CALLs strike 10 (recebe R$ 1,40), compra CALL strike 12 (paga R$ 0,60). Debito liquido: R$ 0,20. Ganho maximo: R$ 1,80 se acao fechar em R$ 10.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Debito pequeno', descricao: 'Paga R$ 0,20. Posicao de alto potencial com custo baixo.' },
+      { dte: 21, titulo: 'Verificar onde a acao esta', descricao: 'Acao proximo do strike do meio? O spread esta se valorizando.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Em R$ 10: ganho de R$ 1,80. Abaixo de R$ 8 ou acima de R$ 12: perda de R$ 0,20.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao fechou em R$ 10',   resultado: 'Maximo',      descricao: 'Spread central vale R$ 2,00. Menos debito = lucro de R$ 1,80.', cor: 'emerald' },
+      { titulo: 'Acao fechou em R$ 11',   resultado: 'Parcial',     descricao: 'Spread vale R$ 1,00. Lucro de R$ 0,80.', cor: 'amber' },
+      { titulo: 'Acao fechou em R$ 13',   resultado: 'Perda minima', descricao: 'Tudo ITM equilibradamente. Perda de R$ 0,20 apenas.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao se afastou muito do strike central antes do vencimento', acao: 'Fechar se a perda ja esta definida. Dificil reverter quando longe do alvo.' }
+    ],
+    comparativo: 'Versus compra de CALL simples: a Borboleta custa muito menos mas requer precisao de preco. Se voce esta certo na direcao mas errado na magnitude, a CALL simples pode lucrar enquanto a Borboleta perde.'
+  },
+
+  'butterfly-put-long': {
+    analogia: 'Identica a Borboleta de CALL comprada, mas com PUTs. Voce aposta de precisao num preco especifico, geralmente abaixo do preco atual -- vies de baixa para um ponto exato.',
+    quando_usar: [
+      'Forte conviccao de que o ativo vai cair para um nivel especifico',
+      'IV baixa -- custo pequeno para aposta precisa de baixa',
+      'Suporte tecnico claro onde o ativo deve parar'
+    ],
+    como_montar: 'Acao X a R$ 10. Compra PUT strike 12 (paga R$ 0,60), vende 2 PUTs strike 10 (recebe R$ 1,40), compra PUT strike 8 (paga R$ 0,60). Debito: R$ 0,20. Ganho maximo de R$ 1,80 se acao for a R$ 10.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Debito de R$ 0,20', descricao: 'Custo baixo. Alta relacao ganho/risco se o alvo for atingido.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Mesmo payoff da Borboleta CALL comprada. Alvo: R$ 10.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao caiu para R$ 10',  resultado: 'Maximo',  descricao: 'Lucro de R$ 1,80.', cor: 'emerald' },
+      { titulo: 'Acao ficou em R$ 10,5', resultado: 'Parcial', descricao: 'Proximo do alvo. Lucro reduzido mas positivo.', cor: 'amber' },
+      { titulo: 'Acao subiu para R$ 13', resultado: 'Perda',   descricao: 'Perda maxima de R$ 0,20.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao passou pelo alvo sem parar', acao: 'Fechar se a acao ultrapassou o strike central. O trade nao funcionou como esperado.' }
+    ],
+    comparativo: 'Economicamente equivalente a Borboleta CALL comprada. Escolha conforme liquidez das opcoes no ativo.'
+  },
+
+  'calendar-call': {
+    analogia: 'Voce aluga seu apartamento por um mes (vende CALL de curto prazo) mas mantem o contrato de longo prazo (compra CALL de longo prazo). O inquilino de curto prazo paga e vai embora. O de longo prazo ainda esta por vir. Voce ganha do theta de curto prazo enquanto o longo prazo preserva seu valor.',
+    quando_usar: [
+      'Ativo em lateralizacao -- especialmente com IV de curto prazo mais alta que a de longo',
+      'Voce quer posicao direcional neutra de baixo custo',
+      'Sem grandes eventos no vencimento curto, mas possivel movimento no vencimento longo'
+    ],
+    como_montar: 'Acao X a R$ 10. Compra CALL strike 10, vencimento em 60 dias (paga R$ 1,20). Vende CALL strike 10, vencimento em 30 dias (recebe R$ 0,70). Debito liquido: R$ 0,50. Voce quer que a CALL de 30 dias expire sem valor.',
+    linha_do_tempo: [
+      { dte: 30, titulo: 'Primeira expiracao', descricao: 'A CALL vendida (30 dias) expira. Se acao perto de R$ 10, ela expira sem valor -- otimo.' },
+      { dte: 15, titulo: 'Reabrir o ciclo', descricao: 'Vender nova CALL de 30 dias contra a CALL longa que ainda tem 30 dias. Ciclo 2.' },
+      { dte: 0,  titulo: 'Segunda expiracao', descricao: 'CALL longa vence. Lucro ou perda dependendo do preco final.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao ficou em R$ 10 no primeiro vencimento', resultado: 'Otimo', descricao: 'CALL curta expira. CALL longa ainda tem muito valor. Diferencial de theta capturado.', cor: 'emerald' },
+      { titulo: 'Acao subiu muito para R$ 14',                resultado: 'Ruim',  descricao: 'CALL curta foi exercida. A estrutura foi desfeita prematuramente. Perda de setup.', cor: 'rose' },
+      { titulo: 'Acao caiu muito para R$ 7',                  resultado: 'Ruim',  descricao: 'CALL longa perdeu muito valor. A curta expirou mas o ativo se afastou do strike.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao se afastou muito do strike', acao: 'Fechar toda a estrutura. O diferencial de theta so funciona quando o ativo esta perto do strike.' },
+      { condicao: 'Primeira CALL expirou com lucro', acao: 'Vender nova CALL de curto prazo contra a CALL longa. Repetir o ciclo.' }
+    ],
+    comparativo: 'Versus Venda Coberta: o Calendar nao exige a acao em custodia. Versus compra de CALL: o Calendar reduz o custo. Funciona melhor quando a curva de volatilidade e inclinada -- IV curta maior que IV longa.'
+  },
+
+  'calendar-put': {
+    analogia: 'Identico ao Calendar de CALL mas com PUTs. Voce captura o diferencial de theta entre dois vencimentos usando PUTs. Mesmo conceito, diferente instrumento. Use quando as PUTs do ativo sao mais liquidas ou quando voce tem vies levemente baixista.',
+    quando_usar: [
+      'Mesmas condicoes do Calendar CALL',
+      'PUTs com skew de volatilidade mais favoravel que as CALLs',
+      'Vies levemente baixista -- o strike pode ser um pouco abaixo do spot'
+    ],
+    como_montar: 'Acao X a R$ 10. Compra PUT strike 10, vencimento 60 dias (paga R$ 1,10). Vende PUT strike 10, vencimento 30 dias (recebe R$ 0,65). Debito liquido: R$ 0,45.',
+    linha_do_tempo: [
+      { dte: 30, titulo: 'Primeira expiracao', descricao: 'PUT curta expira. Se acao proximo de R$ 10, estrutura funcionou bem.' },
+      { dte: 0,  titulo: 'Segunda expiracao', descricao: 'PUT longa vence. Resultado depende do preco e do nivel de IV.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao ficou lateral',      resultado: 'Otimo', descricao: 'Diferencial de theta capturado nos dois ciclos.', cor: 'emerald' },
+      { titulo: 'Acao se moveu muito',     resultado: 'Ruim',  descricao: 'Estrutura do Calendar foi comprometida. Fechar.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Primeiro vencimento expirou', acao: 'Reabrir vendendo nova PUT curta contra a PUT longa. Mesmo processo do Calendar CALL.' }
+    ],
+    comparativo: 'Economicamente equivalente ao Calendar CALL. A escolha entre PUT e CALL depende do skew de volatilidade -- use qual tiver IV relativa mais cara no vencimento curto.'
+  },
+
+  'diagonal-call': {
+    analogia: 'O Calendar mas com strikes diferentes -- "diagonal" porque voce vai de um ponto a outro no grid de strike x vencimento. Voce compra uma CALL longa mais barata (strike mais baixo) e vende uma CALL curta mais cara (strike mais alto). Captura theta E tem exposicao direcional.',
+    quando_usar: [
+      'Lateral a levemente altista -- voce quer um pouco de exposicao de alta',
+      'IV de curto prazo alta -- a CALL curta esta cara para vender',
+      'Quer reduzir o custo da CALL longa usando a CALL curta como financiamento'
+    ],
+    como_montar: 'Acao X a R$ 10. Compra CALL strike 9, vencimento 60 dias (paga R$ 1,50). Vende CALL strike 11, vencimento 30 dias (recebe R$ 0,35). Debito liquido: R$ 1,15. Exposicao de alta acima de R$ 9 financiada pela CALL vendida.',
+    linha_do_tempo: [
+      { dte: 30, titulo: 'Primeira CALL curta expira', descricao: 'Se acao entre R$ 9 e R$ 11, CALL curta expira. Voce ainda tem a CALL longa.' },
+      { dte: 0,  titulo: 'CALL longa vence', descricao: 'Exercicio se acao acima de R$ 9. Lucro dependendo do movimento total.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao subiu para R$ 12',  resultado: 'Bom',   descricao: 'CALL longa valem muito. CALL curta exercida mas strike mais alto a protege.', cor: 'emerald' },
+      { titulo: 'Acao ficou em R$ 10',    resultado: 'Ok',    descricao: 'CALL curta expirou. CALL longa ainda tem valor. Custo amortizado.', cor: 'amber' },
+      { titulo: 'Acao caiu para R$ 8',    resultado: 'Perda', descricao: 'CALL longa perdeu muito valor. Custo nao foi amortizado suficientemente.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Primeira CALL curta expirou', acao: 'Vender nova CALL curta de 30 dias contra a CALL longa. Repete o ciclo.' }
+    ],
+    comparativo: 'Versus Calendar CALL: a Diagonal tem vies direcional (strikes diferentes) enquanto o Calendar e neutro (mesmo strike). Use Diagonal quando quer exposicao de alta adicionada ao diferencial de theta.'
+  },
+
+  'diagonal-put': {
+    analogia: 'O Calendar PUT mas com strikes diferentes. Voce compra uma PUT longa mais cara (strike mais alto) e vende uma PUT curta mais barata (strike mais baixo). Exposicao de baixa financiada pelo theta da PUT curta.',
+    quando_usar: [
+      'Lateral a levemente baixista',
+      'IV de curto prazo alta nas PUTs',
+      'Quer exposicao de baixa com custo reduzido'
+    ],
+    como_montar: 'Acao X a R$ 10. Compra PUT strike 11, vencimento 60 dias (paga R$ 1,40). Vende PUT strike 9, vencimento 30 dias (recebe R$ 0,40). Debito liquido: R$ 1,00.',
+    linha_do_tempo: [
+      { dte: 30, titulo: 'PUT curta expira', descricao: 'Se acao entre R$ 9 e R$ 11, PUT curta expira. PUT longa intacta.' },
+      { dte: 0,  titulo: 'PUT longa vence', descricao: 'Lucro se acao caiu. Perda se subiu.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao caiu para R$ 8',   resultado: 'Bom',   descricao: 'PUT longa very valuable. PUT curta exercida mas strike mais baixo a protege.', cor: 'emerald' },
+      { titulo: 'Acao subiu para R$ 13', resultado: 'Perda', descricao: 'PUT longa perdeu valor. Debito nao recuperado.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Primeira PUT curta expirou', acao: 'Vender nova PUT curta de 30 dias. Repetir o ciclo.' }
+    ],
+    comparativo: 'Versus Diagonal CALL: a Diagonal PUT tem vies de baixa. Versus Calendar PUT: a Diagonal tem strikes diferentes adicionando direcionalidade.'
+  },
+
+  'mannerheim': {
+    analogia: 'A Linha de Mannerheim foi uma linha de defesa finlandesa -- potente mas com pontos descobertos. Na estrategia, e um Calendar potencializado: voce vende mais opcoes de curto prazo do que compra de longo prazo. Coleta muito mais credito, mas fica com uma perna descoberta se o mercado se mover.',
+    quando_usar: [
+      'Lateralizacao muito forte com IV de curto prazo muito mais alta que a longa',
+      'Operador experiente que aceita o risco da perna descoberta',
+      'Mercado extremamente estavel com baixa probabilidade de ruptura'
+    ],
+    como_montar: 'Acao X a R$ 10. Compra 1 CALL strike 10, vencimento 60 dias (paga R$ 1,20). Vende 2 CALLs strike 10, vencimento 30 dias (recebe R$ 1,40). Credito liquido: R$ 0,20. A segunda CALL vendida nao tem protecao da comprada.',
+    linha_do_tempo: [
+      { dte: 30, titulo: 'Duas CALLs curtas expiram (ideal)', descricao: 'Se acao em R$ 10, as duas CALLs curtas expiram. Fica com R$ 0,20 mais a CALL longa.' },
+      { dte: 0,  titulo: 'CALL longa vence', descricao: 'A CALL comprada ainda pode gerar lucro se o preco subiu apos o primeiro vencimento.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao lateral no primeiro vencimento', resultado: 'Otimo', descricao: 'Duas CALLs curtas expiram. Fica com credito mais a CALL longa gratuita.', cor: 'emerald' },
+      { titulo: 'Acao subiu muito',                    resultado: 'Risco', descricao: 'Uma CALL coberta pela longa, a outra descoberta. Perda potencialmente grande.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao se move em direcao das CALLs vendidas', acao: 'Fechar imediatamente. A perna descoberta cria risco ilimitado.' }
+    ],
+    comparativo: 'Versus Calendar simples: mais credito mas uma perna descoberta. Somente para operadores que entendem profundamente o risco do gamma e tem disciplina para fechar rapidamente.'
+  },
+
+  'thl-calendario': {
+    analogia: 'Uma variacao brasileira do Calendar. THL significa Trava Horizontal com Lucro -- voce monta o Calendar buscando sempre entrar com credito liquido ou custo zero. O foco e na diferenca de theta entre os vencimentos, garantindo que o setup seja sempre favoravel ao vendedor.',
+    quando_usar: [
+      'IV do vencimento curto substancialmente maior que o longo',
+      'Lateralizacao esperada no horizonte do vencimento curto',
+      'Voce quer exposicao de two-leg com custo zero ou credito'
+    ],
+    como_montar: 'Acao X a R$ 10. Analisa a estrutura de IV: se o vencimento de 30 dias tem IV de 45% e o de 60 dias tem 35%, a diferenca justifica o trade. Compra CALL/PUT de 60 dias e vende CALL/PUT de 30 dias no mesmo strike. O objetivo e sempre entrar de graca ou com credito.',
+    linha_do_tempo: [
+      { dte: 30, titulo: 'Expiracao do vencimento curto', descricao: 'A opcao vendida expira. Se houve lucro aqui, o trade ja esta no positivo.' },
+      { dte: 0,  titulo: 'Expiracao do vencimento longo', descricao: 'A opcao comprada vence. Resultado final do THL.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao lateral com queda de IV',  resultado: 'Duplo ganho', descricao: 'Ganha pelo theta da opcao curta E pela queda do diferencial de IV.', cor: 'emerald' },
+      { titulo: 'IV normaliza antes do previsto', resultado: 'Ok',         descricao: 'O diferencial desapareceu. Resultado neutro mas sem grande perda.', cor: 'amber' },
+      { titulo: 'Grande movimento do ativo',      resultado: 'Perda',      descricao: 'O Calendar em geral sofre com movimentos grandes. Fechar a estrutura.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'IV do curto normalizou antes do vencimento', acao: 'Fechar a estrutura -- a vantagem do diferencial de IV ja foi capturada.' }
+    ],
+    comparativo: 'E essencialmente o Calendar com foco especifico no diferencial de IV entre vencimentos, muito usado por operadores brasileiros que identificam distorcoes de volatilidade entre o ciclo mensal e bimestral.'
+  },
+
+  'slide-estrutural': {
+    analogia: 'Um escorregador onde voce define o ponto de saida. Voce monta uma estrutura de credito com um range de ganho definido, mas deixa uma perna "aberta" (sem protecao total) para coletar mais credito. O risco: se o ativo sair pelo lado aberto, a perda pode ser grande.',
+    quando_usar: [
+      'Lateralizacao com vies direcional claro',
+      'IV elevada justificando o credito extra pela exposicao descoberta',
+      'Operador que aceita risco assimetrico em troca de mais premio'
+    ],
+    como_montar: 'Acao X a R$ 10 com vies de alta. Vende PUT strike 9 (recebe R$ 0,60). Vende CALL strike 12 (recebe R$ 0,30). Compra CALL strike 13 (paga R$ 0,15). O lado de baixo (PUT) esta descoberto. O lado de cima tem protecao parcial (spread de CALL). Credito total: R$ 0,75.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Credito generoso com assimetria', descricao: 'R$ 0,75 recebido. Lado de baixo exposto, lado de cima parcialmente protegido.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Entre R$ 9 e R$ 12: ganho maximo. Acima de R$ 13: perda limitada pelo spread. Abaixo de R$ 9: perda ilimitada.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao lateral entre R$ 9 e R$ 12', resultado: 'Otimo',  descricao: 'Tudo expira. R$ 0,75 garantido.', cor: 'emerald' },
+      { titulo: 'Acao subiu para R$ 14',            resultado: 'Perda limitada', descricao: 'Spread de CALL cobrindo. Perda maxima de R$ 0,25.', cor: 'amber' },
+      { titulo: 'Acao caiu para R$ 7',              resultado: 'Risco serio', descricao: 'PUT descoberta. Perda de R$ 2,00 menos credito de R$ 0,75 = R$ 1,25. Pode ser mais.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao se aproxima da perna descoberta', acao: 'Fechar ou adicionar protecao imediatamente. Perna descoberta e o maior risco da estrutura.' }
+    ],
+    comparativo: 'Versus Iron Condor: o Slide tem uma perna sem protecao, coletando mais credito mas com risco assimetrico. Use o Condor quando quiser risco limitado dos dois lados. Use o Slide quando tiver conviccao direcional forte em um dos lados.'
+  },
+
+  'ratio-call': {
+    analogia: 'Voce compra um direito de comprar feijao a R$ 10 e vende DOIS direitos de comprar a R$ 12. Voce recebe mais credito que o Bull Call Spread normal, mas se o feijao subir muito acima de R$ 12, voce tem uma CALL descoberta gerando perda ilimitada. E como vender dois seguros mas ter apenas um resseguro.',
+    quando_usar: [
+      'Alta moderada esperada -- voce acredita que o ativo vai subir mas nao explodir',
+      'IV elevada no strike vendido -- o credito extra justifica a perna descoberta',
+      'Resistencia tecnica forte acima do strike vendido -- pouca chance de romper muito'
+    ],
+    como_montar: 'Acao X a R$ 10. Compra 1 CALL strike 10 (paga R$ 0,80). Vende 2 CALLs strike 12 (recebe R$ 0,60 cada = R$ 1,20). Credito liquido: R$ 0,40. Ganho maximo em R$ 12: R$ 2,40. Acima de R$ 14,40: perdas crescentes sem limite.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Credito na conta', descricao: 'R$ 0,40 recebido. Posicao neutra a levemente altista.' },
+      { dte: 21, titulo: 'Monitorar resistencia', descricao: 'Acao proximo do strike vendido? Perfeito. Acao rompendo com forca? Risco da perna descoberta.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Abaixo de R$ 10: fica com o credito de R$ 0,40. Em R$ 12: ganho maximo de R$ 2,40. Acima de R$ 14,40: perdas.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao fechou em R$ 12',   resultado: 'Maximo',       descricao: 'CALL comprada vale R$ 2. CALLs vendidas valem zero. Mais credito = R$ 2,40.', cor: 'emerald' },
+      { titulo: 'Acao fechou em R$ 10',   resultado: 'Credito puro', descricao: 'Tudo expira. Fica com os R$ 0,40 de credito.', cor: 'emerald' },
+      { titulo: 'Acao subiu para R$ 16',  resultado: 'Perda grande', descricao: 'CALL comprada cobre uma vendida. A segunda descoberta gera R$ 1,60 de perda alem do ponto de equilibrio.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao rompeu o strike vendido com forca', acao: 'Fechar a perna descoberta imediatamente. Compre a segunda CALL vendida de volta.' },
+      { condicao: 'Atingiu 80% do ganho maximo', acao: 'Fechar toda a estrutura. Nao espere o vencimento com perna descoberta no lucro.' }
+    ],
+    comparativo: 'Versus Bull Call Spread: o Ratio coleta mais credito mas tem risco ilimitado acima do ponto de equilibrio superior. Use o Spread quando quiser risco totalmente limitado. Use o Ratio quando tiver forte conviccao de teto no ativo.'
+  },
+
+  'ratio-put': {
+    analogia: 'O inverso do Ratio Call -- agora voce aposta em queda moderada. Compra uma PUT e vende duas PUTs mais abaixo. Se o ativo cair para o strike vendido, ganho maximo. Se desabar muito abaixo, a segunda PUT vendida gera perda crescente sem limite.',
+    quando_usar: [
+      'Queda moderada esperada -- ativo vai cair mas tem suporte forte abaixo',
+      'IV elevada nas PUTs vendidas',
+      'Suporte tecnico claro no nivel do strike vendido'
+    ],
+    como_montar: 'Acao X a R$ 10. Compra 1 PUT strike 10 (paga R$ 0,80). Vende 2 PUTs strike 8 (recebe R$ 0,60 cada = R$ 1,20). Credito: R$ 0,40. Ganho maximo em R$ 8: R$ 2,40. Abaixo de R$ 5,60: perdas crescentes.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Credito + exposicao de baixa', descricao: 'R$ 0,40 recebido. Perfeito se o ativo cair moderadamente.' },
+      { dte: 21, titulo: 'Monitorar suporte', descricao: 'Acao em R$ 8 ou acima? Estrutura lucrativa. Abaixo de R$ 8 com forca? Fechar a perna descoberta.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Acima de R$ 10: fica com credito. Em R$ 8: ganho maximo. Abaixo de R$ 5,60: perdas crescentes.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao caiu para R$ 8',   resultado: 'Maximo',       descricao: 'PUT comprada vale R$ 2. PUTs vendidas valem zero. Mais credito = R$ 2,40.', cor: 'emerald' },
+      { titulo: 'Acao ficou em R$ 10',   resultado: 'Credito puro', descricao: 'Tudo expira. Fica com R$ 0,40.', cor: 'emerald' },
+      { titulo: 'Acao desabou para R$ 5',resultado: 'Perda grande', descricao: 'PUT comprada cobre uma vendida. A segunda descoberta gera R$ 0,60 de perda adicional por cada real abaixo de R$ 5,60.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao quebrou o suporte com volume', acao: 'Fechar a PUT descoberta imediatamente. Risco ilimitado nao gerenciado e erro fatal.' }
+    ],
+    comparativo: 'Versus Bear Put Spread: o Ratio tem mais credito e mais risco. Versus Venda de PUT simples: o Ratio tem exposicao dupla abaixo do strike vendido. Use com muito criterio e stop rigido.'
+  },
+
+  'backspread-call': {
+    analogia: 'O inverso do Ratio. Voce vende uma CALL proxima e compra DUAS CALLs mais distantes. Voce paga um debito pequeno (ou entra de graca) mas fica com exposicao positiva a movimentos explosivos de alta. E como comprar dois bilhetes de loteria e vender um semi-premio para pagar parte dos bilhetes.',
+    quando_usar: [
+      'Voce espera movimento explosivo de alta -- nao moderado',
+      'IV baixa -- as CALLs compradas estao baratas',
+      'Evento de risco com potencial de ruptura forte para cima'
+    ],
+    como_montar: 'Acao X a R$ 10. Vende 1 CALL strike 10 (recebe R$ 0,80). Compra 2 CALLs strike 12 (paga R$ 0,40 cada = R$ 0,80). Custo: zero. Zona de perda maxima: em R$ 12. Acima de R$ 14: lucro crescente sem limite.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Entrada de graca ou debito minimo', descricao: 'Custo zero. Exposicao de alta explosiva acima de R$ 14.' },
+      { dte: 21, titulo: 'Aguardar o movimento', descricao: 'Acao em R$ 10 ou abaixo: bom, a CALL vendida expira. Acao subindo: as duas CALLs compradas ganham.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Abaixo de R$ 10: zero (entrou de graca). Em R$ 12: perda maxima de R$ 2. Acima de R$ 14: lucro crescente.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao subiu para R$ 18', resultado: 'Lucro expressivo', descricao: 'Duas CALLs valem R$ 6 cada = R$ 12. CALL vendida exercida: -R$ 8. Lucro de R$ 4.', cor: 'emerald' },
+      { titulo: 'Acao ficou em R$ 10',   resultado: 'Neutro',           descricao: 'CALL vendida expira ATM. CALLs compradas expiram. Resultado zero.', cor: 'amber' },
+      { titulo: 'Acao foi para R$ 12',   resultado: 'Perda maxima',     descricao: 'CALL vendida vale R$ 2. CALLs compradas valem zero. Perda de R$ 2.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao esta em R$ 12 (perda maxima) proximo do vencimento', acao: 'Fechar a estrutura. A zona de perda maxima e perigosa com alto gamma.' }
+    ],
+    comparativo: 'Versus compra de CALL simples: o Backspread pode ter custo zero e da mais exposicao a movimentos explosivos. Versus Ratio Call: e o inverso -- o Ratio quer alta moderada, o Backspread quer alta explosiva.'
+  },
+
+  'backspread-put': {
+    analogia: 'O Backspread mas para queda explosiva. Voce vende uma PUT proxima e compra duas PUTs mais abaixo. Protecao contra cisne negro na queda -- se o mercado desabar, as duas PUTs compradas geram lucro crescente sem limite.',
+    quando_usar: [
+      'Voce quer protecao contra queda catastrofica com custo zero ou minimo',
+      'IV das PUTs esta baixa -- barata para comprar',
+      'Crise potencial no horizonte -- voce nao sabe quando mas quer estar coberto'
+    ],
+    como_montar: 'Acao X a R$ 10. Vende 1 PUT strike 10 (recebe R$ 0,80). Compra 2 PUTs strike 8 (paga R$ 0,40 cada = R$ 0,80). Custo: zero. Zona de perda maxima: em R$ 8. Abaixo de R$ 6: lucro crescente.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Hedge de graca', descricao: 'Entrada sem custo. Protecao contra queda catastrofica ja ativa.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Acima de R$ 10: zero. Em R$ 8: perda maxima de R$ 2. Abaixo de R$ 6: lucro crescente sem limite.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao desabou para R$ 4', resultado: 'Lucro de hedge',  descricao: 'Duas PUTs valem R$ 4 cada = R$ 8. PUT vendida exercida: -R$ 6. Lucro de R$ 2.', cor: 'emerald' },
+      { titulo: 'Acao ficou em R$ 10',    resultado: 'Neutro',          descricao: 'Tudo expira. Custo zero, resultado zero.', cor: 'amber' },
+      { titulo: 'Acao caiu para R$ 8',    resultado: 'Perda maxima',    descricao: 'PUT vendida vale R$ 2. PUTs compradas zero. Perda de R$ 2.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao esta em R$ 8 (perda maxima)', acao: 'Fechar ou aguardar. Se a queda continuar, as PUTs compradas passam a valer mais.' }
+    ],
+    comparativo: 'Versus compra de PUT simples: o Backspread pode custar zero e protege movimentos maiores. Versus Ratio PUT: e o inverso. Use Backspread para hedge de cauda, Ratio para aposta de queda moderada.'
+  },
+
+  'synthetic-straddle': {
+    analogia: 'Voce tem 100 acoes e compra 1 PUT ATM. Resultado: voce esta comprado em volatilidade nos dois lados. Se a acao subir, as acoes ganham. Se cair, a PUT ganha. E como ter um seguro que paga independente da direcao. A acao funciona como a CALL sintetica.',
+    quando_usar: [
+      'Voce ja tem a acao em custodia e quer exposicao a movimento sem saber a direcao',
+      'Evento de risco iminente com potencial de movimento forte em qualquer lado',
+      'IV esta baixa -- a PUT ATM esta barata para comprar'
+    ],
+    como_montar: 'Voce tem 100 acoes X a R$ 10. Compra 1 PUT ATM strike 10 (paga R$ 0,70). Custo total: R$ 0,70 por acao. Se subir: acoes valorizam, PUT expira. Se cair: PUT compensa a perda das acoes. Break-even de baixo: R$ 9,30. Sem limite de ganho de alta.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Posicao montada com custo de R$ 0,70', descricao: 'Acao protegida na queda. Upside ilimitado preservado.' },
+      { dte: 21, titulo: 'Evento passou?', descricao: 'Se evento ocorreu e mercado se moveu, avaliar desmontar a PUT.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Acao acima de R$ 10,70: lucro liquido. Entre R$ 9,30 e R$ 10,70: pequena perda do custo. Abaixo de R$ 9,30: PUT comeca a compensar.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao subiu para R$ 14', resultado: 'Lucro de alta',  descricao: 'PUT expira. Acao valorizada em R$ 4. Menos custo de R$ 0,70 = R$ 3,30 de lucro.', cor: 'emerald' },
+      { titulo: 'Acao caiu para R$ 7',   resultado: 'Protegido',      descricao: 'Acao perdeu R$ 3. PUT ganhou R$ 3. Menos custo = perda de apenas R$ 0,70.', cor: 'amber' },
+      { titulo: 'Acao ficou em R$ 10',   resultado: 'Custo do hedge', descricao: 'Acao neutra. PUT expirou. Perda de R$ 0,70 de custo.', cor: 'amber' }
+    ],
+    manejo: [
+      { condicao: 'Evento passou sem movimento', acao: 'Vender a PUT antes que perca mais valor. Aceitar o custo parcial do hedge.' }
+    ],
+    comparativo: 'Versus Long Straddle puro: o Sintetico usa a acao como substituto da CALL, reduzindo o custo total. Versus Collar: o Sintetico preserva o upside ilimitado enquanto o Collar tem cap de alta.'
+  },
+
+  'straddle-ha': {
+    analogia: 'Um Short Straddle com cinto de seguranca assimetrico. Voce vende o Straddle normalmente para coletar theta, mas compra uma protecao mais barata de um lado -- geralmente uma PUT OTM -- para o caso do mercado desabar. O lado de alta fica descoberto mas o de baixa tem algum escudo.',
+    quando_usar: [
+      'IV alta justifica vender o Straddle',
+      'Voce esta mais preocupado com queda que com alta -- mercado em tendencia de alta mas volatil',
+      'Quer o premio do Straddle com protecao parcial no lado mais perigoso'
+    ],
+    como_montar: 'Acao X a R$ 10. Vende PUT e CALL no strike 10 (recebe R$ 1,40). Compra PUT OTM no strike 7 (paga R$ 0,20). Credito liquido: R$ 1,20. O lado de cima continua descoberto. Abaixo de R$ 7: perda limitada pela PUT comprada.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Credito alto com protecao parcial', descricao: 'R$ 1,20 recebido. Protecao de queda catastrofica ativa acima de R$ 7.' },
+      { dte: 21, titulo: 'Monitorar os dois lados', descricao: 'Lado de cima descoberto. Lado de baixo parcialmente protegido. Gamma em crescimento.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Entre R$ 8,80 e R$ 11,20: lucro. Abaixo de R$ 7: perda limitada. Acima de R$ 11,20: perda crescente sem limite.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao lateral em R$ 10',  resultado: 'Maximo',    descricao: 'Straddle expira. PUT OTM expira. R$ 1,20 no bolso.', cor: 'emerald' },
+      { titulo: 'Acao desabou para R$ 5', resultado: 'Protegido', descricao: 'PUT comprada limita a perda abaixo de R$ 7. Perda maxima controlada.', cor: 'amber' },
+      { titulo: 'Acao disparou para R$ 16',resultado: 'Perda',   descricao: 'CALL vendida descoberta gera perda crescente. Sem protecao no lado de alta.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao sobe com forca', acao: 'Comprar CALL OTM para cobrir o lado descoberto ou fechar a CALL vendida.' }
+    ],
+    comparativo: 'Versus Short Straddle puro: menos credito mas protecao na queda catastrofica. Versus Iron Butterfly: o HA tem risco ilimitado na alta enquanto o Butterfly e protegido nos dois lados.'
+  },
+
+  'hedge-assimetrico': {
+    analogia: 'Voce tem uma carteira de acoes e compra um numero desproporcional de PUTs baratas. E como contratar um seguro de R$ 100.000 pagando R$ 500 por ano. Se o mercado cair 30%, o seguro paga muito mais do que custou. A assimetria esta no ratio: voce compra mais protecao do que o capital investido parece justificar.',
+    quando_usar: [
+      'Voce tem carteira grande e quer protecao contra cisne negro',
+      'IV das PUTs esta muito baixa -- hedge barato historicamente',
+      'Cenario macroeconomico incerto com potencial de crash'
+    ],
+    como_montar: 'Carteira de R$ 100.000 em acoes. Compra PUTs OTM strike 8 em quantidade 2x o necessario para o hedge 1:1 (paga R$ 500 total). Se o mercado cair 20%, as PUTs ganham muito mais que R$ 500. O custo anual do hedge e apenas 0,5% da carteira.',
+    linha_do_tempo: [
+      { dte: 365, titulo: 'Hedge anual ativo', descricao: 'PUTs OTM compradas. Custo anual de 0,5% da carteira. Protecao contra queda extrema ativa.' },
+      { dte: 180, titulo: 'Renovacao semestral', descricao: 'Avaliar se a IV mudou. Se IV subiu muito, as PUTs valorizam -- pode ser hora de realizar parte do ganho.' },
+      { dte: 0,   titulo: 'Renovar ou exercer', descricao: 'Se mercado caiu: exercer ou vender as PUTs lucrativas. Se mercado subiu: renovar o hedge.' }
+    ],
+    cenarios: [
+      { titulo: 'Mercado caiu 30%', resultado: 'Hedge funcionou', descricao: 'As PUTs 2x multiplicaram o ganho. O custo de R$ 500 gerou protecao de R$ 10.000 ou mais.', cor: 'emerald' },
+      { titulo: 'Mercado lateral', resultado: 'Custo do hedge', descricao: 'PUTs expiram sem valor. Custo de 0,5% ao ano -- o preco da paz de espirito.', cor: 'amber' },
+      { titulo: 'Mercado subiu 20%', resultado: 'Custo valeu', descricao: 'Perdeu as PUTs mas a carteira valorizou 20%. Custo do hedge absorvido facilmente.', cor: 'emerald' }
+    ],
+    manejo: [
+      { condicao: 'IV das PUTs disparou (crise comecou)', acao: 'Vender parte das PUTs com lucro e renovar para strikes mais abaixo. Realiza parte e mantem protecao.' }
+    ],
+    comparativo: 'Versus nao fazer hedge: o custo anual de 0,5% e irrisorio comparado a uma queda de 30% sem protecao. Versus Collar: o Hedge Assimetrico nao limita o upside da carteira -- voce paga pelo hedge separadamente.'
+  },
+
+  'christmas-call': {
+    analogia: 'Uma borboleta com as asas em tamanhos diferentes -- como uma arvore de Natal assimetrica. Voce compra uma CALL, vende duas CALLs num strike mais alto e compra uma CALL ainda mais alto, mas em quantidade diferente da borboleta classica. O resultado e um payoff assimetrico que favorece a alta moderada.',
+    quando_usar: [
+      'Alta moderada com payoff assimetrico -- voce acredita mais na alta do que na baixa',
+      'IV estruturada de forma que o strike do meio esta caro para vender',
+      'Quer mais ganho no lado de alta que no neutro'
+    ],
+    como_montar: 'Acao X a R$ 10. Compra 1 CALL strike 9 (paga R$ 1,10). Vende 3 CALLs strike 11 (recebe R$ 0,45 cada = R$ 1,35). Compra 2 CALLs strike 13 (paga R$ 0,15 cada = R$ 0,30). Credito liquido: R$ 0,05. Payoff assimetrico: ganho maximo em R$ 11.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Montagem quase sem custo', descricao: 'Entrada quase de graca. Tres CALLs vendidas criam exposicao assimetrica.' },
+      { dte: 21, titulo: 'Monitorar o strike vendido', descricao: 'Acao em R$ 11 e ideal. Acima de R$ 13 com forca, as duas CALLs compradas cobrem mas sobra uma vendida descoberta.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Em R$ 11: ganho maximo. Abaixo de R$ 9: pequena perda. Acima de R$ 15: perda crescente (1 CALL vendida descoberta).' }
+    ],
+    cenarios: [
+      { titulo: 'Acao fechou em R$ 11',  resultado: 'Maximo',        descricao: 'CALL de R$ 9 vale R$ 2. Tres CALLs de R$ 11 valem zero. Duas de R$ 13 zero. Lucro de R$ 2 mais credito.', cor: 'emerald' },
+      { titulo: 'Acao ficou em R$ 10',   resultado: 'Pequeno lucro', descricao: 'CALL de R$ 9 vale R$ 1. Restante expira. Lucro de R$ 1 mais credito.', cor: 'amber' },
+      { titulo: 'Acao disparou para R$ 17', resultado: 'Risco',      descricao: 'Uma CALL vendida descoberta gera perda a partir de R$ 15.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao rompeu acima do strike das compradas (R$ 13) com forca', acao: 'Fechar a CALL vendida descoberta. Custo de gestao esperado na montagem.' }
+    ],
+    comparativo: 'Versus Borboleta classica: o Christmas Tree tem payoff assimetrico. Versus Ratio Call: o Christmas tem mais protecao de alta mas estrutura mais complexa. Estrutura para operadores que querem customizar o perfil de ganho/perda.'
+  },
+
+  'christmas-put': {
+    analogia: 'O Christmas Tree mas voltado para baixa. Voce compra uma PUT alta, vende tres PUTs num strike mais baixo e compra duas PUTs ainda mais abaixo. Payoff assimetrico favorecendo a queda moderada ate o strike vendido.',
+    quando_usar: [
+      'Queda moderada esperada com payoff assimetrico',
+      'IV alta nas PUTs do strike vendido',
+      'Suporte forte abaixo do strike das PUTs compradas inferiores'
+    ],
+    como_montar: 'Acao X a R$ 10. Compra 1 PUT strike 11 (paga R$ 1,10). Vende 3 PUTs strike 9 (recebe R$ 0,45 cada = R$ 1,35). Compra 2 PUTs strike 7 (paga R$ 0,15 cada = R$ 0,30). Credito de R$ 0,05. Ganho maximo se acao cair para R$ 9.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Entrada quase sem custo', descricao: 'Estrutura de baixa assimetrica por R$ 0,05.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Em R$ 9: ganho maximo. Acima de R$ 11: pequena perda. Abaixo de R$ 5: risco de uma PUT descoberta.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao caiu para R$ 9',   resultado: 'Maximo', descricao: 'PUT de R$ 11 vale R$ 2. PUTs vendidas expiram. Lucro de R$ 2 mais credito.', cor: 'emerald' },
+      { titulo: 'Acao desabou para R$ 4',resultado: 'Risco',  descricao: 'Uma PUT vendida descoberta gera perdas abaixo de R$ 5.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao quebrou abaixo das PUTs compradas inferiores', acao: 'Fechar a PUT vendida descoberta imediatamente.' }
+    ],
+    comparativo: 'Identico ao Christmas Call mas espelhado para baixa. Escolha a versao conforme o vies direcional esperado.'
+  },
+
+  'skip-butterfly': {
+    analogia: 'Uma borboleta com o strike do meio deslocado -- voce pula um strike. Em vez de comprar-vender-comprar em 8-10-12, voce faz 8-11-13. Isso cria um range de ganho mais amplo e assimetrico, ideal quando voce quer ganhar num range maior sem pagar pela borboleta classica.',
+    quando_usar: [
+      'Voce quer range de lucro mais amplo que a borboleta classica',
+      'Incerteza sobre o ponto exato de lateralizacao',
+      'IV moderada -- debito pequeno para range mais generoso'
+    ],
+    como_montar: 'Acao X a R$ 10. Compra CALL strike 8 (paga R$ 0,60). Vende 2 CALLs strike 11 (recebe R$ 0,45 cada = R$ 0,90). Compra CALL strike 13 (paga R$ 0,15). Debito: R$ 0,15 (muito menor que borboleta classica). Range de lucro ampliado.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Debito minimo', descricao: 'R$ 0,15 pago. Range de ganho de R$ 8 a R$ 13 -- mais amplo que a borboleta classica.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Entre R$ 8 e R$ 11: lucro crescente. Em R$ 11: ganho maximo. Entre R$ 11 e R$ 13: lucro decrescente. Fora do range: perda de R$ 0,15.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao fechou em R$ 11', resultado: 'Maximo',  descricao: 'CALLs de R$ 8 valem R$ 3. CALLs vendidas zero. CALL de R$ 13 zero. Lucro expressivo.', cor: 'emerald' },
+      { titulo: 'Acao fechou em R$ 9',  resultado: 'Parcial', descricao: 'CALL de R$ 8 vale R$ 1. Restante expira. Lucro de R$ 0,85.', cor: 'amber' },
+      { titulo: 'Acao fechou em R$ 7',  resultado: 'Perda',   descricao: 'Tudo expira. Perda de R$ 0,15 do debito.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao saiu do range antes do vencimento', acao: 'Fechar o spread. A assimetria do Skip deixa pouco para ganhar fora do range.' }
+    ],
+    comparativo: 'Versus Borboleta classica: range mais amplo, debito menor mas ganho maximo menor. Use Skip quando quiser mais flexibilidade de preco. Use a classica quando tiver conviccao precisa no ponto de aterrizagem.'
+  },
+
+  'synthetic-long': {
+    analogia: 'Voce compra uma CALL ATM e vende uma PUT ATM no mesmo strike. O resultado e como ter comprado as acoes mas sem pagar por elas. Se a acao sobe, voce ganha como dono. Se cai, voce perde como dono. Sem desembolso de capital mas com toda a exposicao direcional.',
+    quando_usar: [
+      'Voce esta muito altista e quer exposicao completa com pouco capital',
+      'Conta com margem disponivel para a PUT vendida',
+      'Ativo liquido com spread bid-ask apertado nas opcoes'
+    ],
+    como_montar: 'Acao X a R$ 10. Compra CALL strike 10 (paga R$ 0,70) e vende PUT strike 10 (recebe R$ 0,70). Custo: zero. Comportamento: identico a comprar 100 acoes, mas sem imobilizar R$ 1.000. Exige margem da corretora para a PUT vendida.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Posicao montada sem custo', descricao: 'Exposicao de acao sem capital imobilizado. Margem exigida pela corretora.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Acao acima de R$ 10: CALL exercida, voce compra por R$ 10. Abaixo: PUT exercida, voce tambem compra por R$ 10. Identico a ter comprado a acao.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao subiu para R$ 15', resultado: 'Lucro de acao', descricao: 'CALL vale R$ 5. PUT expira. Lucro de R$ 5 por acao sem ter imobilizado capital.', cor: 'emerald' },
+      { titulo: 'Acao ficou em R$ 10',   resultado: 'Neutro',        descricao: 'Ambas as opcoes expiram ATM. Resultado zero. Nenhum custo.', cor: 'amber' },
+      { titulo: 'Acao caiu para R$ 6',   resultado: 'Perda de acao', descricao: 'PUT exercida: voce compra a acao por R$ 10. Prejuizo de R$ 4 como se tivesse comprado originalmente.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao caiu muito', acao: 'Fechar a PUT vendida para limitar a perda. Ou exercer a estrategia de saida da posicao sintetica.' }
+    ],
+    comparativo: 'Versus compra direta da acao: mesmo risco e retorno mas sem imobilizar o capital. O risco: a margem exigida pode ser chamada se a acao cair muito. Util para operadores com capital limitado mas tese altista forte.'
+  },
+
+  'synthetic-short': {
+    analogia: 'O oposto do Synthetic Long. Voce vende uma CALL e compra uma PUT no mesmo strike. Resultado: posicao vendida sintetica sem precisar tomar as acoes emprestadas. Se a acao cair, voce ganha. Se subir, perde -- como um vendido a descoberto.',
+    quando_usar: [
+      'Voce esta muito baixista e quer exposicao de venda sem pagar taxa de aluguel de acoes',
+      'Acao dificil de tomar emprestada para venda a descoberto',
+      'Conta com margem disponivel'
+    ],
+    como_montar: 'Acao X a R$ 10. Vende CALL strike 10 (recebe R$ 0,70) e compra PUT strike 10 (paga R$ 0,70). Custo: zero. Comportamento: identico a estar vendido em 100 acoes. Ganho ilimitado na queda, risco ilimitado na alta.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Vendido sintetico ativo', descricao: 'Exposicao de baixa completa sem taxa de aluguel.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Acao abaixo de R$ 10: PUT exercida, voce vende por R$ 10 o que vale menos. Acima: CALL exercida, voce vende por R$ 10 o que vale mais -- prejuizo.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao caiu para R$ 6',   resultado: 'Lucro de baixa', descricao: 'PUT vale R$ 4. CALL expira. Lucro de R$ 4 como um vendido classico.', cor: 'emerald' },
+      { titulo: 'Acao subiu para R$ 15', resultado: 'Perda',          descricao: 'CALL exercida contra voce. Perda de R$ 5 como um vendido sem protecao.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao esta subindo com forca', acao: 'Fechar a posicao imediatamente. Risco ilimitado na alta exige gestao rigorosa.' }
+    ],
+    comparativo: 'Versus venda a descoberto classica: sem taxa de aluguel e sem risco de chamada da acao. O risco de perda ilimitada na alta e identico. Use quando a acao e dificil ou cara de tomar emprestada.'
+  },
+
+  'long-combo': {
+    analogia: 'Uma versao do Synthetic Long mas com strikes diferentes, geralmente estruturado para gerar credito liquido. Voce compra uma CALL mais distante e vende uma PUT mais abaixo -- o resultado e exposicao altista financiada ou ate com credito. E como comprar um bilhete de loteria que te paga para entrar.',
+    quando_usar: [
+      'Voce esta altista e quer entrar com credito ou sem custo',
+      'Aceita a obrigacao de comprar a acao pelo strike da PUT se ela cair',
+      'IV assimetrica -- PUT OTM esta mais cara que a CALL OTM'
+    ],
+    como_montar: 'Acao X a R$ 10. Vende PUT strike 8 (recebe R$ 0,40) e compra CALL strike 12 (paga R$ 0,20). Credito liquido: R$ 0,20. Exposicao de alta acima de R$ 12 mais credito. Risco: exercicio da PUT se cair abaixo de R$ 8.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Credito + exposicao de alta', descricao: 'R$ 0,20 recebido. Participacao na alta acima de R$ 12.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Entre R$ 8 e R$ 12: fica com credito. Acima de R$ 12: lucro crescente. Abaixo de R$ 8: PUT exercida.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao subiu para R$ 15', resultado: 'Lucro de alta', descricao: 'CALL vale R$ 3. PUT expira. Mais credito = R$ 3,20 de lucro.', cor: 'emerald' },
+      { titulo: 'Acao ficou lateral',    resultado: 'Credito puro',  descricao: 'Ambas expiram. R$ 0,20 garantido.', cor: 'amber' },
+      { titulo: 'Acao caiu para R$ 6',  resultado: 'Exercicio PUT', descricao: 'PUT exercida: compra acao por R$ 8. Menos credito = custo liquido de R$ 7,80.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao se aproxima da PUT vendida', acao: 'Fechar ou rolar a PUT para baixo. Mesma logica da Venda de PUT.' }
+    ],
+    comparativo: 'Versus Synthetic Long: o Combo tem strikes diferentes e geralmente gera credito. Versus Venda de PUT simples: o Combo adiciona a participacao na alta via CALL. Estrutura eficiente para altistas que querem credito e upside.'
+  },
+
+  'short-combo': {
+    analogia: 'O oposto do Long Combo. Voce esta baixista, vende uma CALL acima e compra uma PUT abaixo. Credito ou custo zero. Exposicao de baixa sem imobilizar capital. Risco: se a acao subir acima da CALL vendida, perda crescente.',
+    quando_usar: [
+      'Voce esta baixista e quer exposicao de baixa com credito ou sem custo',
+      'IV assimetrica favorecendo a venda de CALL',
+      'Aceita risco de perda na alta'
+    ],
+    como_montar: 'Acao X a R$ 10. Vende CALL strike 12 (recebe R$ 0,20) e compra PUT strike 8 (paga R$ 0,40). Debito de R$ 0,20. Exposicao de baixa abaixo de R$ 8. Risco: CALL exercida acima de R$ 12.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Exposicao de baixa ativa', descricao: 'Pequeno debito de R$ 0,20. Participacao na queda abaixo de R$ 8.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'Entre R$ 8 e R$ 12: perda do debito. Abaixo de R$ 8: lucro crescente. Acima de R$ 12: CALL exercida.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao caiu para R$ 5',   resultado: 'Lucro',  descricao: 'PUT vale R$ 3. CALL expira. Menos debito = R$ 2,80 de lucro.', cor: 'emerald' },
+      { titulo: 'Acao subiu para R$ 15', resultado: 'Perda',  descricao: 'CALL exercida: perda de R$ 3 mais debito.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Acao sobe acima da CALL vendida', acao: 'Fechar a CALL imediatamente. Risco crescente sem limite na alta.' }
+    ],
+    comparativo: 'Versus Synthetic Short: o Short Combo tem strikes diferentes e geralmente envolve debito pequeno. Para baixistas que querem participar na queda com exposicao assimetrica.'
+  },
+
+  'box-3': {
+    analogia: 'Voce encontra uma nota de R$ 10 que dois vendedores de opcoes precificaram como se valesse R$ 9,50. Voce compra um Box de 3 pontas que garante R$ 10 no vencimento e paga apenas R$ 9,50 agora. O lucro e o spread, independente do que o ativo fizer. Pura arbitragem matematica.',
+    quando_usar: [
+      'Quando identificar distorcao de precos entre opcoes de diferentes strikes e vencimentos',
+      'Acesso a plataforma com execucao rapida -- a janela de arbitragem fecha rapido',
+      'Liquidez suficiente para executar as 3 pernas simultaneamente'
+    ],
+    como_montar: 'Estrutura de 3 pernas envolvendo CALL comprada, PUT comprada e CALL ou PUT vendida em combinacao que cria fluxo de caixa garantido. O lucro e conhecido no momento da montagem e nao depende do preco do ativo. Cada box tem configuracao especifica conforme a distorcao encontrada.',
+    linha_do_tempo: [
+      { dte: 0, titulo: 'Lucro no vencimento ja definido', descricao: 'O resultado e deterministico. Independe do preco do ativo. Voce ja sabe quanto vai ganhar ao montar.' }
+    ],
+    cenarios: [
+      { titulo: 'Qualquer preco do ativo', resultado: 'Lucro fixo', descricao: 'O Box 3 pontas garante o mesmo resultado independente de onde o ativo fechar. Este e o ponto central da estrutura.', cor: 'emerald' }
+    ],
+    manejo: [
+      { condicao: 'Sempre', acao: 'Nao ha manejo necessario. A estrutura e automaticamente lucrativa se montada corretamente. O risco e na execucao, nao no mercado.' }
+    ],
+    comparativo: 'Versus qualquer outra estrutura: o Box e a unica que tem resultado garantido independente de direcao ou volatilidade. A dificuldade e encontrar a distorcao e executar com velocidade antes que o mercado se corrija.'
+  },
+
+  'box-3-smart': {
+    analogia: 'O Box 3 pontas mas com planejamento de saida antecipado. Voce monta a estrutura ja sabendo o preco de desmontagem ideal -- aproveitando uma segunda distorcao no momento de fechar a posicao, potencializando o lucro total.',
+    quando_usar: [
+      'Quando identificar distorcao tanto na entrada quanto na saida potencial',
+      'Horizonte de tempo mais longo -- voce pode aguardar o momento ideal de desmontagem',
+      'Capacidade de monitorar continuamente o preco de saida'
+    ],
+    como_montar: 'Identico ao Box 3 pontas na montagem. A diferenca e a estrategia de saida: em vez de aguardar o vencimento, voce monitora o mercado para fechar a estrutura antecipadamente quando surgir outra distorcao favoravel, capturando dois ganhos de arbitragem em vez de um.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Montagem com distorcao inicial', descricao: 'Entra na estrutura com lucro garantido no vencimento.' },
+      { dte: 20, titulo: 'Monitorar preco de saida', descricao: 'Surge nova distorcao que permite fechar antecipado com lucro maior que aguardar o vencimento.' },
+      { dte: 0,  titulo: 'Vencimento alternativo', descricao: 'Se nao surgiu oportunidade de saida antecipada, aguarda o vencimento com o lucro original garantido.' }
+    ],
+    cenarios: [
+      { titulo: 'Saida antecipada com segunda distorcao', resultado: 'Lucro amplificado', descricao: 'Capturou dois ganhos de arbitragem. ROC muito acima do Box classico.', cor: 'emerald' },
+      { titulo: 'Aguardou o vencimento', resultado: 'Lucro original', descricao: 'O lucro inicial garantido. Sem amplificacao, mas sem risco adicional.', cor: 'amber' }
+    ],
+    manejo: [
+      { condicao: 'Surgiu distorcao de saida', acao: 'Executar a desmontagem imediatamente aproveitando a janela de arbitragem.' }
+    ],
+    comparativo: 'Versus Box classico: potencial de lucro maior mas exige monitoramento ativo. Para operadores que acompanham o mercado continuamente.'
+  },
+
+  'box-4-smart': {
+    analogia: 'Quatro pernas em vez de tres. Voce cria uma estrutura ainda mais completa que garante o preco de desmontagem desde o inicio. E como comprar um apartamento ja com o contrato de venda assinado -- voce sabe o preco de entrada e de saida antes de qualquer coisa acontecer.',
+    quando_usar: [
+      'Distorcao de precos suficiente para cobrir o custo de quatro pernas (comissoes)',
+      'Liquidez excelente em todos os strikes envolvidos',
+      'Operador com acesso a execucao algoritmica ou mesa profissional'
+    ],
+    como_montar: 'Estrutura de 4 pernas: Bull Spread comprado + Bear Spread vendido (ou variacao equivalente) que cria um payoff fixo independente do preco. O lucro e a diferenca entre o valor recebido na montagem e o custo de desmontagem, ambos conhecidos de antemao.',
+    linha_do_tempo: [
+      { dte: 0, titulo: 'Preco de entrada e saida conhecidos', descricao: 'Lucro total determinado antes da montagem. Execucao e o unico risco.' }
+    ],
+    cenarios: [
+      { titulo: 'Qualquer cenario de mercado', resultado: 'Lucro fixo conhecido', descricao: 'O Box 4 pontas e imune ao mercado. O risco e exclusivamente operacional -- spread bid-ask e velocidade de execucao.', cor: 'emerald' }
+    ],
+    manejo: [
+      { condicao: 'Sempre', acao: 'Sem gestao necessaria apos montagem. O lucro e garantido pela estrutura matematica.' }
+    ],
+    comparativo: 'Versus Box 3 pontas: mais pernas, mais custo de execucao, mas potencialmente mais robusto contra pequenas variacoes de preco. Ambos sao arbitragem -- a escolha depende da distorcao especifica encontrada.'
+  },
+
+  'origami': {
+    analogia: 'O origami e a arte de dobrar o papel para criar formas complexas. Na opcoes, e uma estrutura multi-perna altamente customizada onde cada perna serve a um proposito especifico, criando um perfil de payoff que nenhuma estrutura convencional consegue. Cada operador cria seu proprio origami conforme a oportunidade.',
+    quando_usar: [
+      'Quando nenhuma estrutura convencional captura exatamente a oportunidade identificada',
+      'Operador muito experiente com dominio completo de Greeks e payoffs',
+      'Mercado com distorcoes especificas que permitem estrutura customizada lucrativa'
+    ],
+    como_montar: 'Nao ha formula fixa. O Origami comeca com o payoff desejado -- voce desenha o perfil de ganho/perda ideal -- e trabalha de traz para frente para descobrir quais pernas de opcoes criam esse payoff. Pode envolver 4 a 10 pernas em diferentes strikes e vencimentos.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Design do payoff', descricao: 'Define o perfil de ganho/perda desejado antes de escolher as opcoes.' },
+      { dte: 30, titulo: 'Montagem das pernas', descricao: 'Executa as pernas conforme o design. Monitora desvios do payoff teorico.' },
+      { dte: 0,  titulo: 'Resultado', descricao: 'Depende inteiramente do design especifico de cada Origami.' }
+    ],
+    cenarios: [
+      { titulo: 'Origami bem desenhado e executado', resultado: 'Payoff customizado atingido', descricao: 'A estrutura entrega exatamente o perfil de risco/retorno desenhado.', cor: 'emerald' },
+      { titulo: 'Erro de design ou execucao', resultado: 'Resultado inesperado', descricao: 'Estruturas complexas amplificam erros de calculo ou execucao. Risco proporcional a complexidade.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Qualquer perna se comportar diferente do esperado', acao: 'Recalcular o payoff completo da estrutura. Fechar ou ajustar pernas especificas conforme necessario.' }
+    ],
+    comparativo: 'O Origami e o topo da complexidade em opcoes. Nao e superior as estruturas convencionais em geral -- e especifico para situacoes onde a oportunidade e tao particular que nenhuma estrutura padrao serve. Apenas para operadores com dominio completo de opcoes.'
+  },
+
+  'wheel-leap': {
+    analogia: 'A Roda classica (Venda de PUT -> exercicio -> Venda Coberta) mas usando uma LEAP PUT comprada como garantia em vez de capital em dinheiro. E como colocar um apartamento em garantia de um emprestimo -- voce usa um ativo que ja tem para liberar outro capital.',
+    quando_usar: [
+      'Voce ja opera a Roda e quer aumentar a eficiencia de capital',
+      'LEAP PUT disponivel com bom preco e liquidez',
+      'Corretora que aceita a LEAP como margem para a PUT vendida'
+    ],
+    como_montar: 'Acao X a R$ 10. Em vez de deixar R$ 900 parados como garantia da PUT vendida no strike 9, voce compra uma LEAP PUT strike 10, vencimento 12 meses (paga R$ 2,00). Usa esta LEAP como margem para vender a PUT mensal. Capital liberado: R$ 700 (R$ 900 - R$ 200 da LEAP).',
+    linha_do_tempo: [
+      { dte: 365, titulo: 'LEAP comprada como garantia', descricao: 'R$ 200 imobilizados na LEAP em vez de R$ 900 em cash. Roda continua funcionando normalmente.' },
+      { dte: 30,  titulo: 'Ciclos mensais de PUT', descricao: 'Vende PUT mensal normalmente. O ciclo da Roda continua identico.' },
+      { dte: 0,   titulo: 'LEAP proxima do vencimento', descricao: 'Renovar a LEAP para mais 12 meses. Calcular se o custo de renovacao ainda justifica a eficiencia.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao lateral ou em alta', resultado: 'Mais eficiente que a Roda classica', descricao: 'Capital liberado pode ser usado em outras operacoes. Roda continua gerando renda.', cor: 'emerald' },
+      { titulo: 'Acao caiu e PUT foi exercida', resultado: 'Identico a Roda classica', descricao: 'Voce compra a acao pelo strike. A LEAP proporciona alguma protecao adicional.', cor: 'amber' },
+      { titulo: 'Acao desabou muito', resultado: 'Melhor que a Roda classica', descricao: 'A LEAP PUT limita a perda abaixo do seu strike. Vantagem em relacao ao capital puro como margem.', cor: 'emerald' }
+    ],
+    manejo: [
+      { condicao: 'LEAP perdeu muito valor (acao subiu muito)', acao: 'Renovar a LEAP antes do vencimento para manter a protecao e a eficiencia de capital.' }
+    ],
+    comparativo: 'Versus Roda classica: mesma renda mensal com menos capital imobilizado. A LEAP adiciona protecao de queda catastrofica que o cash puro nao tem. Custo: o preco da LEAP substituindo parte da margem em cash.'
+  },
+
+  'delta-hedging': {
+    analogia: 'Voce tem uma bussola que aponta para o norte (delta neutro) e toda vez que ela desviar, voce faz um pequeno ajuste para voltar ao norte. Delta Hedging e o processo continuo de ajustar sua posicao para que o ganho ou perda nao dependa da direcao do mercado -- apenas da volatilidade.',
+    quando_usar: [
+      'Voce e vendedor de opcoes e quer eliminar o risco direcional mantendo apenas a coleta de theta',
+      'Posicao grande onde o risco delta pode superar o premio coletado',
+      'Mercado muito direcional onde manter o delta neutro e mais seguro que a exposicao aberta'
+    ],
+    como_montar: 'Voce vendeu uma PUT com delta -0.30. Para delta-hedging: compra 30 acoes por contrato para neutralizar o delta. Se a acao sobe e o delta muda para -0.20, voce vende 10 acoes. Se cai e delta vai para -0.40, compra mais 10 acoes. Ajuste continuo conforme o delta muda.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Delta inicial neutralizado', descricao: 'Posicao comprada em acoes para cancelar o delta da opcao vendida.' },
+      { dte: 21, titulo: 'Rebalanceamentos frequentes', descricao: 'A cada movimento significativo do ativo, ajusta a posicao em acoes para manter delta proximo de zero.' },
+      { dte: 0,  titulo: 'Vencimento', descricao: 'A opcao expira. O resultado vem da diferenca entre o theta coletado e o custo dos rebalanceamentos.' }
+    ],
+    cenarios: [
+      { titulo: 'Mercado lateral',          resultado: 'Lucro de theta', descricao: 'Poucos rebalanceamentos necessarios. Theta coletado supera o custo de hedge.', cor: 'emerald' },
+      { titulo: 'Mercado muito direcional', resultado: 'Custo alto',     descricao: 'Muitos rebalanceamentos necessarios. O custo de comprar/vender acoes continuamente pode superar o theta.', cor: 'amber' },
+      { titulo: 'Volatilidade realizada > IV', resultado: 'Prejuizo',   descricao: 'Se o mercado se move mais do que a IV implicava, o custo de rebalanceamento supera o premio. Opcao ficou barata.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Delta se afastou muito do zero', acao: 'Rebalancear comprando ou vendendo o ativo subjacente para voltar ao neutro.' },
+      { condicao: 'Custo de rebalanceamento esta muito alto', acao: 'Avaliar se a posicao original ainda faz sentido. O Delta Hedging so funciona se o theta coletado supera o custo de hedge.' }
+    ],
+    comparativo: 'O Delta Hedging nao e uma estrategia isolada -- e uma tecnica de gestao que transforma qualquer posicao em opcoes numa aposta pura de volatilidade. Profissionais de mesa usam Delta Hedging continuamente. Para pessoas fisicas, e mais uma referencia conceitual que uma pratica diaria.'
+  },
+
+  'rolagem-baixo': {
+    analogia: 'Voce apostou que a chuva nao vai passar da rua A. Ela chegou na rua A. Entao voce move a aposta para a rua B, mais abaixo, e recebe mais dinheiro por isso. A Rolagem para Baixo e exatamente isso: mover o strike da PUT para um nivel mais baixo, gerando novo credito e comprando mais tempo.',
+    quando_usar: [
+      'A PUT vendida esta proxima do strike e voce ainda acredita no ativo',
+      'A rolagem gera credito liquido -- nunca role pagando debito',
+      'Voce quer reduzir o preco medio de eventual exercicio'
+    ],
+    como_montar: 'Voce vendeu PUT strike 10, acao caiu para R$ 9,50. Recompra a PUT strike 10 (paga R$ 0,80) e vende nova PUT strike 9, mesmo vencimento ou proximo (recebe R$ 0,50). Credito adicional: R$ 0,50 menos custo de R$ 0,80 = debito de R$ 0,30. Neste caso NAO role -- a rolagem esta custando debito. Aguarde ou feche.',
+    linha_do_tempo: [
+      { dte: 21, titulo: 'Strike ameacado', descricao: 'Acao proximo da PUT vendida. Avaliar rolagem.' },
+      { dte: 0,  titulo: 'Novo ciclo', descricao: 'Se a rolagem gerou credito: novo ciclo com strike mais baixo e mais seguro.' }
+    ],
+    cenarios: [
+      { titulo: 'Rolagem gera credito de R$ 0,20', resultado: 'Excelente', descricao: 'Voce baixou o strike E ainda recebeu mais dinheiro. Ideal.', cor: 'emerald' },
+      { titulo: 'Rolagem e neutra (zero)',          resultado: 'Aceitavel', descricao: 'Sem credito mas o strike ficou mais baixo. Ok se acreditar na recuperacao.', cor: 'amber' },
+      { titulo: 'Rolagem custaria debito',          resultado: 'Nao role',  descricao: 'A situacao piorou demais. Feche a posicao e aceite o prejuizo controlado.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Regra de ouro', acao: 'Nunca role pagando debito. Se nao consegue credito rolando para baixo, feche a PUT ou converta em spread.' }
+    ],
+    comparativo: 'Versus Rolagem no Tempo: a Rolagem para Baixo muda o strike mantendo ou mudando o vencimento. A Rolagem no Tempo mantem o strike e apenas estende o prazo. Muitas vezes faz sentido combinar as duas: rolar para baixo E para fora ao mesmo tempo.'
+  },
+
+  'rolagem-cima': {
+    analogia: 'Voce vendeu um seguro de incendio para um terreno a R$ 100.000. O terreno valorizou para R$ 150.000. Faz sentido manter o seguro pelo preco antigo ou renegociar para o novo valor? A Rolagem para Cima e renegociar a CALL vendida para um strike mais alto, acompanhando a valorizacao do ativo.',
+    quando_usar: [
+      'O ativo subiu e a CALL vendida esta ITM ou muito proxima do strike',
+      'Voce nao quer ser exercido ainda -- quer continuar com as acoes',
+      'A rolagem para cima gera credito adicional'
+    ],
+    como_montar: 'Voce vendeu CALL strike 12, acao subiu para R$ 13. Recompra a CALL strike 12 (paga R$ 1,20) e vende nova CALL strike 14, proximo vencimento (recebe R$ 0,80). Debito de R$ 0,40. Em muitos casos a Rolagem para Cima exige debito -- e preciso calcular se vale a pena manter as acoes.',
+    linha_do_tempo: [
+      { dte: 7,  titulo: 'CALL ameacada', descricao: 'Acao subiu acima do strike vendido. Avaliar: aceitar o exercicio ou rolar para cima.' },
+      { dte: 0,  titulo: 'Novo ciclo com strike mais alto', descricao: 'CALL rolada para strike mais alto. Mais espaco para a acao valorizar.' }
+    ],
+    cenarios: [
+      { titulo: 'Rolagem gera credito',        resultado: 'Ideal',     descricao: 'Raro mas possivel: subiu o strike e ainda recebeu credito. Perfeito.', cor: 'emerald' },
+      { titulo: 'Rolagem custa debito pequeno',resultado: 'Aceitavel', descricao: 'Paga um pouco para manter as acoes e subir o strike. Pode fazer sentido se acredita na alta.', cor: 'amber' },
+      { titulo: 'Rolagem custa muito',         resultado: 'Aceitar o exercicio', descricao: 'Se o debito e alto, pode ser melhor aceitar o exercicio e recomprar as acoes mais barato depois.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'CALL ja esta muito ITM', acao: 'Calcule o custo total de rolar versus aceitar o exercicio. Nem sempre rolar e a melhor opcao.' }
+    ],
+    comparativo: 'Versus aceitar o exercicio: a Rolagem para Cima preserva as acoes mas tem custo. Calcule o break-even: quantos meses de premio adicional voce precisa para recuperar o debito pago na rolagem.'
+  },
+
+  'rolagem-diagonal': {
+    analogia: 'A rolagem mais completa: voce muda o strike E o vencimento ao mesmo tempo. E como renegociar tanto o preco quanto o prazo do contrato simultaneamente. Da mais flexibilidade para encontrar a combinacao que gera credito e melhora a posicao.',
+    quando_usar: [
+      'Posicao ameacada onde rolar apenas no tempo ou apenas no strike nao gera credito suficiente',
+      'Voce quer mais espaco de preco E mais tempo ao mesmo tempo',
+      'A combinacao de strike mais distante + vencimento mais longo gera credito liquido'
+    ],
+    como_montar: 'Acao X a R$ 10. Voce vendeu PUT strike 10, vencimento em 7 dias, acao caiu para R$ 9,20. Recompra a PUT strike 10 por 7 dias (paga R$ 0,90). Vende nova PUT strike 9, vencimento em 35 dias (recebe R$ 0,70). Credito liquido: R$ 0,70 menos R$ 0,90 = debito de R$ 0,20. Ainda negativo -- tente strike 8,50 no vencimento de 45 dias para conseguir credito.',
+    linha_do_tempo: [
+      { dte: 7,  titulo: 'Posicao ameacada', descricao: 'Avalia combinacao de strike + vencimento que gere credito.' },
+      { dte: 0,  titulo: 'Novo ciclo diagonal', descricao: 'Strike mais baixo, vencimento mais longo. Mais espaco e mais tempo.' }
+    ],
+    cenarios: [
+      { titulo: 'Combinacao diagonal gera credito', resultado: 'Otimo', descricao: 'Melhorou em duas dimensoes (preco e tempo) e ainda recebeu credito.', cor: 'emerald' },
+      { titulo: 'Nenhuma combinacao gera credito', resultado: 'Fechar', descricao: 'A posicao esta muito comprometida. Fechar e aceitar o prejuizo controlado.', cor: 'rose' }
+    ],
+    manejo: [
+      { condicao: 'Teste varias combinacoes de strike e vencimento', acao: 'Calcule o credito liquido de cada opcao antes de executar. A diagonal e a mais flexivel por isso.' }
+    ],
+    comparativo: 'E a combinacao da Rolagem no Tempo + Rolagem para Baixo (ou Cima). Use quando as rolagens simples nao geram credito suficiente. A flexibilidade de duas dimensoes geralmente acha uma combinacao lucrativa mesmo em situacoes dificeis.'
+  },
+
+  'conversao': {
+    analogia: 'Voce vendeu uma PUT simples e o ativo caiu. Em vez de fechar com prejuizo, voce converte a posicao numa estrutura mais protegida -- compra uma PUT mais baixa, transformando a PUT nua num Bull Put Spread. O prejuizo potencial fica limitado e voce tem mais tempo para a recuperacao.',
+    quando_usar: [
+      'A PUT vendida esta ameacada e voce nao quer fechar',
+      'Voce ainda acredita na recuperacao do ativo',
+      'O custo de comprar a PUT de protecao e razoavel'
+    ],
+    como_montar: 'Voce vendeu PUT strike 10. Acao caiu para R$ 9. Voce compra PUT strike 8 (paga R$ 0,40) para limitar o risco. A posicao vira um Bull Put Spread 10-8. Perda maxima agora conhecida: R$ 2,00 menos o credito original menos o custo da protecao.',
+    linha_do_tempo: [
+      { dte: 21, titulo: 'Conversao da estrutura', descricao: 'PUT nua vira Bull Put Spread. Risco passa a ser limitado.' },
+      { dte: 0,  titulo: 'Vencimento do spread', descricao: 'Resultado dependendo do preco. Mas agora a perda maxima e conhecida.' }
+    ],
+    cenarios: [
+      { titulo: 'Acao se recuperou para R$ 10', resultado: 'Bom', descricao: 'Spread expira sem exercicio. Fica com o credito original menos o custo da conversao.', cor: 'emerald' },
+      { titulo: 'Acao caiu para R$ 7',          resultado: 'Perda limitada', descricao: 'Perda maxima do spread: R$ 2,00 menos creditos. Sem a conversao poderia ser muito pior.', cor: 'amber' }
+    ],
+    manejo: [
+      { condicao: 'Quando converter', acao: 'Converta quando o custo da PUT de protecao for pequeno e a acao ainda tiver chance de recuperacao. Nao converta quando a perda ja esta definida -- feche.' }
+    ],
+    comparativo: 'Versus fechar a PUT: a Conversao mantem a posicao mas limita o risco. Versus rolar: a Conversao nao muda o vencimento, apenas adiciona protecao. Use Conversao quando acreditar na recuperacao mas quiser dormir tranquilo.'
+  },
+
+  'fechamento-parcial': {
+    analogia: 'Voce tem um buffet com 10 pratos. Cinco pratos estao prontos e deliciosos. Em vez de esperar os outros 5 ficarem prontos arriscando que os primeiros 5 esfriem, voce serve os primeiros 5 agora e aguarda os outros. O Fechamento Parcial e coletar o lucro das pernas ja lucrativas sem esperar toda a estrutura convergir.',
+    quando_usar: [
+      'Uma das pernas de uma estrutura multi-perna atingiu 80-90% do seu potencial',
+      'Voce quer reduzir o risco geral da posicao sem fechar tudo',
+      'A perna lucrativa esta sofrendo de gamma risk proximo do vencimento'
+    ],
+    como_montar: 'Voce tem um Iron Condor. A perna de PUT (Bull Put Spread) atingiu 90% do seu valor maximo -- quase sem valor. Voce fecha apenas o Bull Put Spread (recompra barato) e mantem o Bear Call Spread ativo. Reduziu o risco de 50% da estrutura e ainda tem o lado de CALL gerando resultado.',
+    linha_do_tempo: [
+      { dte: 21, titulo: 'Uma perna muito lucrativa', descricao: 'Spread vale quase zero. Fechar e realizar o lucro desta perna.' },
+      { dte: 0,  titulo: 'Outra perna ainda aberta', descricao: 'A perna restante continua trabalhando. Resultado final = lucro da perna fechada + resultado da perna aberta.' }
+    ],
+    cenarios: [
+      { titulo: 'Perna restante tambem expira lucrativa', resultado: 'Lucro total', descricao: 'Fechou uma perna cedo com 90% do maximo e a outra tambem funcionou. Resultado otimo.', cor: 'emerald' },
+      { titulo: 'Perna restante piora', resultado: 'Lucro parcial', descricao: 'A perna fechada garantiu lucro. A restante gerou perda. Resultado melhor que esperar tudo junto.', cor: 'amber' }
+    ],
+    manejo: [
+      { condicao: 'Perna atingiu 80% do maximo com DTE alto', acao: 'Fechar a perna lucrativa. O custo/beneficio de manter por mais 20% de ganho nao justifica o risco de reversao.' }
+    ],
+    comparativo: 'O Fechamento Parcial e uma tecnica de gestao de risco, nao uma estrategia independente. Funciona em qualquer estrutura multi-perna: Iron Condor, Strangle, Straddle, Calendar, etc. E uma das praticas mais subestimadas por operadores de varejo.'
+  },
+
+  'ajuste-delta': {
+    analogia: 'Voce esta equilibrando uma balanca. De um lado esta sua posicao em opcoes, do outro o mercado. Toda vez que a balanca inclinar demais para um lado, voce coloca ou retira peso do outro lado para voltar ao equilibrio. O Ajuste de Delta e esse processo de reequilibrio continuo da carteira de opcoes.',
+    quando_usar: [
+      'Carteira grande com multiplas posicoes em opcoes acumulando delta direcional',
+      'Voce quer ser neutro ao mercado e lucrar apenas com theta e volatilidade',
+      'Posicao especifica com delta que fugiu muito do nivel desejado'
+    ],
+    como_montar: 'Voce tem carteira de opcoes com delta total de +0.45 (levemente comprado). Para neutralizar: vende 45 acoes por cada 100 de delta, OU vende CALLs adicionais para reduzir o delta positivo, OU compra PUTs para adicionar delta negativo. O objetivo e chegar em delta total proximo de zero.',
+    linha_do_tempo: [
+      { dte: 45, titulo: 'Delta inicial calculado', descricao: 'Soma o delta de todas as posicoes da carteira. Identifica o desequilibrio.' },
+      { dte: 21, titulo: 'Rebalanceamento', descricao: 'Mercado se moveu. Delta da carteira mudou. Novo ajuste necessario.' },
+      { dte: 0,  titulo: 'Gestao continua', descricao: 'O Ajuste de Delta nao tem fim -- e um processo continuo enquanto as posicoes estiverem abertas.' }
+    ],
+    cenarios: [
+      { titulo: 'Mercado lateral apos ajuste', resultado: 'Theta puro', descricao: 'Delta neutro + mercado parado = theta decaindo sem interferencia direcional. Resultado ideal.', cor: 'emerald' },
+      { titulo: 'Mercado se moveu muito',       resultado: 'Novo ajuste', descricao: 'Delta saiu do neutro novamente. Necessario rebalancear. Custo de transacao se acumula.', cor: 'amber' }
+    ],
+    manejo: [
+      { condicao: 'Delta total da carteira saiu de -0.10 a +0.10', acao: 'Rebalancear comprando ou vendendo o ativo ou opcoes adicionais para voltar ao neutro.' },
+      { condicao: 'Custo de transacao do rebalanceamento e alto', acao: 'Aumentar a tolerancia de desvio de delta antes de rebalancear. Trade-off entre custo e precisao.' }
+    ],
+    comparativo: 'O Ajuste de Delta e uma tecnica avancada de gestao de carteira, nao uma estrategia de entrada. E o que distingue o vendedor de opcoes amador (que nao monitora o delta agregado) do profissional (que mantem o delta da carteira dentro de limites definidos).'
+  }
+
+
+};
+</script>

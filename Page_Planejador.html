@@ -1,0 +1,606 @@
+<template id="page-planejador-template">
+<div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+  <!-- ============================================================
+       PAINEL DE FILTROS
+       ============================================================ -->
+  <div class="premium-card" style="padding:1.25rem 1.5rem;">
+    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.125rem;">
+      <div style="padding:0.45rem;background:var(--brand-indigo-light);border-radius:var(--radius-md);border:1px solid var(--brand-indigo-muted);">
+        <i data-lucide="target" style="width:1rem;height:1rem;color:var(--brand-indigo);display:block;"></i>
+      </div>
+      <h3 style="font-size:0.875rem;font-weight:800;color:var(--text-primary);">Planejador de Entrada</h3>
+      <span style="font-size:0.62rem;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--brand-indigo-light);color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);">
+        {{ resultados.length }} opcoes encontradas
+      </span>
+    </div>
+
+    <div style="display:grid;gap:0.75rem;"
+         :style="isMobile ? 'grid-template-columns:1fr 1fr;' : 'grid-template-columns:repeat(5,1fr) auto;'">
+
+      <!-- Tipo -->
+      <div style="display:flex;flex-direction:column;gap:0.25rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Tipo</label>
+        <div style="display:flex;gap:0.375rem;">
+          <button @click="filtro.tipo = 'PUT'"
+                  style="flex:1;padding:0.4rem 0;border-radius:var(--radius-md);font-size:0.75rem;font-weight:800;cursor:pointer;border:2px solid;transition:all 0.15s;"
+                  :style="filtro.tipo === 'PUT' ? 'background:var(--brand-amber);color:#fff;border-color:var(--brand-amber);' : 'background:var(--surface-base);color:var(--text-muted);border-color:var(--border-default);'">
+            PUT
+          </button>
+          <button @click="filtro.tipo = 'CALL'"
+                  style="flex:1;padding:0.4rem 0;border-radius:var(--radius-md);font-size:0.75rem;font-weight:800;cursor:pointer;border:2px solid;transition:all 0.15s;"
+                  :style="filtro.tipo === 'CALL' ? 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);' : 'background:var(--surface-base);color:var(--text-muted);border-color:var(--border-default);'">
+            CALL
+          </button>
+        </div>
+      </div>
+
+      <!-- Taxa minima -->
+      <div style="display:flex;flex-direction:column;gap:0.25rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Taxa Min (%)</label>
+        <input v-model.number="filtro.taxaMin" type="number" step="0.1" min="0" placeholder="Ex: 1.5"
+               style="padding:0.4rem 0.625rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.82rem;font-family:'JetBrains Mono',monospace;outline:none;width:100%;"
+               onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+      </div>
+
+      <!-- POE maximo -->
+      <div style="display:flex;flex-direction:column;gap:0.25rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">POE Max (%)</label>
+        <input v-model.number="filtro.poeMax" type="number" step="1" min="0" max="100" placeholder="Ex: 35"
+               style="padding:0.4rem 0.625rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.82rem;font-family:'JetBrains Mono',monospace;outline:none;width:100%;"
+               onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+      </div>
+
+      <!-- DTE range -->
+      <div style="display:flex;flex-direction:column;gap:0.25rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">DTE (dias)</label>
+        <div style="display:flex;gap:0.25rem;align-items:center;">
+          <input v-model.number="filtro.dteMin" type="number" min="0" placeholder="Min"
+                 style="width:50%;padding:0.4rem 0.5rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.8rem;font-family:'JetBrains Mono',monospace;outline:none;"
+                 onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+          <span style="font-size:0.7rem;color:var(--text-muted);flex-shrink:0;">-</span>
+          <input v-model.number="filtro.dteMax" type="number" min="0" placeholder="Max"
+                 style="width:50%;padding:0.4rem 0.5rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.8rem;font-family:'JetBrains Mono',monospace;outline:none;"
+                 onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+        </div>
+      </div>
+
+      <!-- Capital disponivel -->
+      <div style="display:flex;flex-direction:column;gap:0.25rem;">
+        <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Capital (R$)</label>
+        <input v-model.number="filtro.capital" type="number" step="1000" min="0" placeholder="Ex: 10000"
+               style="padding:0.4rem 0.625rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.82rem;font-family:'JetBrains Mono',monospace;outline:none;width:100%;"
+               onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+      </div>
+
+      <!-- Limpar -->
+      <div style="display:flex;flex-direction:column;gap:0.25rem;justify-content:flex-end;">
+        <button @click="limparFiltros"
+                style="padding:0.45rem 0.875rem;border-radius:var(--radius-md);background:none;border:1px solid var(--border-default);color:var(--text-muted);font-size:0.7rem;font-weight:700;cursor:pointer;white-space:nowrap;"
+                onmouseover="this.style.borderColor='var(--brand-rose)';this.style.color='var(--brand-rose)'"
+                onmouseout="this.style.borderColor='var(--border-default)';this.style.color='var(--text-muted)'">
+          Limpar
+        </button>
+      </div>
+    </div>
+
+    <!-- Filtros secundarios -->
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:0.875rem;padding-top:0.875rem;border-top:1px solid var(--border-subtle);">
+
+      <!-- IV Rank min -->
+      <div style="display:flex;flex-direction:column;gap:0.2rem;min-width:100px;">
+        <label style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">IV Rank Min</label>
+        <input v-model.number="filtro.ivRankMin" type="number" step="5" min="0" max="100" placeholder="Ex: 40"
+               style="padding:0.35rem 0.5rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.78rem;font-family:'JetBrains Mono',monospace;outline:none;width:100%;"
+               onfocus="this.style.borderColor='var(--brand-amber)'" onblur="this.style.borderColor='var(--border-default)'">
+      </div>
+
+      <!-- Volume financeiro min -->
+      <div style="display:flex;flex-direction:column;gap:0.2rem;min-width:120px;">
+        <label style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Vol. Fin Min (R$)</label>
+        <input v-model.number="filtro.volMin" type="number" step="10000" min="0" placeholder="Ex: 50000"
+               style="padding:0.35rem 0.5rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.78rem;font-family:'JetBrains Mono',monospace;outline:none;width:100%;"
+               onfocus="this.style.borderColor='var(--brand-amber)'" onblur="this.style.borderColor='var(--border-default)'">
+      </div>
+
+      <!-- Tendencia -->
+      <div style="display:flex;flex-direction:column;gap:0.2rem;">
+        <label style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Tendencia</label>
+        <div style="display:flex;gap:0.25rem;">
+          <button v-for="t in ['TODOS','ALTA','NEUTRO','BAIXA']" :key="t"
+                  @click="filtro.tendencia = t"
+                  style="padding:0.35rem 0.625rem;border-radius:var(--radius-md);font-size:0.65rem;font-weight:700;cursor:pointer;border:1.5px solid;transition:all 0.15s;"
+                  :style="filtro.tendencia === t
+                    ? (t === 'ALTA' ? 'background:var(--brand-emerald);color:#fff;border-color:var(--brand-emerald);'
+                      : t === 'BAIXA' ? 'background:var(--brand-rose);color:#fff;border-color:var(--brand-rose);'
+                      : t === 'NEUTRO' ? 'background:var(--brand-amber);color:#fff;border-color:var(--brand-amber);'
+                      : 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);')
+                    : 'background:var(--surface-base);color:var(--text-muted);border-color:var(--border-default);'">
+            {{ t === 'TODOS' ? 'Todos' : t }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Ordenar por -->
+      <div style="display:flex;flex-direction:column;gap:0.2rem;margin-left:auto;">
+        <label style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Ordenar por</label>
+        <select v-model="filtro.ordenar"
+                style="padding:0.35rem 0.625rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.75rem;outline:none;cursor:pointer;">
+          <option value="taxa">Taxa (%)</option>
+          <option value="poe">POE (menor)</option>
+          <option value="ivrank">IV Rank</option>
+          <option value="score">Score</option>
+          <option value="ganho">Ganho/Capital</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ESTADO VAZIO / CARREGANDO
+       ============================================================ -->
+  <div v-if="!dados || dados.length === 0"
+       class="premium-card" style="padding:3rem 2rem;text-align:center;">
+    <i data-lucide="database" style="width:2rem;height:2rem;color:var(--text-muted);margin:0 auto 0.75rem;display:block;"></i>
+    <p style="color:var(--text-muted);font-size:0.82rem;">Dados nao disponiveis. Clique em Recarregar no cabecalho.</p>
+  </div>
+
+  <div v-else-if="resultados.length === 0"
+       class="premium-card" style="padding:3rem 2rem;text-align:center;">
+    <i data-lucide="search-x" style="width:2rem;height:2rem;color:var(--text-muted);margin:0 auto 0.75rem;display:block;"></i>
+    <p style="color:var(--text-muted);font-size:0.82rem;">Nenhuma opcao encontrada com esses criterios.</p>
+    <p style="color:var(--text-muted);font-size:0.72rem;margin-top:0.25rem;">Tente relaxar algum filtro.</p>
+  </div>
+
+  <!-- ============================================================
+       TABELA DE RESULTADOS
+       ============================================================ -->
+  <div v-else class="premium-card" style="overflow:hidden;padding:0;">
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;min-width:900px;">
+        <thead>
+          <tr style="background:var(--surface-overlay);">
+            <th v-for="col in colunas" :key="col.key"
+                @click="col.sortable !== false && sortBy(col.key)"
+                style="padding:0.625rem 0.875rem;text-align:left;border-bottom:1px solid var(--border-subtle);white-space:nowrap;"
+                :style="col.sortable !== false ? 'cursor:pointer;' : ''">
+              <div style="display:flex;align-items:center;gap:0.3rem;">
+                <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">{{ col.label }}</span>
+                <i v-if="col.sortable !== false && filtro.ordenar === col.key"
+                   data-lucide="chevron-down" style="width:0.6rem;height:0.6rem;color:var(--brand-indigo);display:block;"></i>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(row, idx) in resultados" :key="idx"
+              style="border-bottom:1px solid var(--border-subtle);transition:background 0.1s;"
+              onmouseover="this.style.background='var(--surface-overlay)'"
+              onmouseout="this.style.background='transparent'">
+
+            <!-- Rank -->
+            <td style="padding:0.625rem 0.875rem;">
+              <span style="font-size:0.7rem;font-weight:800;color:var(--text-muted);">{{ idx + 1 }}</span>
+            </td>
+
+            <!-- Ticker ativo -->
+            <td style="padding:0.625rem 0.875rem;">
+              <div style="display:flex;flex-direction:column;gap:1px;">
+                <span style="font-size:0.8rem;font-weight:800;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ row.TICKER }}</span>
+                <span style="font-size:0.62rem;color:var(--text-muted);">{{ row.OPTION_TICKER }}</span>
+              </div>
+            </td>
+
+            <!-- Tipo -->
+            <td style="padding:0.625rem 0.875rem;">
+              <span style="font-size:0.65rem;font-weight:800;padding:2px 7px;border-radius:99px;"
+                    :style="row.CATEGORY === 'PUT'
+                      ? 'background:var(--brand-amber-light);color:var(--brand-amber);'
+                      : 'background:var(--brand-indigo-light);color:var(--brand-indigo);'">
+                {{ row.CATEGORY }}
+              </span>
+            </td>
+
+            <!-- Strike / Spot -->
+            <td style="padding:0.625rem 0.875rem;">
+              <div style="display:flex;flex-direction:column;gap:1px;">
+                <span style="font-size:0.78rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">
+                  {{ fmtR(row.STRIKE) }}
+                </span>
+                <span style="font-size:0.62rem;color:var(--text-muted);">Spot {{ fmtR(row.SPOT) }}</span>
+              </div>
+            </td>
+
+            <!-- Distancia -->
+            <td style="padding:0.625rem 0.875rem;">
+              <span style="font-size:0.78rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                    :style="distanciaStyle(row)">
+                {{ fmtPoe(distancia(row)) }}
+              </span>
+            </td>
+
+            <!-- DTE -->
+            <td style="padding:0.625rem 0.875rem;">
+              <span style="font-size:0.78rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">
+                {{ row.DTE_CALENDAR }}d
+              </span>
+            </td>
+
+            <!-- Taxa -->
+            <td style="padding:0.625rem 0.875rem;">
+              <span style="font-size:0.82rem;font-weight:800;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;">
+                {{ fmtPct(row.VE_OVER_STRIKE) }}
+              </span>
+            </td>
+
+            <!-- POE -->
+            <td style="padding:0.625rem 0.875rem;">
+              <div style="display:flex;flex-direction:column;gap:3px;">
+                <span style="font-size:0.78rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                      :style="poeStyle(row.POE)">
+                  {{ fmtPct(row.POE) }}
+                </span>
+                <div style="height:3px;background:var(--border-subtle);border-radius:99px;overflow:hidden;width:60px;">
+                  <div :style="'height:100%;border-radius:99px;width:' + Math.min(100, (row.POE || 0) * 100).toFixed(0) + '%;' + poeBg(row.POE)"></div>
+                </div>
+              </div>
+            </td>
+
+            <!-- IV Rank -->
+            <td style="padding:0.625rem 0.875rem;">
+              <span style="font-size:0.78rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                    :style="ivRankStyle(row.IV_RANK)">
+                {{ row.IV_RANK != null ? row.IV_RANK.toFixed(0) : '--' }}
+              </span>
+            </td>
+
+            <!-- Volume fin -->
+            <td style="padding:0.625rem 0.875rem;">
+              <span style="font-size:0.72rem;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">
+                {{ fmtVol(row.VOLUME_FIN) }}
+              </span>
+            </td>
+
+            <!-- Tendencia -->
+            <td style="padding:0.625rem 0.875rem;">
+              <span style="font-size:0.7rem;font-weight:700;"
+                    :style="tendenciaStyle(row.TENDENCIA)">
+                {{ tendenciaLabel(row.TENDENCIA) }}
+              </span>
+            </td>
+
+            <!-- Score -->
+            <td style="padding:0.625rem 0.875rem;">
+              <span style="font-size:0.78rem;font-weight:800;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;">
+                {{ row.SCORE != null ? row.SCORE.toFixed(2) : '--' }}
+              </span>
+            </td>
+
+            <!-- Contratos / Ganho (so se capital informado) -->
+            <td v-if="filtro.capital > 0" style="padding:0.625rem 0.875rem;">
+              <div style="display:flex;flex-direction:column;gap:1px;">
+                <span style="font-size:0.75rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">
+                  {{ contratos(row) }}x
+                </span>
+                <span style="font-size:0.62rem;color:var(--brand-emerald);font-weight:700;">
+                  {{ fmtR(ganho(row)) }}
+                </span>
+              </div>
+            </td>
+
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Footer da tabela -->
+    <div style="padding:0.625rem 0.875rem;border-top:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;background:var(--surface-overlay);">
+      <span style="font-size:0.65rem;color:var(--text-muted);">{{ resultados.length }} opcoes | Filtros: {{ resumoFiltros }}</span>
+      <span v-if="filtro.capital > 0" style="font-size:0.65rem;color:var(--text-muted);">Capital: {{ fmtR(filtro.capital) }}</span>
+    </div>
+  </div>
+
+</div>
+</template>
+
+<script>
+window.PagePlanejador = {
+  template: '#page-planejador-template',
+  props: {
+    dados:      { type: Array, default: function() { return []; } },
+    dadosAtivos:{ type: Array, default: function() { return []; } },
+    dadosM9M21: { type: Array, default: function() { return []; } },
+    isMobile:   { type: Boolean, default: false }
+  },
+
+  setup: function(props) {
+    var ref      = Vue.ref;
+    var computed = Vue.computed;
+
+    var filtro = ref({
+      tipo:      'PUT',
+      taxaMin:   1.5,
+      poeMax:    35,
+      dteMin:    21,
+      dteMax:    45,
+      capital:   0,
+      ivRankMin: 0,
+      volMin:    0,
+      tendencia: 'TODOS',
+      ordenar:   'score'
+    });
+
+    // Mapa de tendencia M9M21 por ticker
+    var mapaM9M21 = computed(function() {
+      var m = {};
+      (props.dadosM9M21 || []).forEach(function(r) {
+        if (!r.TICKER) return;
+        var tk = String(r.TICKER).toUpperCase();
+        // Campo pode ser TENDENCIA (string) ou M9M21_TREND (numero -1/0/1)
+        var raw = r.TENDENCIA != null ? r.TENDENCIA : r.M9M21_TREND;
+        m[tk] = raw === 1  || raw === '1'  || String(raw).toUpperCase() === 'ALTA'  ? 1
+              : raw === -1 || raw === '-1' || String(raw).toUpperCase() === 'BAIXA' ? -1
+              : 0;
+      });
+      return m;
+    });
+
+    // Mapa de IV Rank por ticker (DADOS_ATIVOS)
+    var mapaIVRank = computed(function() {
+      var m = {};
+      (props.dadosAtivos || []).forEach(function(r) {
+        if (r.TICKER) m[String(r.TICKER).toUpperCase()] = parseFloat(r.IV_RANK) || null;
+      });
+      return m;
+    });
+
+    // Enriquece cada linha com POE, IV_RANK, TENDENCIA e SCORE
+    var dadosEnriquecidos = computed(function() {
+      return (props.dados || []).map(function(r) {
+        var ticker = String(r.TICKER || r.OPTION_TICKER || '').replace(/[A-Z]\d+$/, '').trim().toUpperCase();
+        var ivRank = mapaIVRank.value[ticker] != null ? mapaIVRank.value[ticker] : (parseFloat(r.IV_RANK) || null);
+        // M9M21_TREND: 1=ALTA, -1=BAIXA, 0=NEUTRO (numero na planilha)
+        var trendRaw = mapaM9M21.value[ticker] != null
+                       ? mapaM9M21.value[ticker]
+                       : (r.M9M21_TREND != null ? r.M9M21_TREND : null);
+        var tend = trendRaw === 1 || trendRaw === '1' || trendRaw === 'ALTA'   ? 'ALTA'
+                 : trendRaw === -1 || trendRaw === '-1' || trendRaw === 'BAIXA' ? 'BAIXA'
+                 : 'NEUTRO';
+        // POE nao existe na aba -- calcular via BS com IV_CURRENT disponivel
+        var spotPoe  = parseFloat(r.SPOT)     || 0;
+        var strikePoe= parseFloat(r.STRIKE)   || 0;
+        var ivPoe    = parseFloat(r.IV_CURRENT)|| 0;
+        var dtePoe   = parseInt(r.DTE_CALENDAR)|| 0;
+        var poe = null;
+        if (spotPoe > 0 && strikePoe > 0 && ivPoe > 0 && dtePoe > 0) {
+          poe = _calcPOE(spotPoe, strikePoe, dtePoe, ivPoe / 100,
+                         String(r.CATEGORY).toUpperCase() === 'PUT' ? 'PUT' : 'CALL');
+        }
+        var taxa   = parseFloat(r.VE_OVER_STRIKE)|| 0;
+        var vol    = parseFloat(r.VOLUME_FIN)    || 0;
+        var dte    = parseInt(r.DTE_CALENDAR)    || 0;
+
+        // Score composto (replica do RankingPUT)
+        var ivFactor  = ivRank != null ? (0.5 + ivRank / 100) : 0.5;
+        var logVol    = vol > 0 ? Math.log(vol) : 0;
+        var trendMult = tend === 'ALTA' ? 1.2 : tend === 'BAIXA' ? 0.7 : 1.0;
+        var score     = taxa * ivFactor * logVol * trendMult;
+
+        return Object.assign({}, r, {
+          IV_RANK:   ivRank,
+          TENDENCIA: tend,
+          POE:       poe,
+          SCORE:     score,
+          _ticker:   ticker
+        });
+      });
+    });
+
+    var resultados = computed(function() {
+      var f = filtro.value;
+      var tipo = f.tipo;
+
+      var filtered = dadosEnriquecidos.value.filter(function(r) {
+        if (String(r.CATEGORY || '').toUpperCase() !== tipo) return false;
+
+        var taxa = parseFloat(r.VE_OVER_STRIKE) || 0;
+        // VE_OVER_STRIKE ja em % (ex: 10.33 = 10.33%), filtro tambem em %
+        if (f.taxaMin > 0 && taxa < f.taxaMin) return false;
+
+        var poe = r.POE;
+        // POE e 0-1, poeMax e em % (ex: 35 = 35%)
+        if (f.poeMax > 0 && poe != null && poe * 100 > f.poeMax) return false;
+        // Bloquear opcoes ITM quando filtro de distancia implicito
+        var distVal = distancia(r);
+        if (distVal !== null && distVal < -0.02) return false; // ignorar > 2% ITM
+
+        var dte = parseInt(r.DTE_CALENDAR) || 0;
+        if (f.dteMin > 0 && dte < f.dteMin) return false;
+        if (f.dteMax > 0 && dte > f.dteMax) return false;
+
+        if (f.ivRankMin > 0 && (r.IV_RANK == null || r.IV_RANK < f.ivRankMin)) return false;
+
+        var vol = parseFloat(r.VOLUME_FIN) || 0;
+        if (f.volMin > 0 && vol < f.volMin) return false;
+
+        if (f.tendencia !== 'TODOS' && r.TENDENCIA !== f.tendencia) return false;
+
+        return true;
+      });
+
+      // Ordenacao
+      filtered.sort(function(a, b) {
+        switch (f.ordenar) {
+          case 'taxa':   return (parseFloat(b.VE_OVER_STRIKE) || 0) - (parseFloat(a.VE_OVER_STRIKE) || 0);
+          case 'poe':    return (a.POE || 1) - (b.POE || 1);
+          case 'ivrank': return (b.IV_RANK || 0) - (a.IV_RANK || 0);
+          case 'ganho':  return ganho(b) - ganho(a);
+          default:       return (b.SCORE || 0) - (a.SCORE || 0);
+        }
+      });
+
+      return filtered.slice(0, 50);
+    });
+
+    var colunas = computed(function() {
+      var cols = [
+        { key: '#',         label: '#',          sortable: false },
+        { key: 'TICKER',    label: 'Ativo / Opcao', sortable: false },
+        { key: 'CATEGORY',  label: 'Tipo',       sortable: false },
+        { key: 'STRIKE',    label: 'Strike / Spot', sortable: false },
+        { key: 'dist',      label: 'Distancia',  sortable: false },
+        { key: 'DTE_CALENDAR', label: 'DTE',     sortable: false },
+        { key: 'taxa',      label: 'Taxa',       sortable: false },
+        { key: 'poe',       label: 'POE',        sortable: false },
+        { key: 'ivrank',    label: 'IV Rank',    sortable: false },
+        { key: 'vol',       label: 'Vol. Fin',   sortable: false },
+        { key: 'tend',      label: 'Tendencia',  sortable: false },
+        { key: 'score',     label: 'Score',      sortable: false },
+      ];
+      if (filtro.value.capital > 0) {
+        cols.push({ key: 'ctrs', label: 'Ctrs / Ganho', sortable: false });
+      }
+      return cols;
+    });
+
+    var resumoFiltros = computed(function() {
+      var f = filtro.value;
+      var parts = [];
+      if (f.taxaMin)   parts.push('Taxa >=' + f.taxaMin + '%');
+      if (f.poeMax)    parts.push('POE <=' + f.poeMax + '%');
+      if (f.dteMin || f.dteMax) parts.push('DTE ' + (f.dteMin||0) + '-' + (f.dteMax||999) + 'd');
+      if (f.ivRankMin) parts.push('IV Rank >=' + f.ivRankMin);
+      if (f.tendencia !== 'TODOS') parts.push('Tend=' + f.tendencia);
+      return parts.length > 0 ? parts.join(' | ') : 'Nenhum';
+    });
+
+    function limparFiltros() {
+      filtro.value = {
+        tipo: 'PUT', taxaMin: 0, poeMax: 0, dteMin: 0, dteMax: 0,
+        capital: 0, ivRankMin: 0, volMin: 0, tendencia: 'TODOS', ordenar: 'score'
+      };
+    }
+
+    function sortBy(key) {
+      filtro.value.ordenar = key;
+    }
+
+    // Helpers de calculo
+    function distancia(row) {
+      var S = parseFloat(row.SPOT) || 0;
+      var K = parseFloat(row.STRIKE) || 0;
+      if (!S || !K) return null;
+      return filtro.value.tipo === 'PUT' ? (S - K) / K : (K - S) / S;
+    }
+
+    function contratos(row) {
+      var capital = filtro.value.capital;
+      if (!capital) return 0;
+      var nocional = (parseFloat(row.STRIKE) || 0) * 100;
+      if (!nocional) return 0;
+      return Math.floor(capital / nocional);
+    }
+
+    function ganho(row) {
+      var ctrs = contratos(row);
+      if (!ctrs) return 0;
+      var premio = (parseFloat(row.VE_OVER_STRIKE) || 0) * (parseFloat(row.STRIKE) || 0);
+      return ctrs * 100 * premio;
+    }
+
+    // Formatadores
+    function fmtR(v) {
+      var n = parseFloat(v);
+      if (isNaN(n)) return '--';
+      return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    // Para campos que ja vem como percentual (ex: VE_OVER_STRIKE=10.33 significa 10.33%)
+    function fmtPct(v) {
+      var n = parseFloat(v);
+      if (isNaN(n) || n == null) return '--';
+      return n.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+    }
+    // Para valores decimais 0-1 (ex: POE calculado = 0.35 significa 35%)
+    function fmtPoe(v) {
+      var n = parseFloat(v);
+      if (isNaN(n) || n == null) return '--';
+      return (n * 100).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+    }
+    function fmtVol(v) {
+      var n = parseFloat(v);
+      if (isNaN(n) || n === 0) return '--';
+      if (n >= 1000000) return 'R$ ' + (n / 1000000).toFixed(1) + 'M';
+      if (n >= 1000)    return 'R$ ' + (n / 1000).toFixed(0) + 'K';
+      return 'R$ ' + n.toFixed(0);
+    }
+
+    // Estilos condicionais
+    function distanciaStyle(row) {
+      var d = distancia(row);
+      if (d == null) return 'color:var(--text-muted)';
+      if (d >= 0.08) return 'color:var(--brand-emerald)';
+      if (d >= 0.03) return 'color:var(--brand-amber)';
+      return 'color:var(--brand-rose)';
+    }
+    function poeStyle(poe) {
+      if (poe == null) return 'color:var(--text-muted)';
+      var p = poe * 100;
+      if (p < 25) return 'color:var(--brand-emerald)';
+      if (p < 40) return 'color:var(--brand-amber)';
+      return 'color:var(--brand-rose)';
+    }
+    function poeBg(poe) {
+      var p = (poe || 0) * 100;
+      if (p < 25) return 'background:var(--brand-emerald);';
+      if (p < 40) return 'background:var(--brand-amber);';
+      return 'background:var(--brand-rose);';
+    }
+    function ivRankStyle(iv) {
+      if (iv == null) return 'color:var(--text-muted)';
+      if (iv >= 70) return 'color:var(--brand-emerald)';
+      if (iv >= 40) return 'color:var(--brand-amber)';
+      return 'color:var(--brand-rose)';
+    }
+    function tendenciaStyle(t) {
+      if (t === 'ALTA')  return 'color:var(--brand-emerald)';
+      if (t === 'BAIXA') return 'color:var(--brand-rose)';
+      return 'color:var(--brand-amber)';
+    }
+    function tendenciaLabel(t) {
+      if (t === 'ALTA')  return 'Alta';
+      if (t === 'BAIXA') return 'Baixa';
+      return 'Neutro';
+    }
+
+    // Mini motor BS para calcular POE (N(d2) ou N(-d2))
+    function _calcPOE(S, K, dte, sigma, flag) {
+      var T = Math.max(dte / 252, 0.002);
+      var r = 0.1475; // Selic fallback
+      var sq = Math.sqrt(T);
+      var d1 = (Math.log(S / K) + (r + 0.5 * sigma * sigma) * T) / (sigma * sq);
+      var d2 = d1 - sigma * sq;
+      // CDF aproximada
+      function cdf(x) {
+        var t = 1 / (1 + 0.2316419 * Math.abs(x));
+        var d = 0.3989423 * Math.exp(-x * x / 2);
+        var p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+        return x > 0 ? 1 - p : p;
+      }
+      return flag === 'PUT' ? cdf(-d2) : cdf(d2);
+    }
+
+    Vue.onMounted(function() {
+      if (window.lucide) window.lucide.createIcons();
+    });
+
+    return {
+      filtro, resultados, colunas, resumoFiltros,
+      limparFiltros, sortBy,
+      distancia, contratos, ganho,
+      fmtR, fmtPct, fmtPoe, fmtVol,
+      distanciaStyle, poeStyle, poeBg, ivRankStyle,
+      tendenciaStyle, tendenciaLabel
+    };
+  }
+};
+</script>
