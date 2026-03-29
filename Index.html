@@ -55,6 +55,13 @@
         @atualizar="handleRefresh">
       </menu-sidebar>
 
+      <!-- Calculadora Black-Scholes (modal global, abre sobre qualquer view) -->
+      <calculadora-bs
+        :aberto="modalCalcBS"
+        :is-mobile="isMobile"
+        @fechar="modalCalcBS = false">
+      </calculadora-bs>
+
       <!-- ================================================================
            AREA PRINCIPAL
            ================================================================ -->
@@ -237,6 +244,7 @@
     <?!= include('SettingsView'); ?>
 
     <?!= include('ConsultorIA'); ?>
+    <?!= include('CalculadoraBS'); ?>
 
     <?!= include('AppCore'); ?>
 

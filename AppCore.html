@@ -35,7 +35,8 @@ const app = createApp({
     // 2. ROTEAMENTO E MENU
     // ====================================================================
     const currentView = ref('cockpit');
-    const isCollapsed = ref(true);
+    const isCollapsed    = ref(true);
+    const modalCalcBS   = ref(false);
 
     const menu = ref(window.APP_MENU || []);
 
@@ -56,9 +57,17 @@ const app = createApp({
     };
 
     const navigate = (viewName) => {
+      // Items com modal:true nao navegam -- abrem o modal correspondente
+      var itemMenu = (menu.value || []).find(function(m) { return m.id === viewName; });
+      if (itemMenu && itemMenu.modal) {
+        if (viewName === 'calc-bs') { modalCalcBS.value = true; }
+        if (isMobile.value) isCollapsed.value = true;
+        setTimeout(function() { if (window.lucide) window.lucide.createIcons(); }, 100);
+        return;
+      }
       currentView.value = viewName;
       if (isMobile.value) isCollapsed.value = true;
-      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 100);
+      setTimeout(function() { if (window.lucide) window.lucide.createIcons(); }, 100);
     };
 
     const dynamicSummaryData = computed(() => {
@@ -415,7 +424,7 @@ const app = createApp({
       db, cuboOlap, isLoading, status, hasError, errorMessage, lastSync, tempoCarga,
 
       // NAVEGACAO E LAYOUT
-      currentView, navigate, isCollapsed, toggleSidebar, isMobile,
+      currentView, navigate, isCollapsed, toggleSidebar, isMobile, modalCalcBS,
       menu, currentMenuLabel, currentLayout, dynamicSummaryData, // disponivel para templates futuros
       //  INDEX: menu-sidebar precisa receber: :menu="menu" :current-view="currentView"
       //           :is-collapsed="isCollapsed" :is-mobile="isMobile" :last-sync="lastSync"
@@ -471,7 +480,6 @@ const COMPONENTES_V5 = [
   ['oplab-hub',              window.OpLabHub],
   ['page-series-opcoes',     window.PageSeriesOpcoes],
   ['page-melhores-taxas',    window.PageMelhoresTaxas],
-  ['page-ranking-put',       window.PageRankingPUT],  
   ['page-volumes',           window.PageVolumes],
   ['page-variacoes',         window.PageVariacoes],
   ['page-ranking-m9m21',     window.PageRankingM9M21],
@@ -491,7 +499,8 @@ const COMPONENTES_V5 = [
   ['log-console',            window.LogConsole],
   ['bancodedados-view',      window.BancoDeDadosView],
   ['oplab-explorer-view',    window.OpLabExplorerView],
-  ['settings-view',          window.SettingsView]
+  ['settings-view',          window.SettingsView],
+  ['calculadora-bs',         window.CalculadoraBS]
 ];
 
 COMPONENTES_V5.forEach(([name, comp]) => {

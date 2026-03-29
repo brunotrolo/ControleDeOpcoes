@@ -17,7 +17,8 @@ window.APP_MENU = [
   { id: 'bancodedados',  label: 'Base de Dados',          icon: 'database' },
   { separator: true },           // ← linha divisória
   { id: 'oplab-explorer',label: 'OpLab API Explorer',     icon: 'terminal' },
-  { id: 'config',        label: 'Configuracoes',          icon: 'settings' }
+  { id: 'config',        label: 'Configuracoes',          icon: 'settings' },
+  { id: 'calc-bs',       label: 'Calculadora BS',         icon: 'calculator',  modal: true }
 ];
 
 /**
@@ -90,7 +91,7 @@ window.LAYOUT_MAP = {
   'necton-import':  [{ id: 'painel-importacao',     component: 'necton-import',       cols: 'col-span-12', props: {} }],
   'dados-ativos':   [{ id: 'painel-gestao-ativos',  component: 'gestao-ativos',       cols: 'col-span-12', props: {} }],
   'comparador':     [{ id: 'painel-comparador',     component: 'comparativo-view',    cols: 'col-span-12', props: {} }],
-  'oplab-market':   [{ id: 'oplab-hub',             component: 'oplab-hub',           cols: 'col-span-12', props: {} }],
+  'oplab-market':   [{ id: 'oplab-hub',            component: 'oplab-hub',           cols: 'col-span-12', props: {} }],
   'bancodedados':   [{ id: 'tela-bancodedados',     component: 'bancodedados-view',   cols: 'col-span-12', props: {} }],
   'oplab-explorer': [{ id: 'painel-oplab-explorer', component: 'oplab-explorer-view', cols: 'col-span-12', props: {} }],
   'consultoria':    [{ id: 'painel-consultoria',    component: 'consultoria-view',    cols: 'col-span-12', props: {} }]
