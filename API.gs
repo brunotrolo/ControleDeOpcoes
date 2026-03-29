@@ -406,29 +406,181 @@ function testarAPI_Escrita() {
 
 function apiIntegracaoOpLab(ticker) {
   if (!ticker || String(ticker).trim() === '') {
-    return { success: false, error: 'Ticker não fornecido.' };
+    return { success: false, error: 'Ticker nao fornecido.' };
   }
 
   try {
-    const cleanTicker = String(ticker).toUpperCase().trim();
-    const data = OplabService.getOptionDetails(cleanTicker);
+    var cleanTicker = String(ticker).toUpperCase().trim();
+    var data = OplabService.getOptionDetails(cleanTicker);
 
-    if (!data) return { success: false, error: 'Ativo [' + cleanTicker + '] não encontrado ou sem liquidez.' };
+    if (!data) return { success: false, error: 'Opcao [' + cleanTicker + '] nao encontrada ou sem liquidez na API OpLab.' };
+
+    // Extrai a data de vencimento no formato YYYY-MM-DD
+    var expiry = '';
+    if (data.due_date) {
+      // due_date pode vir como "2026-05-15T03:00:00.000Z" ou "2026-05-15"
+      expiry = String(data.due_date).substring(0, 10);
+    } else if (data.days_to_maturity) {
+      // Fallback: calcula a data aproximada somando dte a hoje
+      var dataVenc = new Date();
+      dataVenc.setDate(dataVenc.getDate() + parseInt(data.days_to_maturity || 0));
+      var y  = dataVenc.getFullYear();
+      var m  = String(dataVenc.getMonth() + 1).padStart(2, '0');
+      var d  = String(dataVenc.getDate()).padStart(2, '0');
+      expiry = y + '-' + m + '-' + d;
+    }
+
+    // Busca a Selic atual da Config_Global para pre-popular o campo de taxa
+    var taxaJuros = 14.75; // fallback padrao
+    try {
+      var cfg = ConfigManager.get();
+      if (cfg && cfg['Taxa_Selic_Anual']) {
+        taxaJuros = parseFloat(String(cfg['Taxa_Selic_Anual']).replace(',', '.')) * 100 || 14.75;
+      }
+    } catch (eCfg) {
+      // silencioso -- usa o fallback
+    }
+
+    // Busca IV (volatilidade implicita) do ativo mae na aba DADOS_ATIVOS
+    // Coluna IV = volatilidade implicita atual (calculada pelo 008_CoreSyncStockData)
+    var ivAtivo = null;
+    try {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var abaAtivos = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.ASSETS);
+      if (abaAtivos && abaAtivos.getLastRow() > 1) {
+        var headersAtivos = abaAtivos.getRange(1, 1, 1, abaAtivos.getLastColumn()).getValues()[0];
+        var colTicker = -1, colIV = -1;
+        for (var hi = 0; hi < headersAtivos.length; hi++) {
+          var h = String(headersAtivos[hi]).trim().toUpperCase();
+          if (h === 'TICKER') colTicker = hi;
+          if (h === 'IV')     colIV     = hi;
+        }
+        if (colTicker >= 0 && colIV >= 0) {
+          // Campo correto na API OpLab: 'parent_symbol' (confirmado via debug)
+          // 'underlying' nao existe neste endpoint -- vem undefined
+          var tickerBusca = String(
+            data.parent_symbol ||
+            data.underlying    ||
+            data.stock         ||
+            ''
+          ).trim().toUpperCase();
+
+          // Fallback: extrair ticker mae removendo sufixo de opcao do symbol
+          // Ex: 'SANBJ349' -> tenta encontrar 'SANB11' via lookup direto
+          // Nao tentamos regex aqui pois e dificil de acertar para todos os casos --
+          // confiamos no campo 'underlying' da API
+
+          if (tickerBusca) {
+            var valoresAtivos = abaAtivos.getRange(2, 1, abaAtivos.getLastRow() - 1, abaAtivos.getLastColumn()).getValues();
+            for (var ri = 0; ri < valoresAtivos.length; ri++) {
+              if (String(valoresAtivos[ri][colTicker]).trim().toUpperCase() === tickerBusca) {
+                var ivBruto = valoresAtivos[ri][colIV];
+
+                // FIX 2: DADOS_ATIVOS usa getDisplayValues() -- IV pode vir como:
+                //   numero puro  : 0.3359  (decimal, ja na forma correta)
+                //   string BR    : "33,59" (percentual com virgula)
+                //   string US    : "33.59" (percentual com ponto)
+                // Regra: se o valor numerico for > 1, e percentual -> dividir por 100
+                var ivNum = parseFloat(String(ivBruto).replace('%', '').replace(',', '.').trim());
+                if (!isNaN(ivNum) && ivNum > 0) {
+                  ivAtivo = ivNum > 1 ? ivNum / 100 : ivNum;
+                }
+                break;
+              }
+            }
+          }
+        }
+      }
+    } catch (eIV) {
+      // silencioso -- ivAtivo permanece null, frontend exibe campo manual
+      SysLogger.log('apiIntegracaoOpLab', 'AVISO', 'Falha ao buscar IV de DADOS_ATIVOS: ' + eIV.message);
+    }
 
     return {
       success: true,
       data: {
         symbol:      data.symbol      || cleanTicker,
-        category:    data.category    || 'N/A',
+        category:    String(data.category || data.type || 'CALL').toUpperCase(),
         strike:      parseFloat(data.strike            || 0),
         premioAtual: parseFloat(data.close > 0 ? data.close : (data.bid || 0)),
-        spotPrice:   parseFloat(data.spot_price        || 0),
-        dte:         parseInt(data.days_to_maturity    || 0)
+        spotPrice:   parseFloat(data.spot_price || data.spot || 0),
+        dte:         parseInt(data.days_to_maturity    || 0),
+        expiry:      expiry,
+        taxaJuros:   taxaJuros,
+        ivAtivo:     ivAtivo       // null se nao encontrado -> frontend mostra campo manual
       }
     };
   } catch (e) {
     return { success: false, error: e.message };
   }
+}
+
+// ==========================================
+// DEBUG: Testar apiIntegracaoOpLab (rodar manualmente no editor GAS)
+// ==========================================
+
+/**
+ * Cole um ticker e rode esta funcao no editor GAS para ver o que a API retorna.
+ * Isso resolve o misterio do ivAtivo vindo null.
+ */
+function debugApiIntegracaoOpLab() {
+  var ticker = 'SANBJ349'; // <-- troque pelo ticker que quiser testar
+
+  // 1. Ver o retorno bruto da API OpLab
+  var raw = OplabService.getOptionDetails(ticker);
+  console.log('=== RETORNO BRUTO DA OPLAB ===');
+  console.log('underlying:  ' + raw.underlying);
+  console.log('symbol:      ' + raw.symbol);
+  console.log('category:    ' + raw.category);
+  console.log('type:        ' + raw.type);
+  console.log('strike:      ' + raw.strike);
+  console.log('spot_price:  ' + raw.spot_price);
+  console.log('close:       ' + raw.close);
+  console.log('due_date:    ' + raw.due_date);
+  console.log('days_to_mat: ' + raw.days_to_maturity);
+  console.log('Campos disponiveis: ' + Object.keys(raw).join(', '));
+
+  // 2. Ver o que existe na DADOS_ATIVOS para o underlying
+  var tickerBusca = String(raw.underlying || raw.symbol || '').trim().toUpperCase();
+  console.log('');
+  console.log('=== LOOKUP DADOS_ATIVOS ===');
+  console.log('Ticker buscado: ' + tickerBusca);
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var abaAtivos = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.ASSETS);
+  var headers = abaAtivos.getRange(1, 1, 1, abaAtivos.getLastColumn()).getValues()[0];
+  console.log('Cabecalhos DADOS_ATIVOS: ' + headers.join(' | '));
+
+  var colTicker = -1, colIV = -1;
+  headers.forEach(function(h, i) {
+    var hu = String(h).trim().toUpperCase();
+    if (hu === 'TICKER') colTicker = i;
+    if (hu === 'IV')     colIV     = i;
+  });
+  console.log('Col TICKER: ' + colTicker + ' | Col IV: ' + colIV);
+
+  var dados = abaAtivos.getRange(2, 1, abaAtivos.getLastRow() - 1, abaAtivos.getLastColumn()).getValues();
+  var encontrou = false;
+  for (var i = 0; i < dados.length; i++) {
+    var tk = String(dados[i][colTicker]).trim().toUpperCase();
+    if (tk === tickerBusca) {
+      var ivBruto = dados[i][colIV];
+      console.log('ENCONTROU: linha ' + (i + 2) + ' | IV bruto = [' + ivBruto + '] | tipo = ' + typeof ivBruto);
+      console.log('IV parseado: ' + parseFloat(String(ivBruto).replace(',', '.')));
+      encontrou = true;
+      break;
+    }
+  }
+  if (!encontrou) {
+    console.log('NAO ENCONTROU "' + tickerBusca + '" em DADOS_ATIVOS');
+    console.log('Tickers disponíveis: ' + dados.slice(0, 5).map(function(r) { return r[colTicker]; }).join(', ') + '...');
+  }
+
+  // 3. Ver o retorno final da funcao
+  console.log('');
+  console.log('=== RETORNO FINAL apiIntegracaoOpLab ===');
+  var resultado = apiIntegracaoOpLab(ticker);
+  console.log(JSON.stringify(resultado, null, 2));
 }
 
 // ==========================================

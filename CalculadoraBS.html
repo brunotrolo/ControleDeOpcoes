@@ -1,9 +1,860 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <base target="_top">
-  </head>
-  <body>
-    
-  </body>
-</html>
+<template id="calculadora-bs-template">
+
+  <transition name="bs-fade">
+    <div v-if="aberto"
+         style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;"
+         @click.self="fechar">
+
+      <div style="position:absolute;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(3px);"></div>
+
+      <!-- Tooltip global (position:fixed -- sobrepoe qualquer overflow:hidden) -->
+      <div v-if="tipVisible"
+           style="position:fixed;z-index:99999;pointer-events:none;width:220px;transform:translate(-50%,-100%);"
+           :style="'left:' + tipX + 'px;top:' + tipY + 'px;'">
+        <div style="background:var(--text-primary);color:var(--surface-base);font-size:0.65rem;font-weight:500;line-height:1.55;padding:0.5rem 0.75rem;border-radius:var(--radius-md);box-shadow:0 4px 20px rgba(0,0,0,0.3);white-space:normal;">
+          {{ tipText }}
+        </div>
+        <div style="width:8px;height:5px;margin:0 auto;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--text-primary);"></div>
+      </div>
+
+      <!-- Painel -->
+      <div style="position:relative;z-index:1;display:flex;flex-direction:column;overflow:hidden;border-radius:var(--radius-xl);background:var(--surface-base);border:1px solid var(--border-subtle);box-shadow:0 24px 64px rgba(0,0,0,0.4);"
+           :style="isMobile ? 'width:100%;height:100%;border-radius:0;' : 'width:720px;max-height:93vh;'">
+
+        <!-- Cabecalho -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem;border-bottom:1px solid var(--border-subtle);flex-shrink:0;background:var(--surface-overlay);">
+          <div style="display:flex;align-items:center;gap:0.875rem;">
+            <div style="padding:0.5rem;background:var(--brand-indigo-light);color:var(--brand-indigo);border-radius:var(--radius-md);border:1px solid var(--brand-indigo-muted);">
+              <i data-lucide="calculator" style="width:1.125rem;height:1.125rem;display:block;"></i>
+            </div>
+            <div>
+              <h3 style="font-size:0.95rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.01em;">Calculadora Black-Scholes</h3>
+              <p style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:1px;">Motor nativo identico ao 012_CoreCalcGreeks</p>
+            </div>
+          </div>
+          <button @click="fechar"
+                  style="padding:0.375rem;border-radius:var(--radius-md);background:none;border:none;color:var(--text-muted);cursor:pointer;"
+                  onmouseover="this.style.background='var(--border-subtle)';this.style.color='var(--text-primary)'"
+                  onmouseout="this.style.background='none';this.style.color='var(--text-muted)'">
+            <i data-lucide="x" style="width:1.125rem;height:1.125rem;display:block;"></i>
+          </button>
+        </div>
+
+        <!-- Corpo -->
+        <div style="overflow-y:auto;flex:1;padding:1.5rem;display:flex;flex-direction:column;gap:1.25rem;">
+
+          <!-- ============================================================
+               BLOCO 0: MODO DE ENTRADA
+               ============================================================ -->
+          <div style="display:flex;gap:0.5rem;">
+            <button @click="modoEntrada = 'codigo'"
+                    style="flex:1;padding:0.625rem;border-radius:var(--radius-md);font-size:0.75rem;font-weight:700;cursor:pointer;border:2px solid;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:0.4rem;"
+                    :style="modoEntrada === 'codigo'
+                      ? 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);'
+                      : 'background:var(--surface-base);color:var(--text-muted);border-color:var(--border-default);'">
+              <i data-lucide="search" style="width:0.8rem;height:0.8rem;display:block;"></i>
+              Codigo da Opcao
+            </button>
+            <button @click="modoEntrada = 'manual'"
+                    style="flex:1;padding:0.625rem;border-radius:var(--radius-md);font-size:0.75rem;font-weight:700;cursor:pointer;border:2px solid;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:0.4rem;"
+                    :style="modoEntrada === 'manual'
+                      ? 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);'
+                      : 'background:var(--surface-base);color:var(--text-muted);border-color:var(--border-default);'">
+              <i data-lucide="sliders-horizontal" style="width:0.8rem;height:0.8rem;display:block;"></i>
+              Simular livremente
+            </button>
+          </div>
+
+          <!-- ============================================================
+               BUSCA POR CODIGO
+               ============================================================ -->
+          <div v-if="modoEntrada === 'codigo'" style="display:flex;flex-direction:column;gap:0.625rem;">
+            <div style="display:flex;gap:0.5rem;">
+              <div style="flex:1;display:flex;flex-direction:column;gap:0.3rem;">
+                <label style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Codigo da Opcao</label>
+                <input v-model="codigoOpcao" type="text" placeholder="Ex: SANBJ349, PETRV475..."
+                       @keyup.enter="buscarOpcao"
+                       style="padding:0.5rem 0.75rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.9rem;font-family:'JetBrains Mono',monospace;outline:none;text-transform:uppercase;width:100%;"
+                       onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+              </div>
+              <button @click="buscarOpcao" :disabled="buscando || !codigoOpcao.trim()"
+                      style="align-self:flex-end;padding:0.5rem 1.25rem;border-radius:var(--radius-md);background:var(--brand-indigo);color:#fff;border:none;font-size:0.75rem;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:0.4rem;white-space:nowrap;transition:opacity 0.15s;"
+                      :style="(buscando || !codigoOpcao.trim()) ? 'opacity:0.45;cursor:not-allowed;' : ''">
+                <i :data-lucide="buscando ? 'loader-2' : 'search'" style="width:0.8rem;height:0.8rem;display:block;"
+                   :style="buscando ? 'animation:bs-spin 0.8s linear infinite;' : ''"></i>
+                {{ buscando ? 'Buscando...' : 'Buscar' }}
+              </button>
+            </div>
+            <div v-if="erroBusca" style="padding:0.5rem 0.875rem;background:var(--brand-rose-light);border:1px solid var(--brand-rose-muted);border-radius:var(--radius-md);display:flex;align-items:center;gap:0.5rem;">
+              <i data-lucide="alert-triangle" style="width:0.8rem;height:0.8rem;color:var(--brand-rose);flex-shrink:0;display:block;"></i>
+              <span style="font-size:0.72rem;color:var(--brand-rose);font-weight:600;">{{ erroBusca }}</span>
+            </div>
+            <div v-if="dadosBuscados" style="padding:0.75rem 1rem;background:var(--brand-emerald-light);border:1px solid var(--brand-emerald-muted);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:space-between;gap:1rem;">
+              <div style="display:flex;align-items:center;gap:0.5rem;">
+                <i data-lucide="check-circle-2" style="width:0.875rem;height:0.875rem;color:var(--brand-emerald);flex-shrink:0;display:block;"></i>
+                <div>
+                  <p style="font-size:0.78rem;font-weight:800;color:var(--brand-emerald);">{{ dadosBuscados.symbol }}</p>
+                  <p style="font-size:0.67rem;color:var(--text-secondary);margin-top:1px;">
+                    {{ dadosBuscados.category }} | Strike R$ {{ dadosBuscados.strike }} | Spot R$ {{ dadosBuscados.spotPrice }} | {{ dadosBuscados.dte }}d
+                  </p>
+                </div>
+              </div>
+              <span style="font-size:0.6rem;color:var(--brand-emerald);font-weight:800;background:rgba(0,0,0,0.06);padding:2px 8px;border-radius:99px;white-space:nowrap;">Campos preenchidos</span>
+            </div>
+          </div>
+
+          <!-- ============================================================
+               BLOCO 1: CALL/PUT + CAMPOS FIXOS
+               ============================================================ -->
+          <div style="display:flex;flex-direction:column;gap:0.875rem;">
+
+            <div style="display:flex;gap:0.5rem;">
+              <button @click="tipo = 'CALL'"
+                      style="flex:1;padding:0.5rem;border-radius:var(--radius-md);font-size:0.8rem;font-weight:800;cursor:pointer;border:2px solid;transition:all 0.15s;"
+                      :style="tipo === 'CALL' ? 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);' : 'background:var(--surface-base);color:var(--text-muted);border-color:var(--border-default);'">
+                CALL
+              </button>
+              <button @click="tipo = 'PUT'"
+                      style="flex:1;padding:0.5rem;border-radius:var(--radius-md);font-size:0.8rem;font-weight:800;cursor:pointer;border:2px solid;transition:all 0.15s;"
+                      :style="tipo === 'PUT' ? 'background:var(--brand-amber);color:#fff;border-color:var(--brand-amber);' : 'background:var(--surface-base);color:var(--text-muted);border-color:var(--border-default);'">
+                PUT
+              </button>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.625rem;">
+              <div style="display:flex;flex-direction:column;gap:0.25rem;">
+                <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Strike (R$)</label>
+                <input v-model="strike" type="number" step="0.01" min="0" placeholder="Ex: 33.91"
+                       style="padding:0.45rem 0.75rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.85rem;font-family:'JetBrains Mono',monospace;outline:none;width:100%;"
+                       onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:0.25rem;">
+                <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Data Vencimento</label>
+                <input v-model="dataVenc" type="date"
+                       style="padding:0.45rem 0.75rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.85rem;outline:none;width:100%;"
+                       onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:0.25rem;">
+                <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Taxa de Juros (% a.a.)</label>
+                <input v-model="taxaJuros" type="number" step="0.01" min="0" placeholder="14.75"
+                       style="padding:0.45rem 0.75rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.85rem;font-family:'JetBrains Mono',monospace;outline:none;width:100%;"
+                       onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:0.25rem;">
+                <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Data Referencia</label>
+                <input v-model="dataRef" type="date"
+                       style="padding:0.45rem 0.75rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.85rem;outline:none;width:100%;"
+                       onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+              </div>
+            </div>
+
+            <!-- DTE pill -->
+            <div style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0.875rem;background:var(--surface-sunken);border-radius:var(--radius-md);border:1px solid var(--border-subtle);">
+              <i data-lucide="clock" style="width:0.8rem;height:0.8rem;color:var(--text-muted);flex-shrink:0;display:block;"></i>
+              <span style="font-size:0.7rem;color:var(--text-muted);">Dias corridos ate o vencimento:</span>
+              <span style="font-size:0.875rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);margin-left:auto;">
+                {{ dte !== null ? dte + 'd' : '--' }}
+              </span>
+              <span v-if="dte !== null" style="font-size:0.62rem;color:var(--text-muted);">(T = {{ tAnos }})</span>
+            </div>
+          </div>
+
+          <!-- Divisor -->
+          <div style="height:1px;background:var(--border-subtle);"></div>
+
+          <!-- ============================================================
+               BLOCO 2: OS TRES INPUTS SEMPRE VISIVEIS
+               ============================================================ -->
+          <div style="display:flex;flex-direction:column;gap:0.75rem;">
+            <p style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Informe os valores conhecidos e calcule tudo de uma vez:</p>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.625rem;">
+
+              <!-- Spot -->
+              <div style="display:flex;flex-direction:column;gap:0.25rem;">
+                <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Preco da Acao (R$)</label>
+                <input v-model="inputSpot" type="number" step="0.01" min="0" placeholder="Ex: 29.31"
+                       style="padding:0.45rem 0.625rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.82rem;font-family:'JetBrains Mono',monospace;outline:none;width:100%;"
+                       onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+              </div>
+
+              <!-- Volatilidade -->
+              <div style="display:flex;flex-direction:column;gap:0.25rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Volatilidade (%)</label>
+                  <span v-if="volAutoPreenchida"
+                        style="font-size:0.55rem;font-weight:800;padding:1px 5px;border-radius:99px;background:var(--brand-emerald-light);color:var(--brand-emerald);border:1px solid var(--brand-emerald-muted);">
+                    AUTO
+                  </span>
+                </div>
+                <input v-model="inputVol" type="number" step="0.1" min="0" placeholder="Ex: 33.59"
+                       style="padding:0.45rem 0.625rem;background:var(--surface-sunken);border:1px solid;border-radius:var(--radius-md);color:var(--text-primary);font-size:0.82rem;font-family:'JetBrains Mono',monospace;outline:none;width:100%;"
+                       :style="volAutoPreenchida ? 'border-color:var(--brand-emerald);' : 'border-color:var(--border-default);'"
+                       onfocus="this.style.borderColor='var(--brand-emerald)'" onblur="this.style.borderColor='var(--border-default)'">
+              </div>
+
+              <!-- Premio -->
+              <div style="display:flex;flex-direction:column;gap:0.25rem;">
+                <label style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Premio (R$)</label>
+                <input v-model="inputPremio" type="number" step="0.01" min="0" placeholder="Ex: 1.85"
+                       style="padding:0.45rem 0.625rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.82rem;font-family:'JetBrains Mono',monospace;outline:none;width:100%;"
+                       onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+              </div>
+            </div>
+
+            <!-- Botao -->
+            <button @click="calcularTudo"
+                    style="padding:0.625rem;border-radius:var(--radius-md);background:var(--surface-overlay);color:var(--text-muted);border:1px solid var(--border-default);font-size:0.72rem;font-weight:700;cursor:pointer;transition:opacity 0.2s;display:flex;align-items:center;justify-content:center;gap:0.4rem;"
+                    onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+              <i data-lucide="refresh-cw" style="width:0.75rem;height:0.75rem;display:block;"></i>
+              Recalcular manualmente
+            </button>
+
+            <div v-if="erroCalculo" style="padding:0.5rem 0.875rem;background:var(--brand-rose-light);border:1px solid var(--brand-rose-muted);border-radius:var(--radius-md);display:flex;align-items:center;gap:0.5rem;">
+              <i data-lucide="alert-triangle" style="width:0.8rem;height:0.8rem;color:var(--brand-rose);flex-shrink:0;display:block;"></i>
+              <span style="font-size:0.72rem;color:var(--brand-rose);font-weight:600;">{{ erroCalculo }}</span>
+            </div>
+          </div>
+
+          <!-- ============================================================
+               BLOCO 3: TRES CARTOES DE RESULTADO LADO A LADO
+               ============================================================ -->
+          <transition name="bs-slide">
+            <div v-if="resultados" style="display:flex;flex-direction:column;gap:0.875rem;">
+
+              <div style="display:flex;align-items:center;gap:0.75rem;">
+                <div style="flex:1;height:1px;background:var(--border-subtle);"></div>
+                <span style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Resultados</span>
+                <div style="flex:1;height:1px;background:var(--border-subtle);"></div>
+              </div>
+
+              <!-- Tres cartoes de resultado -->
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.625rem;">
+
+                <!-- Card: Premio -->
+                <div style="border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--border-subtle);"
+                     :style="resultados.premio ? 'border-color:var(--brand-emerald-muted);' : ''">
+                  <div style="padding:0.625rem 0.875rem;display:flex;flex-direction:column;gap:2px;"
+                       :style="resultados.premio ? 'background:var(--brand-emerald-light);' : 'background:var(--surface-overlay);'">
+                    <div style="display:flex;align-items:center;gap:0.3rem;">
+                      <span style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;"
+                            :style="resultados.premio ? 'color:var(--brand-emerald);' : 'color:var(--text-muted);'">Premio BS</span>
+                      <span class="bs-tip-icon" style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1.5px solid currentColor;font-size:9px;font-weight:800;cursor:help;flex-shrink:0;opacity:0.6;" @mouseenter="showTip($event, 'Premio teorico BS: valor justo calculado com os inputs informados. Compare com o premio de mercado para saber se a opcao esta cara ou barata.')" @mouseleave="hideTip()">?</span>
+                    </div>
+                    <span style="font-size:1.2rem;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;"
+                          :style="resultados.premio ? 'color:var(--brand-emerald);' : 'color:var(--text-muted);'">
+                      {{ resultados.premio ? fmtR(resultados.premio.price) : '--' }}
+                    </span>
+                    <span v-if="resultados.premio" style="font-size:0.6rem;font-weight:700;padding:1px 6px;border-radius:99px;display:inline-flex;align-self:flex-start;margin-top:2px;"
+                          :style="resultados.premio.moneyness === 'ITM'
+                            ? 'background:var(--brand-rose-light);color:var(--brand-rose);'
+                            : resultados.premio.moneyness === 'ATM'
+                            ? 'background:var(--brand-amber-light);color:var(--brand-amber);'
+                            : 'background:rgba(0,0,0,0.06);color:var(--brand-emerald);'">
+                      {{ resultados.premio.moneyness }}
+                    </span>
+                  </div>
+                  <div v-if="resultados.premio" style="padding:0.625rem 0.875rem;background:var(--surface-base);display:flex;flex-direction:column;gap:3px;">
+                    <div v-for="g in gregasPremio" :key="g.l" style="display:flex;justify-content:space-between;align-items:center;">
+                      <div style="display:flex;align-items:center;gap:0.25rem;">
+                        <span style="font-size:0.6rem;color:var(--text-muted);">{{ g.l }}</span>
+                          <span class="bs-tip-icon" style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border-radius:50%;border:1px solid currentColor;font-size:7px;font-weight:800;cursor:help;flex-shrink:0;opacity:0.45;color:var(--text-muted);" @mouseenter="showTip($event, helpGrega(g.l))" @mouseleave="hideTip()">?</span>
+                      </div>
+                      <span style="font-size:0.7rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                            :style="g.c ? 'color:' + g.c : 'color:var(--text-secondary)'">{{ g.v }}</span>
+                    </div>
+                    <div style="margin-top:3px;padding-top:4px;border-top:1px solid var(--border-subtle);">
+                      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+                        <div style="display:flex;align-items:center;gap:0.25rem;">
+                          <span style="font-size:0.6rem;color:var(--text-muted);">POE</span>
+                          <span class="bs-tip-icon" style="display:inline-flex;align-items:center;justify-content:center;width:11px;height:11px;border-radius:50%;border:1px solid currentColor;font-size:7px;font-weight:800;cursor:help;flex-shrink:0;opacity:0.45;color:var(--text-muted);" @mouseenter="showTip($event, 'POE: chance estatistica de o ativo ultrapassar o strike no vencimento. Para PUT vendida, POE baixa e favoravel.')" @mouseleave="hideTip()">?</span>
+                        </div>
+                        <span style="font-size:0.7rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);">{{ fmtPct(resultados.premio.poe) }}</span>
+                      </div>
+                      <div style="height:4px;background:var(--border-subtle);border-radius:99px;overflow:hidden;">
+                        <div :style="'height:100%;border-radius:99px;width:' + (resultados.premio.poe * 100).toFixed(1) + '%;background:var(--brand-indigo);'"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else style="padding:0.875rem;background:var(--surface-base);text-align:center;">
+                    <span style="font-size:0.68rem;color:var(--text-muted);">Informe Spot e Vol</span>
+                  </div>
+                </div>
+
+                <!-- Card: IV -->
+                <div style="border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--border-subtle);"
+                     :style="resultados.iv ? 'border-color:var(--brand-amber-muted);' : ''">
+                  <div style="padding:0.625rem 0.875rem;display:flex;flex-direction:column;gap:2px;"
+                       :style="resultados.iv ? 'background:var(--brand-amber-light);' : 'background:var(--surface-overlay);'">
+                    <div style="display:flex;align-items:center;gap:0.3rem;">
+                      <span style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;"
+                            :style="resultados.iv ? 'color:var(--brand-amber);' : 'color:var(--text-muted);'">IV Implicita</span>
+                      <span class="bs-tip-icon" style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1.5px solid currentColor;font-size:9px;font-weight:800;cursor:help;flex-shrink:0;opacity:0.6;" @mouseenter="showTip($event, 'IV Implicita: volatilidade que reproduz o premio de mercado pelo modelo BS. Acima do IV historico = opcao cara; abaixo = barata.')" @mouseleave="hideTip()">?</span>
+                    </div>
+                    <span style="font-size:1.2rem;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;"
+                          :style="resultados.iv ? 'color:var(--brand-amber);' : 'color:var(--text-muted);'">
+                      {{ resultados.iv ? fmtPct(resultados.iv.ivCalc) : '--' }}
+                    </span>
+                    <span v-if="resultados.iv" style="font-size:0.6rem;color:var(--brand-amber);margin-top:2px;">Newton-Raphson 50 iter.</span>
+                  </div>
+                  <div v-if="resultados.iv" style="padding:0.625rem 0.875rem;background:var(--surface-base);display:flex;flex-direction:column;gap:3px;">
+                    <div v-for="g in gregasIV" :key="g.l" style="display:flex;justify-content:space-between;align-items:center;">
+                      <span style="font-size:0.6rem;color:var(--text-muted);">{{ g.l }}</span>
+                      <span style="font-size:0.7rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                            :style="g.c ? 'color:' + g.c : 'color:var(--text-secondary)'">{{ g.v }}</span>
+                    </div>
+                    <div style="margin-top:3px;padding-top:4px;border-top:1px solid var(--border-subtle);">
+                      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+                        <span style="font-size:0.6rem;color:var(--text-muted);">POE</span>
+                        <span style="font-size:0.7rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);">{{ fmtPct(resultados.iv.poe) }}</span>
+                      </div>
+                      <div style="height:4px;background:var(--border-subtle);border-radius:99px;overflow:hidden;">
+                        <div :style="'height:100%;border-radius:99px;width:' + (resultados.iv.poe * 100).toFixed(1) + '%;background:var(--brand-indigo);'"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else style="padding:0.875rem;background:var(--surface-base);text-align:center;">
+                    <span style="font-size:0.68rem;color:var(--text-muted);">Informe Spot e Premio</span>
+                  </div>
+                </div>
+
+                <!-- Card: Spot -->
+                <div style="border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--border-subtle);"
+                     :style="resultados.spot ? 'border-color:var(--brand-indigo-muted);' : ''">
+                  <div style="padding:0.625rem 0.875rem;display:flex;flex-direction:column;gap:2px;"
+                       :style="resultados.spot ? 'background:var(--brand-indigo-light);' : 'background:var(--surface-overlay);'">
+                    <div style="display:flex;align-items:center;gap:0.3rem;">
+                      <span style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;"
+                            :style="resultados.spot ? 'color:var(--brand-indigo);' : 'color:var(--text-muted);'">Spot Implicito</span>
+                      <span class="bs-tip-icon" style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1.5px solid currentColor;font-size:9px;font-weight:800;cursor:help;flex-shrink:0;opacity:0.6;" @mouseenter="showTip($event, 'Spot Implicito: preco do ativo que justifica o premio com a vol informada. Divergencia do spot atual indica expectativa de movimento direcional.')" @mouseleave="hideTip()">?</span>
+                    </div>
+                    <span style="font-size:1.2rem;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1;"
+                          :style="resultados.spot ? 'color:var(--brand-indigo);' : 'color:var(--text-muted);'">
+                      {{ resultados.spot ? fmtR(resultados.spot.spotCalc) : '--' }}
+                    </span>
+                    <span v-if="resultados.spot" style="font-size:0.6rem;color:var(--brand-indigo);margin-top:2px;">Bissecao 80 iter.</span>
+                  </div>
+                  <div v-if="resultados.spot" style="padding:0.625rem 0.875rem;background:var(--surface-base);display:flex;flex-direction:column;gap:3px;">
+                    <div v-for="g in gregasSpot" :key="g.l" style="display:flex;justify-content:space-between;align-items:center;">
+                      <span style="font-size:0.6rem;color:var(--text-muted);">{{ g.l }}</span>
+                      <span style="font-size:0.7rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                            :style="g.c ? 'color:' + g.c : 'color:var(--text-secondary)'">{{ g.v }}</span>
+                    </div>
+                    <div style="margin-top:3px;padding-top:4px;border-top:1px solid var(--border-subtle);">
+                      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+                        <span style="font-size:0.6rem;color:var(--text-muted);">POE</span>
+                        <span style="font-size:0.7rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);">{{ fmtPct(resultados.spot.poe) }}</span>
+                      </div>
+                      <div style="height:4px;background:var(--border-subtle);border-radius:99px;overflow:hidden;">
+                        <div :style="'height:100%;border-radius:99px;width:' + (resultados.spot.poe * 100).toFixed(1) + '%;background:var(--brand-indigo);'"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else style="padding:0.875rem;background:var(--surface-base);text-align:center;">
+                    <span style="font-size:0.68rem;color:var(--text-muted);">Informe Vol e Premio</span>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- ============================================================
+                   ANALISE INDICATIVA
+                   ============================================================ -->
+              <div v-if="analise" :style="'border-radius:var(--radius-xl);overflow:hidden;border:2px solid ' + analise.cor + '33;'">
+
+                <!-- Header colorido com semaforo + veredito -->
+                <div style="padding:0.875rem 1rem;display:flex;align-items:center;gap:0.75rem;"
+                     :style="'background:' + analise.cor + '18;'">
+                  <div :style="'width:12px;height:12px;border-radius:50%;flex-shrink:0;background:' + analise.cor + ';box-shadow:0 0 8px ' + analise.cor + '80;'"></div>
+                  <div style="flex:1;">
+                    <p style="font-size:0.8rem;font-weight:800;line-height:1.2;"
+                       :style="'color:' + analise.cor">{{ analise.veredito }}</p>
+                    <p style="font-size:0.7rem;margin-top:2px;color:var(--text-secondary);">{{ analise.subtitulo }}</p>
+                  </div>
+                  <span style="font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:99px;background:rgba(0,0,0,0.08);"
+                        :style="'color:' + analise.cor">{{ tipo }}</span>
+                </div>
+
+                <!-- Linha de sinais -->
+                <div style="padding:0.75rem 1rem;background:var(--surface-base);display:flex;flex-direction:column;gap:0.4rem;">
+                  <div v-for="s in analise.sinais" :key="s.texto"
+                       style="display:flex;align-items:flex-start;gap:0.5rem;">
+                    <span style="font-size:0.7rem;flex-shrink:0;margin-top:1px;">{{ s.icone }}</span>
+                    <span style="font-size:0.7rem;color:var(--text-secondary);line-height:1.4;">{{ s.texto }}</span>
+                  </div>
+                </div>
+
+                <!-- Rodape: disclaimer -->
+                <div style="padding:0.5rem 1rem;background:var(--surface-sunken);border-top:1px solid var(--border-subtle);">
+                  <p style="font-size:0.6rem;color:var(--text-muted);font-style:italic;">Indicativo apenas. Nao e recomendacao de investimento.</p>
+                </div>
+              </div>
+
+              <button @click="limpar"
+                      style="padding:0.5rem;border-radius:var(--radius-md);background:none;border:1px solid var(--border-default);color:var(--text-muted);font-size:0.72rem;font-weight:700;cursor:pointer;"
+                      onmouseover="this.style.borderColor='var(--brand-rose)';this.style.color='var(--brand-rose)'"
+                      onmouseout="this.style.borderColor='var(--border-default)';this.style.color='var(--text-muted)'">
+                Limpar resultados
+              </button>
+
+            </div>
+          </transition>
+
+        </div>
+      </div>
+    </div>
+  </transition>
+
+</template>
+
+<script>
+window.CalculadoraBS = {
+  template: '#calculadora-bs-template',
+  props: {
+    aberto:   { type: Boolean, default: false },
+    isMobile: { type: Boolean, default: false }
+  },
+  emits: ['fechar'],
+
+  setup: function(props, ctx) {
+    var ref      = Vue.ref;
+    var computed = Vue.computed;
+    var watch    = Vue.watch;
+
+    // Estado do tooltip global
+    var tipVisible = ref(false);
+    var tipText    = ref('');
+    var tipX       = ref(0);
+    var tipY       = ref(0);
+
+    function showTip(event, texto) {
+      var rect = event.target.getBoundingClientRect();
+      tipText.value = texto;
+      // Ancora no centro-inferior do icone
+      // O CSS vai subir o balao via translateY(-100%) para ficar acima
+      tipX.value = Math.round(rect.left + rect.width / 2);
+      tipY.value = Math.round(rect.top - 6);
+      tipVisible.value = true;
+    }
+    function hideTip() { tipVisible.value = false; }
+
+    var modoEntrada   = ref('codigo');
+    var codigoOpcao   = ref('');
+    var buscando      = ref(false);
+    var erroBusca     = ref('');
+    var dadosBuscados = ref(null);
+
+    var tipo      = ref('CALL');
+    var strike    = ref('');
+    var dataVenc  = ref('');
+    var taxaJuros = ref('14.75');
+    var dataRef   = ref(_hoje());
+
+    var inputSpot   = ref('');
+    var inputVol    = ref('');
+    var inputPremio = ref('');
+    var resultados  = ref(null);
+    var erroCalculo = ref('');
+
+    var dte = computed(function() {
+      if (!dataVenc.value || !dataRef.value) return null;
+      var r = new Date(dataRef.value  + 'T00:00:00');
+      var v = new Date(dataVenc.value + 'T00:00:00');
+      var d = Math.floor((v - r) / 86400000);
+      return d > 0 ? d : null;
+    });
+
+    var tAnos = computed(function() {
+      return dte.value !== null ? (dte.value / 252).toFixed(4) : '--';
+    });
+
+    var volAutoPreenchida = computed(function() {
+      return dadosBuscados.value !== null
+          && dadosBuscados.value.ivAtivo !== null
+          && dadosBuscados.value.ivAtivo !== undefined
+          && dadosBuscados.value.ivAtivo > 0;
+    });
+
+    // ── Busca OpLab ───────────────────────────────────────────────────────
+    function buscarOpcao() {
+      var codigo = String(codigoOpcao.value).trim().toUpperCase();
+      if (!codigo) return;
+      buscando.value = true; erroBusca.value = ''; dadosBuscados.value = null; resultados.value = null;
+      google.script.run
+        .withSuccessHandler(function(res) {
+          buscando.value = false;
+          if (!res || !res.success) { erroBusca.value = (res && res.error) ? res.error : 'Opcao nao encontrada.'; return; }
+          var d = res.data;
+          dadosBuscados.value = d;
+          tipo.value      = String(d.category || 'CALL').toUpperCase() === 'PUT' ? 'PUT' : 'CALL';
+          strike.value    = d.strike    || '';
+          dataVenc.value  = d.expiry    || '';
+          taxaJuros.value = d.taxaJuros || '14.75';
+          inputSpot.value = d.spotPrice || '';
+          if (d.premioAtual) inputPremio.value = d.premioAtual;
+          if (d.ivAtivo !== null && d.ivAtivo !== undefined && d.ivAtivo > 0) {
+            inputVol.value = (d.ivAtivo * 100).toFixed(2);
+          }
+          Vue.nextTick(function() { if (window.lucide) window.lucide.createIcons(); });
+        })
+        .withFailureHandler(function(err) {
+          buscando.value = false; erroBusca.value = 'Erro na comunicacao: ' + String(err);
+        })
+        .apiIntegracaoOpLab(codigo);
+    }
+
+    // ── Motor BS (replica exata 012_CoreCalcGreeks.gs) ────────────────────
+    var DIAS_ANO = 252;
+    var T_MIN    = 0.002;
+
+    function _pdf(x) { return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI); }
+    function _cdf(x) {
+      var t = 1 / (1 + 0.2316419 * Math.abs(x));
+      var d = 0.3989423 * Math.exp(-x * x / 2);
+      var p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+      return x > 0 ? 1 - p : p;
+    }
+    function _calc(S, K, T, r, sigma, flag) {
+      T = Math.max(T, T_MIN);
+      var sq = Math.sqrt(T);
+      var d1 = (Math.log(S / K) + (r + 0.5 * sigma * sigma) * T) / (sigma * sq);
+      var d2 = d1 - sigma * sq;
+      var nd1 = _pdf(d1), Nd1 = _cdf(d1), Nd2 = _cdf(d2), eRT = Math.exp(-r * T);
+      var ic  = (flag === 'CALL');
+      return {
+        price: ic ? (S * Nd1 - K * eRT * Nd2) : (K * eRT * _cdf(-d2) - S * _cdf(-d1)),
+        delta: ic ? Nd1 : Nd1 - 1,
+        gamma: nd1 / (S * sigma * sq),
+        vega:  (S * nd1 * sq) / 100,
+        theta: (ic ? (-(S * nd1 * sigma) / (2 * sq) - r * K * eRT * Nd2)
+                   : (-(S * nd1 * sigma) / (2 * sq) + r * K * eRT * _cdf(-d2))) / DIAS_ANO,
+        rho:   (ic ? (K * T * eRT * Nd2) : (-K * T * eRT * _cdf(-d2))) / 100,
+        poe:   ic ? Nd2 : _cdf(-d2)
+      };
+    }
+    function _iv(S, K, T, r, pm, flag) {
+      var sigma = 0.35;
+      for (var i = 0; i < 50; i++) {
+        var g = _calc(S, K, T, r, sigma, flag), diff = g.price - pm, v = g.vega * 100;
+        if (Math.abs(diff) < 0.0001) return sigma;
+        if (v < 0.0001) break;
+        sigma -= diff / v;
+        if (sigma < 0.01) return 0.01;
+        if (sigma > 5.0)  return 5.0;
+      }
+      return sigma;
+    }
+    function _spotCalc(K, T, r, sigma, pm, flag) {
+      var lo = 0.01, hi = K * 10, mid, g;
+      // CALL: preco cresce com spot  -> price < pm significa spot baixo -> lo = mid
+      // PUT:  preco decresce com spot -> price < pm significa spot alto  -> hi = mid
+      var isCall = (flag === 'CALL');
+      for (var i = 0; i < 80; i++) {
+        mid = (lo + hi) / 2;
+        g = _calc(mid, K, T, r, sigma, flag);
+        if (Math.abs(g.price - pm) < 0.0001) break;
+        if (isCall) {
+          if (g.price < pm) lo = mid; else hi = mid;
+        } else {
+          if (g.price < pm) hi = mid; else lo = mid;
+        }
+      }
+      return mid;
+    }
+    function _money(S, K, flag) {
+      var ratio = S / K;
+      if (ratio >= 0.975 && ratio <= 1.025) return 'ATM';
+      return ((flag === 'CALL' && ratio > 1.025) || (flag === 'PUT' && ratio < 0.975)) ? 'ITM' : 'OTM';
+    }
+
+    // ── Calcular os tres resultados de uma vez ────────────────────────────
+    function calcularTudo() {
+      erroCalculo.value = '';
+      resultados.value  = null;
+
+      var K = parseFloat(strike.value);
+      var r = parseFloat(taxaJuros.value) / 100;
+      var T = dte.value ? dte.value / DIAS_ANO : null;
+
+      if (!K || K <= 0) { erroCalculo.value = 'Informe um Strike valido.'; return; }
+      if (!T)           { erroCalculo.value = 'Informe as datas de vencimento e referencia.'; return; }
+      if (isNaN(r))     { erroCalculo.value = 'Informe a Taxa de Juros.'; return; }
+
+      var S   = parseFloat(inputSpot.value)   || null;
+      var vol = parseFloat(inputVol.value)     || null;
+      var pm  = parseFloat(inputPremio.value)  || null;
+      var flag = tipo.value;
+
+      var res = { premio: null, iv: null, spot: null };
+
+      // Premio: precisa de Spot + Vol
+      if (S && S > 0 && vol && vol > 0) {
+        var sigma = vol / 100;
+        var g = _calc(S, K, T, r, sigma, flag);
+        res.premio = Object.assign({}, g, { moneyness: _money(S, K, flag), ivUsada: sigma });
+      }
+
+      // IV: precisa de Spot + Premio
+      if (S && S > 0 && pm && pm > 0) {
+        var ivCalc = _iv(S, K, T, r, pm, flag);
+        var gIV    = _calc(S, K, T, r, ivCalc, flag);
+        res.iv = Object.assign({}, gIV, { ivCalc: ivCalc, moneyness: _money(S, K, flag) });
+      }
+
+      // Spot: precisa de Vol + Premio
+      if (vol && vol > 0 && pm && pm > 0) {
+        var sigma2   = vol / 100;
+        var spotCalc = _spotCalc(K, T, r, sigma2, pm, flag);
+        var gSpot    = _calc(spotCalc, K, T, r, sigma2, flag);
+        res.spot = Object.assign({}, gSpot, { spotCalc: spotCalc, moneyness: _money(spotCalc, K, flag) });
+      }
+
+      var algum = res.premio || res.iv || res.spot;
+      if (!algum) {
+        erroCalculo.value = 'Informe pelo menos dois valores (Spot, Volatilidade ou Premio).';
+        return;
+      }
+
+      resultados.value = res;
+      Vue.nextTick(function() { if (window.lucide) window.lucide.createIcons(); });
+    }
+
+    // ── Computeds de gregas por card ──────────────────────────────────────
+    var gregasPremio = computed(function() {
+      var r = resultados.value && resultados.value.premio;
+      if (!r) return [];
+      return [
+        { l: 'Delta', v: r.delta.toFixed(2), c: r.delta > 0 ? 'var(--brand-emerald)' : 'var(--brand-rose)' },
+        { l: 'Gamma', v: r.gamma.toFixed(2), c: null },
+        { l: 'Theta', v: r.theta.toFixed(2), c: 'var(--brand-rose)' },
+        { l: 'Vega',  v: r.vega.toFixed(2),  c: null },
+        { l: 'Rho',   v: r.rho.toFixed(2),   c: null },
+      ];
+    });
+    var gregasIV = computed(function() {
+      var r = resultados.value && resultados.value.iv;
+      if (!r) return [];
+      return [
+        { l: 'Delta', v: r.delta.toFixed(2), c: r.delta > 0 ? 'var(--brand-emerald)' : 'var(--brand-rose)' },
+        { l: 'Gamma', v: r.gamma.toFixed(2), c: null },
+        { l: 'Theta', v: r.theta.toFixed(2), c: 'var(--brand-rose)' },
+        { l: 'Vega',  v: r.vega.toFixed(2),  c: null },
+        { l: 'Rho',   v: r.rho.toFixed(2),   c: null },
+      ];
+    });
+    var gregasSpot = computed(function() {
+      var r = resultados.value && resultados.value.spot;
+      if (!r) return [];
+      return [
+        { l: 'Delta', v: r.delta.toFixed(2), c: r.delta > 0 ? 'var(--brand-emerald)' : 'var(--brand-rose)' },
+        { l: 'Gamma', v: r.gamma.toFixed(2), c: null },
+        { l: 'Theta', v: r.theta.toFixed(2), c: 'var(--brand-rose)' },
+        { l: 'Vega',  v: r.vega.toFixed(2),  c: null },
+        { l: 'Rho',   v: r.rho.toFixed(2),   c: null },
+      ];
+    });
+
+    function limpar() { resultados.value = null; erroCalculo.value = ''; }
+    function fechar() { ctx.emit('fechar'); }
+
+    function fmtR(v) {
+      var n = parseFloat(v);
+      if (isNaN(n)) return '--';
+      return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function fmtPct(v) {
+      var n = parseFloat(v);
+      if (isNaN(n)) return '--';
+      return (n * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+    }
+    function _hoje() {
+      var d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    // Help texts das gregas
+    function helpGrega(label) {
+      var textos = {
+        'Delta': 'Variacao no preco da opcao para cada R$ 1,00 de variacao no ativo. CALL: entre 0 e 1. PUT: entre -1 e 0. Delta 0.5 = opcao ATM, se move R$ 0,50 para cada R$ 1,00 do ativo.',
+        'Gamma': 'Velocidade de variacao do Delta. Alto Gamma = Delta muda rapido perto do vencimento. Risco para o vendedor: a opcao pode virar ITM rapidamente.',
+        'Theta': 'Decaimento temporal: quanto a opcao perde de valor por dia util. Negativo para comprador, positivo para vendedor. Motor da Venda Coberta.',
+        'Vega':  'Sensibilidade ao aumento de 1% na volatilidade. Vega alto = opcao cara sensivel a mudancas de IV. Vendedor de opcao tem Vega negativo.',
+        'Rho':   'Sensibilidade a variacao de 1% na taxa de juros. Pouco relevante no curto prazo mas importante em opcoes longas (LEAP).'
+      };
+      return textos[label] || label;
+    }
+
+    // ── Analise indicativa ───────────────────────────────────────────────────
+    var analise = Vue.computed(function() {
+      if (!resultados.value) return null;
+
+      var r      = resultados.value;
+      var K      = parseFloat(strike.value)    || 0;
+      var S      = parseFloat(inputSpot.value) || 0;
+      var pmMkt  = parseFloat(inputPremio.value) || 0;
+      var volAuto = dadosBuscados.value && dadosBuscados.value.ivAtivo > 0
+                    ? dadosBuscados.value.ivAtivo * 100 : null; // IV historico em %
+
+      if (!S || !K) return null;
+
+      var sinais  = [];
+      var pontos  = 0; // positivos para venda
+      var total   = 0;
+
+      // 1. Premio de mercado vs BS
+      if (r.premio && pmMkt > 0) {
+        total++;
+        var diffPct = (pmMkt - r.premio.price) / r.premio.price * 100;
+        if (diffPct > 5) {
+          pontos++;
+          sinais.push({ icone: '✅', texto: 'Premio de mercado ' + Math.abs(diffPct).toFixed(0) + '% acima do BS — voce recebe mais do que o modelo diz que e justo.' });
+        } else if (diffPct < -5) {
+          sinais.push({ icone: '⚠️', texto: 'Premio de mercado ' + Math.abs(diffPct).toFixed(0) + '% abaixo do BS — opcao barata, vendedor recebe menos do que o valor teorico.' });
+        } else {
+          pontos++;
+          sinais.push({ icone: '✅', texto: 'Premio proximos do valor teorico BS — precificacao justa.' });
+        }
+      }
+
+      // 2. IV implicita vs IV historico
+      if (r.iv && volAuto !== null) {
+        total++;
+        var ivImpl = r.iv.ivCalc * 100;
+        var ivDiff = ivImpl - volAuto;
+        if (ivDiff > 3) {
+          pontos++;
+          sinais.push({ icone: '✅', texto: 'IV implicita (' + ivImpl.toFixed(1) + '%) acima do historico (' + volAuto.toFixed(1) + '%) — opcao cara em volatilidade, favoravel para o vendedor.' });
+        } else if (ivDiff < -3) {
+          sinais.push({ icone: '⚠️', texto: 'IV implicita (' + ivImpl.toFixed(1) + '%) abaixo do historico (' + volAuto.toFixed(1) + '%) — opcao barata em volatilidade, desfavoravel para o vendedor.' });
+        } else {
+          pontos++;
+          sinais.push({ icone: '✅', texto: 'IV implicita (' + ivImpl.toFixed(1) + '%) alinhada com o historico — vol precificada dentro do normal.' });
+        }
+      }
+
+      // 3. Distancia do strike
+      total++;
+      var ssr = S / K;
+      if (tipo.value === 'PUT') {
+        var distPct = (ssr - 1) * 100;
+        if (distPct > 8) {
+          pontos++;
+          sinais.push({ icone: '✅', texto: 'Spot ' + distPct.toFixed(1) + '% acima do strike — OTM confortavel, margem de seguranca boa.' });
+        } else if (distPct > 3) {
+          pontos++;
+          sinais.push({ icone: '🟡', texto: 'Spot ' + distPct.toFixed(1) + '% acima do strike — OTM moderado, monitorar aproximacao.' });
+        } else if (distPct >= 0) {
+          sinais.push({ icone: '⚠️', texto: 'Spot proximo do strike (' + distPct.toFixed(1) + '%) — risco de exercicio elevado.' });
+        } else {
+          sinais.push({ icone: '🔴', texto: 'Opcao ITM — spot abaixo do strike, exercicio provavel no vencimento.' });
+        }
+      } else {
+        var distPctC = (1 - ssr) * 100;
+        if (distPctC > 8) {
+          pontos++;
+          sinais.push({ icone: '✅', texto: 'Spot ' + distPctC.toFixed(1) + '% abaixo do strike — OTM confortavel para CALL vendida.' });
+        } else if (distPctC > 3) {
+          pontos++;
+          sinais.push({ icone: '🟡', texto: 'Spot ' + distPctC.toFixed(1) + '% abaixo do strike — OTM moderado.' });
+        } else if (distPctC >= 0) {
+          sinais.push({ icone: '⚠️', texto: 'Spot proximo do strike — risco de exercicio elevado para CALL.' });
+        } else {
+          sinais.push({ icone: '🔴', texto: 'CALL ITM — spot acima do strike.' });
+        }
+      }
+
+      // 4. POE
+      if (r.iv) {
+        total++;
+        var poe = r.iv.poe * 100;
+        if (poe < 25) {
+          pontos++;
+          sinais.push({ icone: '✅', texto: 'POE de ' + poe.toFixed(1) + '% — baixa probabilidade de exercicio.' });
+        } else if (poe < 40) {
+          pontos++;
+          sinais.push({ icone: '🟡', texto: 'POE de ' + poe.toFixed(1) + '% — probabilidade moderada de exercicio.' });
+        } else {
+          sinais.push({ icone: '⚠️', texto: 'POE de ' + poe.toFixed(1) + '% — probabilidade elevada de exercicio, avalie o risco.' });
+        }
+      }
+
+      // Veredito final
+      var ratio = total > 0 ? pontos / total : 0;
+      var cor, veredito, subtitulo;
+      if (ratio >= 0.75) {
+        cor      = 'var(--brand-emerald)';
+        veredito = 'Estrutura favoravel para venda';
+        subtitulo = 'Maioria dos sinais indicam bom momento para lancar esta opcao.';
+      } else if (ratio >= 0.5) {
+        cor      = 'var(--brand-amber)';
+        veredito = 'Sinais mistos — avalie com cautela';
+        subtitulo = 'Alguns indicadores favoraveis, mas ha pontos de atencao.';
+      } else {
+        cor      = 'var(--brand-rose)';
+        veredito = 'Sinais desfavoraveis para venda';
+        subtitulo = 'Modelo indica que esta opcao nao oferece vantagem estatistica ao vendedor agora.';
+      }
+
+      return { cor: cor, veredito: veredito, subtitulo: subtitulo, sinais: sinais };
+    });
+
+    // Calculo automatico: dispara sempre que qualquer input relevante muda
+    // Usa um debounce simples para nao calcular a cada tecla
+    var _debounceTimer = null;
+    function _autoCalc() {
+      if (_debounceTimer) clearTimeout(_debounceTimer);
+      _debounceTimer = setTimeout(function() {
+        // So calcula se tem pelo menos os campos fixos preenchidos
+        var K = parseFloat(strike.value);
+        var T = dte.value;
+        if (K > 0 && T && T > 0) {
+          calcularTudo();
+        }
+      }, 400); // 400ms apos parar de digitar
+    }
+
+    // Observa todos os inputs de calculo
+    watch(function() { return inputSpot.value;   }, _autoCalc);
+    watch(function() { return inputVol.value;    }, _autoCalc);
+    watch(function() { return inputPremio.value; }, _autoCalc);
+    watch(function() { return strike.value;      }, _autoCalc);
+    watch(function() { return dataVenc.value;    }, _autoCalc);
+    watch(function() { return dataRef.value;     }, _autoCalc);
+    watch(function() { return taxaJuros.value;   }, _autoCalc);
+    watch(function() { return tipo.value;        }, _autoCalc);
+
+    watch(function() { return props.aberto; }, function(val) {
+      if (val) Vue.nextTick(function() { if (window.lucide) window.lucide.createIcons(); });
+    });
+
+    return {
+      modoEntrada, codigoOpcao, buscando, erroBusca, dadosBuscados,
+      tipo, strike, dataVenc, taxaJuros, dataRef,
+      inputSpot, inputVol, inputPremio,
+      dte, tAnos, volAutoPreenchida,
+      resultados, erroCalculo,
+      gregasPremio, gregasIV, gregasSpot,
+      analise,
+      tipVisible, tipText, tipX, tipY, showTip, hideTip,
+      helpGrega,
+      buscarOpcao, calcularTudo, limpar, fechar,
+      fmtR, fmtPct
+    };
+  }
+};
+</script>
+
+<style>
+@keyframes bs-spin { to { transform: rotate(360deg); } }
+.bs-fade-enter-active, .bs-fade-leave-active { transition: opacity 0.2s ease; }
+.bs-fade-enter-from,  .bs-fade-leave-to      { opacity: 0; }
+.bs-slide-enter-active { transition: all 0.25s ease; }
+.bs-slide-enter-from   { opacity: 0; transform: translateY(10px); }
+
+/* Tooltip via Vue (position:fixed para escapar do overflow:hidden dos cards) */
+.bs-tip-icon {
+  display: inline-flex;
+  align-items: center;
+  cursor: help;
+}
+</style>
