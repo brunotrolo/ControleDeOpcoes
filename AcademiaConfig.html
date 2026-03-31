@@ -11,8 +11,8 @@ window.AcademiaConfig = {
     {
       id: 'fundacao',
       nivel: 1,
-      label: 'Fundacao',
-      descricao: 'O alicerce. Entenda por que voce e vendedor de volatilidade, nao apostador de direcao.',
+      label: 'Fundação',
+      descricao: 'O alicerce matemático. Entenda as métricas (IV Rank, Expected Move) e por que você é vendedor de volatilidade.',
       cor: 'var(--brand-emerald)',
       icone: 'layers',
       prereq: null
@@ -126,7 +126,16 @@ window.AcademiaConfig = {
     { id: 'kelly',             modulo: 'gestao',        num: 59, label: 'Criterio de Kelly',       labelEN: 'Kelly Criterion',          tipo: 'tecnica',    cenario: 'Dimensionar posicao',    risco: 'N/A',        estrelas: 3 },
     { id: 'regra-50',          modulo: 'gestao',        num: 60, label: 'Regra dos 50%',           labelEN: '50% Profit Target',        tipo: 'tecnica',    cenario: 'Fechar com 50% do premio', risco: 'N/A',      estrelas: 1 },
     { id: 'regra-21dte',       modulo: 'gestao',        num: 61, label: 'Regra do 21 DTE',         labelEN: '21 DTE Rule',              tipo: 'tecnica',    cenario: 'Fechar ou rolar',        risco: 'N/A',        estrelas: 1 },
-    { id: 'ajuste-delta',      modulo: 'gestao',        num: 62, label: 'Ajuste de Delta',         labelEN: 'Delta Adjustment',         tipo: 'tecnica',    cenario: 'Neutralizar direcional', risco: 'Variavel',   estrelas: 4 }
+    { id: 'ajuste-delta',      modulo: 'gestao',        num: 62, label: 'Ajuste de Delta',         labelEN: 'Delta Adjustment',         tipo: 'tecnica',    cenario: 'Neutralizar direcional', risco: 'Variavel',   estrelas: 4 },
+
+    // -- MÉTRICAS E INDICADORES (Módulo Fundação) --------------------------
+    { id: 'expected-move',      modulo: 'fundacao', num: 63, label: 'Expected Move',            labelEN: 'Expected Move',           tipo: 'metrica', cenario: 'GPS do Preço',           risco: 'N/A', estrelas: 1 },
+    { id: 'iv-rank',           modulo: 'fundacao', num: 64, label: 'IV Rank',                 labelEN: 'IV Rank',                tipo: 'metrica', cenario: 'Termômetro de Volatilidade', risco: 'N/A', estrelas: 1 },
+    { id: 'iv-percentile',     modulo: 'fundacao', num: 65, label: 'IV Percentile',           labelEN: 'IV Percentile',          tipo: 'metrica', cenario: 'Frequência de Volatilidade', risco: 'N/A', estrelas: 1 },
+    { id: 'volatility-skew',    modulo: 'fundacao', num: 66, label: 'Volatility Skew',         labelEN: 'Volatility Skew',        tipo: 'metrica', cenario: 'O Sorriso do Medo',       risco: 'N/A', estrelas: 2 },
+    { id: 'standard-deviation', modulo: 'fundacao', num: 67, label: 'Desvio Padrão (SD)',       labelEN: 'Standard Deviation',     tipo: 'metrica', cenario: 'Mapa de Probabilidades',   risco: 'N/A', estrelas: 2 },
+    { id: 'probability-of-profit', modulo: 'fundacao', num: 68, label: 'POP (Chance de Lucro)',  labelEN: 'Probability of Profit',   tipo: 'metrica', cenario: 'Estatística de Vitória',   risco: 'N/A', estrelas: 1 }
+
   ],
 
   // Helper: retorna estrategias de um modulo

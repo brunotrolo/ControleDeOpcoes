@@ -47,7 +47,14 @@
                     :style="abaAtiva === aba.id
                       ? 'border-bottom-color:' + corModuloAtual + ';color:' + corModuloAtual + ';'
                       : 'color:var(--text-muted);'">
-              {{ aba.label }}
+              
+              <template v-if="aba.id === 'como_montar' && estrategiaAberta.tipo === 'metrica'">
+                Como Calcular
+              </template>
+              <template v-else>
+                {{ aba.label }}
+              </template>
+              
             </button>
           </div>
 
@@ -357,7 +364,8 @@ window.AcademiaOpcoes = {
         'arbitragem': 'Arbitragem',
         'gestao':     'Gestao',
         'tecnica':    'Tecnica',
-        'complexo':   'Complexo'
+        'complexo':   'Complexo',
+        'metrica':    'Métrica'
       };
       return mapa[tipo] || tipo;
     }
@@ -368,6 +376,7 @@ window.AcademiaOpcoes = {
         'debito':     'background:var(--brand-rose-light);color:var(--brand-rose);',
         'misto':      'background:var(--brand-amber-light);color:var(--brand-amber);',
         'arbitragem': 'background:var(--brand-indigo-light);color:var(--brand-indigo);',
+        'metrica':    'background:var(--brand-indigo-light);color:var(--brand-indigo);',
         'gestao':     'background:var(--surface-sunken);color:var(--text-muted);',
         'tecnica':    'background:var(--surface-sunken);color:var(--text-muted);',
         'complexo':   'background:var(--brand-rose-light);color:var(--brand-rose);'
