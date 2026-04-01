@@ -31,9 +31,9 @@ window.LAYOUT_MAP = {
   // COCKPIT (Tela Principal)
   // =========================================================
   'cockpit': [
-    { id: 'letreiro-ativos',  component: 'card-ticker-tape', cols: 'col-span-12', props: {} },
-    { id: 'resumo-portfolio', component: 'card-summary',     cols: 'col-span-12', props: {} },
-    { id: 'card-alerta',      component: 'card-alerta',      cols: 'col-span-12', props: {} },
+    //{ id: 'letreiro-ativos',  component: 'card-ticker-tape', cols: 'col-span-12', props: {} },
+    //{ id: 'resumo-portfolio', component: 'card-summary',     cols: 'col-span-12', props: {} },
+    { id: 'card-radar',       component: 'card-radar',       cols: 'col-span-12', props: {} },
     { id: 'carousel',         component: 'carousel-ativas',  cols: 'col-span-12' },
     {
       id: 'tabela-principal',
@@ -84,7 +84,7 @@ window.LAYOUT_MAP = {
 // =========================================================
   // DEMAIS TELAS
   // =========================================================
-  'consultor-ia': [{ id: 'painel-consultor-ia', component: 'consultor-ia', cols: 'col-span-12', props: {} }],
+  'consultor-ia':   [{ id: 'painel-consultor-ia',   component: 'consultor-ia',        cols: 'col-span-12', props: {} }],
   'config':         [{ id: 'painel-ajustes',        component: 'settings-view',       cols: 'col-span-12', props: { configKey: 'config' } }],
   'automacao':      [{ id: 'painel-automacao',      component: 'automation-view',     cols: 'col-span-12', props: {} }],
   'wheel':          [{ id: 'painel-wheel',          component: 'wheel-manager',       cols: 'col-span-12', props: {} }],
@@ -92,8 +92,8 @@ window.LAYOUT_MAP = {
   'necton-import':  [{ id: 'painel-importacao',     component: 'necton-import',       cols: 'col-span-12', props: {} }],
   'dados-ativos':   [{ id: 'painel-gestao-ativos',  component: 'gestao-ativos',       cols: 'col-span-12', props: {} }],
   'comparador':     [{ id: 'painel-comparador',     component: 'comparativo-view',    cols: 'col-span-12', props: {} }],
-  'oplab-market':   [{ id: 'oplab-hub',            component: 'oplab-hub',           cols: 'col-span-12', props: {} }],
-  'academia':       [{ id: 'painel-academia',      component: 'academia-opcoes',     cols: 'col-span-12', props: {} }],
+  'oplab-market':   [{ id: 'oplab-hub',             component: 'oplab-hub',           cols: 'col-span-12', props: {} }],
+  'academia':       [{ id: 'painel-academia',       component: 'academia-opcoes',     cols: 'col-span-12', props: {} }],
   'bancodedados':   [{ id: 'tela-bancodedados',     component: 'bancodedados-view',   cols: 'col-span-12', props: {} }],
   'oplab-explorer': [{ id: 'painel-oplab-explorer', component: 'oplab-explorer-view', cols: 'col-span-12', props: {} }],
   'consultoria':    [{ id: 'painel-consultoria',    component: 'consultoria-view',    cols: 'col-span-12', props: {} }]

@@ -371,9 +371,9 @@ const app = createApp({
         // =========================================================
         // 1. HOME & COCKPIT
         // =========================================================
-        'card-ticker-tape':       { ativos: ativosDaHome },
-        'card-alerta':            { statsPreCalculados: { ...cuboOlap.value, cockpit: db.value.cockpit || [] }, isMobile: isMobile.value },
-        'card-summary':           { statsPreCalculados: cuboOlap.value },
+        //'card-ticker-tape':       { ativos: ativosDaHome },
+        'card-radar':             { statsPreCalculados: cuboOlap.value, isMobile: isMobile.value },
+        //'card-summary':           { statsPreCalculados: cuboOlap.value },
         'carousel-ativas':        { statsPreCalculados: cuboOlap.value },
         'cockpit-table':          { statsPreCalculados: cuboOlap.value },
 
@@ -458,9 +458,9 @@ const COMPONENTES_V5 = [
   ['menu-sidebar',           window.MenuSidebar],
 
   // 1. HOME & COCKPIT
-  ['card-ticker-tape',       window.CardTickerTape],
-  ['card-alerta',            window.CardAlerta],
-  ['card-summary',           window.CardSummary],
+  //['card-ticker-tape',       window.CardTickerTape],
+  ['card-radar',             window.CardRadar],
+  //['card-summary',           window.CardSummary],
   ['carousel-ativas',        window.CarouselAtivas],
   ['cockpit-table',          window.CockpitTable],
   ['cockpit-summary',        window.CockpitSummary],
