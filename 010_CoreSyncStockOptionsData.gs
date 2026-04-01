@@ -13,7 +13,7 @@ const OptionDetailsSync = {
   run() {
     const inicio = Date.now();
     const cacheAPI = {};
-    const stats = { lidos: 0, processados: 0, skip_status: 0, api_calls: 0, erros: 0 };
+    const stats = { lidos: 0, processados: 0, skip_expirado: 0, api_calls: 0, erros: 0 };
 
     const tickersAtualizados = [];
     const tickersNovos = [];
@@ -97,12 +97,17 @@ const OptionDetailsSync = {
         const linhaImport = valoresImport[i];
         const idTrade   = String(linhaImport[colI.ID_TRADE]    || "").trim();
         const optTicker = String(linhaImport[colI.OPTION_TICKER] || "").trim();
-        const status    = String(linhaImport[colI.STATUS_OP]   || "").trim().toUpperCase();
 
         if (!idTrade || idTrade.length < 5) continue;
         stats.lidos++;
 
-        if (status !== "ATIVO") { stats.skip_status++; continue; }
+        var expiryValor = linhaImport[colI.EXPIRY];
+        var expiryDate = expiryValor instanceof Date ? expiryValor : new Date(expiryValor);
+        expiryDate.setHours(0, 0, 0, 0);
+        var hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+
+        if (isNaN(expiryDate.getTime()) || expiryDate < hoje) { stats.skip_expirado++; continue; }
 
         let dadosAPI = cacheAPI[optTicker] || null;
         if (!dadosAPI) {
@@ -213,7 +218,7 @@ const OptionDetailsSync = {
       const payloadAuditoria = {
         metricas_gerais: {
           total_linhas_lidas:  stats.lidos,
-          ignorados_nao_ativos: stats.skip_status,
+          ignorados_expirados: stats.skip_expirado,
           chamadas_reais_api:  stats.api_calls,
           sucessos:            stats.processados,
           falhas:              stats.erros

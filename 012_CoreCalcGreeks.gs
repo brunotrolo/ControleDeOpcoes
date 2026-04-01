@@ -84,7 +84,7 @@ const GreeksCalculator = {
     const ss     = SpreadsheetApp.getActiveSpreadsheet();
 
     const cacheCalculos = {};
-    const stats = { lidos: 0, ativos: 0, gravados: 0, skip_status: 0, erros: 0, cache_hits: 0 };
+    const stats = { lidos: 0, ativos: 0, gravados: 0, skip_expirado: 0, erros: 0, cache_hits: 0 };
     const errosDetalhes    = [];
     const tickersAtualizados = [];
     const tickersNovos       = [];
@@ -137,13 +137,18 @@ const GreeksCalculator = {
         const linha       = valoresImport[i];
         const idTrade     = String(linha[colI.ID_TRADE]      || "").trim();
         const optTicker   = String(linha[colI.OPTION_TICKER] || "").trim();
-        const statusUpper = String(linha[colI.STATUS_OP]     || "").trim().toUpperCase();
 
         if (!idTrade || idTrade.length < 5) continue;
         stats.lidos++;
 
-        if (statusUpper !== "ATIVO") {
-          stats.skip_status++;
+        var expiryValor = linha[colI.EXPIRY];
+        var expiryDate = expiryValor instanceof Date ? expiryValor : new Date(expiryValor);
+        expiryDate.setHours(0, 0, 0, 0);
+        var hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+
+        if (isNaN(expiryDate.getTime()) || expiryDate < hoje) {
+          stats.skip_expirado++;
           continue;
         }
         stats.ativos++;
@@ -248,7 +253,7 @@ const GreeksCalculator = {
       const payloadLog = {
         metricas_gerais: {
           total_linhas_lidas:   stats.lidos,
-          ignorados_nao_ativos: stats.skip_status,
+          ignorados_expirados:  stats.skip_expirado,
           ativos_calculados:    stats.gravados,
           uso_de_cache:         stats.cache_hits,
           falhas:               stats.erros
@@ -304,4 +309,3 @@ function testSuiteCalcGreeksInternal011() {
 
   console.log("=== FIM DA AUDITORIA ===");
 }
-
