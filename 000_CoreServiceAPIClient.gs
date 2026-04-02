@@ -92,7 +92,16 @@ const OplabService = {
     return ApiClient._fetchData(url, { headers: this._getHeaders() });
   },
 
-  /** Interface para Cálculo Black-Scholes Externo */
+  /** Interface para Historico de Opcoes de um Ativo */
+  getHistoricalOptions: function(spotTicker, fromDate, toDate, optionSymbol) {
+    if (!spotTicker || !fromDate || !toDate) return null;
+    var url = this._baseUrl + '/market/historical/options/' +
+              spotTicker.toUpperCase() + '/' + fromDate + '/' + toDate;
+    if (optionSymbol) url += '?symbol=' + optionSymbol.toUpperCase();
+    return ApiClient._fetchData(url, { headers: this._getHeaders() });
+  },
+
+  /** Interface para Calculo Black-Scholes Externo */
   calculateBS(params) {
     if (!params || !params.symbol) return null;
     const query = Object.keys(params)

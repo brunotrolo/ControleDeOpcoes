@@ -35,7 +35,8 @@ const SYS_CONFIG = {
     HIST_OPCOES:    "HISTORICO_OPCOES",                 // OPLab: histórico de gregas por período
     RANK_CORREL:    "RANKING_CORREL_IBOV",              // OPLab: ranking correlacao com IBOV
     RANK_FUND:      "RANKING_FUNDAMENTALISTA",              // OPLab: ranking fundamentalista por atributo
-    CONSULTOR_HIST: "CONSULTOR_IA_HISTORICO"               // ConsultorIA 023: historico de analises Claude
+    CONSULTOR_HIST: "CONSULTOR_IA_HISTORICO",               // ConsultorIA 023: historico de analises Claude
+    HIST_OPCOES_250D: "DADOS_DETALHES_HISTORICO250D"          // 013: historico cotacoes de opcoes 250d
   },
 
   // 2. DICIONÁRIO UNIVERSAL DE DADOS (DUD)
