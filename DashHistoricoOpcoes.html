@@ -20,18 +20,44 @@
 
         <!-- Controles -->
         <div class="flex items-center gap-2 flex-wrap">
+
+          <!-- Opcao principal -->
           <select v-model="opcaoSelecionada" @change="aoTrocarOpcao" class="input-base py-1.5 text-sm" style="min-width:160px;">
             <option v-for="op in listaOpcoes" :key="op.ticker" :value="op.ticker">
               {{ op.ticker }} ({{ op.tipo }})
             </option>
           </select>
 
+          <!-- Comparar com segunda opcao (so no tab premium) -->
+          <template v-if="tabAtiva === 'premium'">
+            <span style="font-size:0.65rem;color:var(--text-muted);font-weight:700;">vs</span>
+            <select v-model="opcao2Selecionada" @change="atualizarGrafico" class="input-base py-1.5 text-sm" style="min-width:140px;">
+              <option value="">-- Comparar com --</option>
+              <option v-for="op in listaOpcoes" :key="op.ticker" :value="op.ticker"
+                :disabled="op.ticker === opcaoSelecionada">
+                {{ op.ticker }}
+              </option>
+            </select>
+          </template>
+
+          <!-- Toggle BS Price (so no tab premium) -->
+          <button v-if="tabAtiva === 'premium'"
+            @click="mostrarBS = !mostrarBS; atualizarGrafico()"
+            class="px-3 py-1.5 text-xs font-bold rounded-md border transition-colors"
+            :style="mostrarBS
+              ? 'background:var(--brand-indigo-light);color:var(--brand-indigo);border-color:var(--brand-indigo-muted);'
+              : 'background:var(--surface-base);color:var(--text-muted);border-color:var(--border-default);'">
+            <i data-lucide="function-square" class="w-3 h-3 inline -mt-0.5 mr-1"></i>
+            BS Price
+          </button>
+
+          <!-- Periodos -->
           <div class="flex rounded-md shadow-sm overflow-hidden" style="border:1px solid var(--border-default);">
             <button v-for="p in periodos" :key="p.val"
               @click="periodoAtivo = p.val; aplicarPeriodo()"
               class="px-3 py-1.5 text-xs font-bold transition-colors"
               :style="periodoAtivo === p.val
-                ? 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);'
+                ? 'background:var(--brand-indigo);color:#fff;'
                 : 'background:var(--surface-base);color:var(--text-secondary);'">
               {{ p.label }}
             </button>
@@ -265,14 +291,16 @@ window.DashHistoricoOpcoes = {
     // ---------------------------------------------------------------
     // ESTADO
     // ---------------------------------------------------------------
-    const carregando       = ref(true);   // true ate lerAbaComoJSON retornar
-    const dadosLocais      = ref([]);     // dados da aba carregados sob demanda
-    const opcaoSelecionada = ref('');
-    const periodoAtivo     = ref('ALL');
-    const tabAtiva         = ref('premium');
-    const metrica          = ref('premium');
-    const loadingIA        = ref(false);
-    const insightIA        = ref('');
+    const carregando        = ref(true);
+    const dadosLocais       = ref([]);
+    const opcaoSelecionada  = ref('');
+    const opcao2Selecionada = ref('');   // segunda opcao para comparacao (vazio = desativado)
+    const mostrarBS         = ref(true); // toggle BS_PRICE no grafico premium
+    const periodoAtivo      = ref('ALL');
+    const tabAtiva          = ref('premium');
+    const metrica           = ref('premium');
+    const loadingIA         = ref(false);
+    const insightIA         = ref('');
 
     let debounceTimer = null;
 
@@ -361,7 +389,7 @@ window.DashHistoricoOpcoes = {
       if (!opcaoSelecionada.value) return [];
       return dadosLocais.value
         .filter(r => (r.OPTION_TICKER || '') === opcaoSelecionada.value)
-        .sort((a, b) => new Date(a.CANDLE_DATE) - new Date(b.CANDLE_DATE));
+        .sort((a, b) => new Date(parseDateStr(a.CANDLE_DATE)) - new Date(parseDateStr(b.CANDLE_DATE)));
     });
 
     const dadosFiltrados = computed(() => {
@@ -370,6 +398,22 @@ window.DashHistoricoOpcoes = {
       const corte = new Date();
       corte.setDate(corte.getDate() - parseInt(periodoAtivo.value));
       return dadosBrutos.value.filter(r => new Date(parseDateStr(r.CANDLE_DATE)) >= corte);
+    });
+
+    // Segunda opcao para comparacao
+    const dadosBrutos2 = computed(() => {
+      if (!opcao2Selecionada.value) return [];
+      return dadosLocais.value
+        .filter(r => (r.OPTION_TICKER || '') === opcao2Selecionada.value)
+        .sort((a, b) => new Date(parseDateStr(a.CANDLE_DATE)) - new Date(parseDateStr(b.CANDLE_DATE)));
+    });
+
+    const dadosFiltrados2 = computed(() => {
+      if (!dadosBrutos2.value.length) return [];
+      if (periodoAtivo.value === 'ALL') return dadosBrutos2.value;
+      const corte = new Date();
+      corte.setDate(corte.getDate() - parseInt(periodoAtivo.value));
+      return dadosBrutos2.value.filter(r => new Date(parseDateStr(r.CANDLE_DATE)) >= corte);
     });
 
     const parseDateStr = (v) => {
@@ -524,28 +568,38 @@ window.DashHistoricoOpcoes = {
           ? 'rgba(16,185,129,0.06)'
           : 'rgba(225,29,72,0.06)';
 
+        // BS_PRICE
+        const bsPrices = dados.map(r => parseNum(r.BS_PRICE || 0));
+        const hasBs    = bsPrices.some(v => v > 0);
+
+        // Segunda opcao para comparacao
+        const dados2  = dadosFiltrados2.value;
+        const datas2  = dados2.map(r => parseDateStr(r.CANDLE_DATE));
+        const premios2 = dados2.map(r => parseNum(r.CLOSE || 0));
+        const pm2      = dados2.map(r => parseNum(r.ENTRY_PRICE || 0)).find(v => v > 0) || 0;
+        const colorOp2 = '#8B5CF6'; // violeta fixo para segunda opcao
+
         traces = [
           // Linha principal do premio -- sem fill, elegante
           {
             x: datas, y: premios,
-            name: 'Premio Diario',
+            name: opcaoSelecionada.value,
             type: 'scatter', mode: 'lines',
             line: { color: colorPremio, width: 2.5, shape: 'spline', smoothing: 0.6 },
             yaxis: 'y1',
-            hovertemplate: '<b>%{x}</b><br>Premio: R$ %{y:.2f}<extra></extra>'
+            hovertemplate: '<b>%{x}</b><br>' + opcaoSelecionada.value + ': R$ %{y:.2f}<extra></extra>'
           },
-          // Marcador do ponto mais recente
+          // Marcador ponto mais recente
           {
             x: [datas[datas.length - 1]],
             y: [premios[premios.length - 1]],
-            name: 'Atual',
             type: 'scatter', mode: 'markers',
             marker: { color: colorPremio, size: 9, symbol: 'circle',
                       line: { color: getCssVar('--surface-base') || '#1a1a2e', width: 2 } },
             yaxis: 'y1', showlegend: false,
             hovertemplate: 'Atual: R$ %{y:.2f}<extra></extra>'
           },
-          // Spot no eixo secundario -- linha fina discreta
+          // Spot no eixo secundario
           {
             x: datas, y: spots,
             name: 'Spot',
@@ -555,6 +609,74 @@ window.DashHistoricoOpcoes = {
             hovertemplate: 'Spot: R$ %{y:.2f}<extra></extra>'
           }
         ];
+
+        // BS_PRICE -- linha pontilhada sutil representando valor teorico Black-Scholes
+        if (hasBs && mostrarBS.value) {
+          traces.push({
+            x: datas, y: bsPrices,
+            name: 'BS Price (teorico)',
+            type: 'scatter', mode: 'lines',
+            line: { color: colorIndigo, width: 1.4, dash: 'dot' },
+            opacity: 0.65,
+            yaxis: 'y1',
+            hovertemplate: 'BS teorico: R$ %{y:.2f}<extra></extra>'
+          });
+          // Sombra entre premio real e BS (diferenca = spread teorico)
+          // Usa fill tonexty para preencher a area entre as duas linhas
+          traces.push({
+            x: datas, y: bsPrices,
+            name: 'Spread BS',
+            type: 'scatter', mode: 'none',
+            fill: 'tonexty',
+            fillcolor: premios[premios.length-1] > bsPrices[bsPrices.length-1]
+              ? 'rgba(225,29,72,0.06)'   // premio acima do teorico: opcao cara
+              : 'rgba(79,70,229,0.06)',   // premio abaixo do teorico: opcao barata
+            yaxis: 'y1', showlegend: false,
+            hoverinfo: 'skip'
+          });
+        }
+
+        // Segunda opcao sobreposta
+        if (dados2.length > 0 && opcao2Selecionada.value) {
+          traces.push({
+            x: datas2, y: premios2,
+            name: opcao2Selecionada.value,
+            type: 'scatter', mode: 'lines',
+            line: { color: colorOp2, width: 2, dash: 'solid', shape: 'spline', smoothing: 0.6 },
+            yaxis: 'y1',
+            opacity: 0.85,
+            hovertemplate: '<b>%{x}</b><br>' + opcao2Selecionada.value + ': R$ %{y:.2f}<extra></extra>'
+          });
+          // Marcador atual da segunda opcao
+          if (premios2.length) {
+            traces.push({
+              x: [datas2[datas2.length - 1]],
+              y: [premios2[premios2.length - 1]],
+              type: 'scatter', mode: 'markers',
+              marker: { color: colorOp2, size: 8, symbol: 'diamond',
+                        line: { color: getCssVar('--surface-base') || '#1a1a2e', width: 2 } },
+              yaxis: 'y1', showlegend: false,
+              hovertemplate: opcao2Selecionada.value + ' atual: R$ %{y:.2f}<extra></extra>'
+            });
+          }
+          // Linha horizontal de entrada da segunda opcao
+          if (pm2 > 0 && datas2.length) {
+            shapes.push({
+              type: 'line',
+              x0: datas2[0], x1: datas2[datas2.length - 1],
+              y0: pm2, y1: pm2,
+              line: { color: colorOp2, width: 1, dash: 'dash' },
+              layer: 'above'
+            });
+            annotations.push({
+              x: datas2[0], y: pm2,
+              xanchor: 'left', yanchor: 'top',
+              text: opcao2Selecionada.value + ' entrada R$' + pm2.toFixed(2),
+              showarrow: false,
+              font: { color: colorOp2, size: 9, family: 'JetBrains Mono, monospace' }
+            });
+          }
+        }
 
         // ---- Linha horizontal: premio de entrada (ENTRY_PRICE) -----------
         if (pm > 0 && datas.length) {
@@ -600,6 +722,25 @@ window.DashHistoricoOpcoes = {
             showarrow: false,
             font: { color: colorAmber, size: 9, family: 'JetBrains Mono, monospace' }
           });
+        }
+
+        // Anotacao BS: diferenca entre mercado e teorico no ultimo ponto
+        if (hasBs && mostrarBS.value && bsPrices.length) {
+          var ultimoBS    = bsPrices[bsPrices.length - 1];
+          var ultimoPremio = premios[premios.length - 1];
+          var diffBS = ((ultimoPremio - ultimoBS) / ultimoBS * 100);
+          if (Math.abs(diffBS) > 0.5) {
+            var bsLabel = diffBS > 0
+              ? '+' + diffBS.toFixed(1) + '% acima BS'
+              : diffBS.toFixed(1) + '% abaixo BS';
+            annotations.push({
+              x: datas[datas.length - 1], y: ultimoPremio,
+              xanchor: 'right', yanchor: 'top',
+              text: bsLabel,
+              showarrow: false,
+              font: { color: diffBS > 0 ? colorRose : colorIndigo, size: 9, family: 'JetBrains Mono, monospace' }
+            });
+          }
         }
 
         layout.yaxis  = {
@@ -938,7 +1079,8 @@ window.DashHistoricoOpcoes = {
     };
 
     return {
-      carregando, opcaoSelecionada, periodoAtivo, tabAtiva, metrica,
+      carregando, opcaoSelecionada, opcao2Selecionada, mostrarBS,
+      periodoAtivo, tabAtiva, metrica,
       loadingIA, insightIA,
       periodos, tabs,
       listaOpcoes, dadosFiltrados,
