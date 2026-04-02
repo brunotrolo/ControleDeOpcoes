@@ -279,6 +279,36 @@
           </div>
         </div>
 
+        <!-- 8. Historico de Cotacoes 250D -->
+        <div @click="abrirGrafico('dash-historico-opcoes')"
+          style="cursor:pointer;border-radius:var(--radius-xl);border:1px solid var(--border-subtle);overflow:hidden;box-shadow:var(--shadow-sm);background:var(--surface-base);transition:border-color 0.2s,box-shadow 0.2s;"
+          onmouseover="this.style.borderColor='var(--brand-indigo)';this.style.boxShadow='0 0 0 3px var(--brand-indigo-muted)'"
+          onmouseout="this.style.borderColor='var(--border-subtle)';this.style.boxShadow='var(--shadow-sm)'">
+          <div style="height:4px;background:var(--brand-indigo);"></div>
+          <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:0.875rem;">
+            <div style="display:flex;align-items:center;gap:0.625rem;">
+              <div style="padding:0.4rem;background:var(--brand-indigo-light);border-radius:var(--radius-md);border:1px solid var(--brand-indigo-muted);flex-shrink:0;">
+                <i data-lucide="line-chart" style="width:16px;height:16px;color:var(--brand-indigo);display:block;"></i>
+              </div>
+              <div>
+                <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--brand-indigo);">8 -- Historico 250D</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px;">Premio + Gregas ao longo do tempo</div>
+              </div>
+              <i data-lucide="arrow-right" style="width:16px;height:16px;color:var(--text-muted);margin-left:auto;display:block;"></i>
+            </div>
+            <div style="display:flex;gap:1px;background:var(--border-subtle);border-radius:var(--radius-md);overflow:hidden;">
+              <div style="flex:1;padding:0.625rem 0.875rem;background:var(--surface-base);display:flex;flex-direction:column;gap:3px;">
+                <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Opcoes c/ historico</span>
+                <span style="font-size:1rem;font-weight:700;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;">{{ previewHistorico.totalOpcoes }}</span>
+              </div>
+              <div style="flex:1;padding:0.625rem 0.875rem;background:var(--surface-base);display:flex;flex-direction:column;gap:3px;">
+                <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Total candles</span>
+                <span style="font-size:1rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ previewHistorico.totalCandles }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -293,7 +323,7 @@
       </div>
       
       <div class="flex-1 w-full premium-card p-1 overflow-hidden">
-        <component :is="activeChart" :opcoes-brutas="opcoesBrutas" :ativos="listaAtivosUnicos" :stats-pre-calculados="statsPreCalculados"></component>
+        <component :is="activeChart" :opcoes-brutas="opcoesBrutas" :ativos="listaAtivosUnicos" :stats-pre-calculados="statsPreCalculados" :hist-opcoes="histOpcoes"></component>
       </div>
 
     </div>
@@ -307,6 +337,7 @@ window.DashboardHub = {
   props: {
     opcoesBrutas:       { type: Array,  default: () => [] },
     statsPreCalculados: { type: Object, default: () => ({}) },
+    histOpcoes:         { type: Array,  default: () => [] }
   },
   setup(props) {
     const { ref, computed, nextTick, onMounted, watch } = Vue;
@@ -534,7 +565,16 @@ window.DashboardHub = {
       };
     });
 
-    return { activeChart, abrirGrafico, fecharGrafico, listaAtivosUnicos, radarAtivo, radarTipo, loadingRadar, resultadoRadar, acionarRadar, previewLiquidez, previewSkew, previewRisco, previewGamma, previewPortfolio };
+    // Preview do card 8 -- Historico 250D
+    const previewHistorico = computed(() => {
+      const hist = props.histOpcoes || [];
+      if (!hist.length) return { totalOpcoes: '--', totalCandles: '--' };
+      const opcoes = new Set(hist.map(r => r.OPTION_TICKER || '')).size;
+      const candles = hist.length >= 1000 ? (hist.length / 1000).toFixed(1) + 'k' : String(hist.length);
+      return { totalOpcoes: opcoes + ' op.', totalCandles: candles };
+    });
+
+    return { activeChart, abrirGrafico, fecharGrafico, listaAtivosUnicos, radarAtivo, radarTipo, loadingRadar, resultadoRadar, acionarRadar, previewLiquidez, previewSkew, previewRisco, previewGamma, previewPortfolio, previewHistorico };
   }
 };
 </script>

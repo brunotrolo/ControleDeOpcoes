@@ -231,6 +231,7 @@ const app = createApp({
               dadosAtivos:   dadosTraduzidos.dadosAtivos   || [],
               logs:          dadosTraduzidos.logs           || [],
               historico250d: dadosTraduzidos.historico250d  || [],
+              histOpcoes250d: dadosTraduzidos.histOpcoes250d || [],
               calcGreeks:    dadosTraduzidos.calcGreeks     || [],
               dadosGreeks:   dadosTraduzidos.dadosGreeks    || [],
               necton:        dadosTraduzidos.necton         || [],
@@ -381,7 +382,7 @@ const app = createApp({
         // 2. ANALISE & GESTAO
         // =========================================================
         'comparativo-view':       { db: db.value },
-        'dashboard-hub':          { opcoesBrutas: db.value.selecaoOpcoes || [], statsPreCalculados: cuboOlap.value },
+        'dashboard-hub':          { opcoesBrutas: db.value.selecaoOpcoes || [], statsPreCalculados: cuboOlap.value, histOpcoes: db.value.histOpcoes250d || [] },
 
         // =========================================================
         // 4. OPLAB MARKET DATA HUB
@@ -475,6 +476,7 @@ const COMPONENTES_V5 = [
   ['dash-volatility-skew',   window.DashVolatilitySkew],
   ['dash-risk-return',       window.DashRiskReturn],
   ['dash-gamma-theta',       window.DashGammaTheta],
+  ['dash-historico-opcoes',  window.DashHistoricoOpcoes],
 
   // 3. OPLAB MARKET DATA HUB
   ['oplab-hub',              window.OpLabHub],

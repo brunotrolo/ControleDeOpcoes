@@ -81,6 +81,7 @@ function SyncHighestOptionsVariation_Menu() { _menuBridge("Maiores Variacoes em 
 function SyncM9M21Ranking_Menu()            { _menuBridge("Ranking Tendencia M9M21 (OPLab)", orquestrarSyncM9M21); }
 function SyncOplabScore_Menu()              { _menuBridge("Ranking OPLab Score (OPLab)", orquestrarSyncOplabScore); }
 function SyncHistoricalOptions_Menu()       { _menuBridge("Historico de Opcoes (OPLab)", orquestrarSyncHistoricalOptions); }
+function SyncHistoricoOpcoes250D_Menu()     { _menuBridge("Historico Incremental Opcoes 250D", sincronizarHistoricoOpcoes); }
 function SyncCorrelIbovRanking_Menu()       { _menuBridge("Ranking Correlacao IBOV (OPLab)", orquestrarSyncCorrelIbov); }
 function SyncCompaniesRanking_Menu()        { _menuBridge("Ranking Fundamentalista (OPLab)", orquestrarSyncCompaniesRanking); }
 

@@ -1,0 +1,987 @@
+<template id="dash-historico-opcoes-template">
+  <div class="w-full h-full flex flex-col gap-0 overflow-hidden">
+
+    <!-- ===================================================================
+         HEADER COM KPIs
+    ==================================================================== -->
+    <div class="shrink-0 px-4 pt-4 pb-3 flex flex-col gap-3">
+
+      <!-- Titulo + controles -->
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div class="flex items-center gap-2.5">
+          <div style="padding:0.45rem;background:var(--brand-indigo-light);border-radius:var(--radius-md);border:1px solid var(--brand-indigo-muted);">
+            <i data-lucide="line-chart" style="width:17px;height:17px;color:var(--brand-indigo);display:block;"></i>
+          </div>
+          <div>
+            <h3 class="t-title" style="color:var(--text-primary);">Historico de Cotacoes</h3>
+            <p style="font-size:0.65rem;color:var(--text-muted);margin-top:1px;">Premio diario + gregas ao longo do tempo para cada opcao da carteira</p>
+          </div>
+        </div>
+
+        <!-- Controles -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <select v-model="opcaoSelecionada" @change="aoTrocarOpcao" class="input-base py-1.5 text-sm" style="min-width:160px;">
+            <option v-for="op in listaOpcoes" :key="op.ticker" :value="op.ticker">
+              {{ op.ticker }} ({{ op.tipo }})
+            </option>
+          </select>
+
+          <div class="flex rounded-md shadow-sm overflow-hidden" style="border:1px solid var(--border-default);">
+            <button v-for="p in periodos" :key="p.val"
+              @click="periodoAtivo = p.val; aplicarPeriodo()"
+              class="px-3 py-1.5 text-xs font-bold transition-colors"
+              :style="periodoAtivo === p.val
+                ? 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);'
+                : 'background:var(--surface-base);color:var(--text-secondary);'">
+              {{ p.label }}
+            </button>
+          </div>
+
+          <button @click="toggleMetrica"
+            class="px-3 py-1.5 text-xs font-bold rounded-md border transition-colors"
+            :style="metrica === 'delta'
+              ? 'background:var(--brand-rose-light);color:var(--brand-rose);border-color:var(--brand-rose-muted);'
+              : 'background:var(--surface-base);color:var(--text-secondary);border-color:var(--border-default);'">
+            <i data-lucide="activity" class="w-3 h-3 inline -mt-0.5 mr-1"></i>
+            {{ metrica === 'premium' ? 'Ver Delta' : 'Ver Premio' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Strip -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2" v-if="kpis.ticker">
+
+        <!-- Opcao -->
+        <div class="kpi-tip premium-card px-3 py-2.5 flex flex-col gap-0.5" style="border-left:3px solid var(--brand-indigo);">
+          <span class="kpi-label-row" style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">
+            Opcao
+            <i data-lucide="info" class="kip-info-icon"></i>
+          </span>
+          <span class="kpi-tip-box">Codigo do ativo derivativo (opcao) sendo analisado. Cada opcao tem um vencimento, strike e tipo (CALL ou PUT) unicos.</span>
+          <span style="font-size:0.95rem;font-weight:800;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;">{{ kpis.ticker }}</span>
+        </div>
+
+        <!-- Premio Entrada -->
+        <div class="kpi-tip premium-card px-3 py-2.5 flex flex-col gap-0.5" style="border-left:3px solid var(--brand-emerald);">
+          <span class="kpi-label-row" style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">
+            Premio Entrada
+            <i data-lucide="info" class="kip-info-icon"></i>
+          </span>
+          <span class="kpi-tip-box">Valor do premio (preco da opcao) no momento em que voce executou a operacao. E a linha horizontal verde no grafico -- tudo abaixo dela e lucro para quem vendeu.</span>
+          <span style="font-size:0.95rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-emerald);">R$ {{ kpis.premioEntrada }}</span>
+        </div>
+
+        <!-- Premio Atual -->
+        <div class="kpi-tip premium-card px-3 py-2.5 flex flex-col gap-0.5" :style="'border-left:3px solid ' + (kpis.premioAtualNum <= kpis.premioEntradaNum ? 'var(--brand-emerald)' : 'var(--brand-rose)') + ';'">
+          <span class="kpi-label-row" style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">
+            Premio Atual
+            <i data-lucide="info" class="kip-info-icon"></i>
+          </span>
+          <span class="kpi-tip-box">Cotacao mais recente da opcao no mercado. Para vendedores de opcao: verde = premio caiu (posicao ganhando), vermelho = premio subiu (posicao perdendo).</span>
+          <span style="font-size:0.95rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
+            :style="'color:' + (kpis.premioAtualNum <= kpis.premioEntradaNum ? 'var(--brand-emerald)' : 'var(--brand-rose)') + ';'">
+            R$ {{ kpis.premioAtual }}
+          </span>
+        </div>
+
+        <!-- Lucro Acumulado -->
+        <div class="kpi-tip premium-card px-3 py-2.5 flex flex-col gap-0.5" :style="'border-left:3px solid ' + (kpis.plPct >= 0 ? 'var(--brand-emerald)' : 'var(--brand-rose)') + ';'">
+          <span class="kpi-label-row" style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">
+            Lucro Acumulado
+            <i data-lucide="info" class="kip-info-icon"></i>
+          </span>
+          <span class="kpi-tip-box">Percentual de lucro ja capturado em relacao ao premio recebido na entrada. Formula: (Entrada - Atual) / Entrada x 100. +100% = opcao virou po (lucro maximo). Negativo = posicao no prejuizo.</span>
+          <span style="font-size:0.95rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
+            :style="'color:' + (kpis.plPct >= 0 ? 'var(--brand-emerald)' : 'var(--brand-rose)') + ';'">
+            {{ kpis.plPct >= 0 ? '+' : '' }}{{ kpis.plPct }}%
+          </span>
+        </div>
+
+        <!-- DTE Restante -->
+        <div class="kpi-tip premium-card px-3 py-2.5 flex flex-col gap-0.5" style="border-left:3px solid var(--brand-amber);">
+          <span class="kpi-label-row" style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">
+            DTE Restante
+            <i data-lucide="info" class="kip-info-icon"></i>
+          </span>
+          <span class="kpi-tip-box">Days To Expiration -- dias corridos ate o vencimento da opcao. Amarelo: menos de 30 dias (zona de atencao, aceleracao do Theta). Vermelho: menos de 14 dias (urgencia de decisao).</span>
+          <span style="font-size:0.95rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
+            :style="'color:' + (kpis.dte <= 14 ? 'var(--brand-rose)' : kpis.dte <= 30 ? 'var(--brand-amber)' : 'var(--text-secondary)') + ';'">
+            {{ kpis.dte }}d
+          </span>
+        </div>
+
+        <!-- Moneyness -->
+        <div class="kpi-tip premium-card px-3 py-2.5 flex flex-col gap-0.5"
+          :style="'border-left:3px solid ' + (kpis.moneyness === 'OTM' ? 'var(--brand-emerald)' : kpis.moneyness === 'ATM' ? 'var(--brand-amber)' : 'var(--brand-rose)') + ';'">
+          <span class="kpi-label-row" style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">
+            Moneyness
+            <i data-lucide="info" class="kip-info-icon"></i>
+          </span>
+          <span class="kpi-tip-box">Relacao entre o preco do ativo e o strike da opcao. OTM (Out of the Money): vendedor esta seguro, opcao tende a expirar sem valor. ATM (At the Money): zona de atencao maxima. ITM (In the Money): risco elevado de exercicio.</span>
+          <span style="font-size:0.95rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
+            :style="'color:' + (kpis.moneyness === 'OTM' ? 'var(--brand-emerald)' : kpis.moneyness === 'ATM' ? 'var(--brand-amber)' : 'var(--brand-rose)') + ';'">
+            {{ kpis.moneyness || '--' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Empty KPI state: so aparece se a aba existe mas opcao ainda nao foi selecionada -->
+
+    </div>
+
+    <!-- ===================================================================
+         CORPO: GRAFICO + PAINEL LATERAL
+    ==================================================================== -->
+    <div class="flex-1 flex flex-col lg:flex-row gap-3 px-4 pb-4 overflow-hidden min-h-0">
+
+      <!-- Grafico principal -->
+      <div class="flex-1 premium-card overflow-hidden flex flex-col min-h-0">
+
+        <!-- Tabs internas -->
+        <div class="flex items-center gap-0 px-3 pt-3 pb-0 shrink-0" style="border-bottom:1px solid var(--border-subtle);">
+          <button v-for="tab in tabs" :key="tab.val"
+            @click="tabAtiva = tab.val; atualizarGrafico()"
+            class="px-4 py-2 text-xs font-bold transition-colors mr-1 rounded-t-md"
+            :style="tabAtiva === tab.val
+              ? 'background:var(--brand-indigo);color:#fff;'
+              : 'background:transparent;color:var(--text-muted);'">
+            <i :data-lucide="tab.icon" class="w-3 h-3 inline -mt-0.5 mr-1"></i>
+            {{ tab.label }}
+          </button>
+          <span class="ml-auto text-xs mr-2" style="color:var(--text-muted);">{{ dadosFiltrados.length }} candles</span>
+        </div>
+
+        <div class="flex-1 relative min-h-0">
+          <div v-if="carregando"
+            class="absolute inset-0 flex flex-col items-center justify-center"
+            style="color:var(--text-muted);">
+            <svg class="animate-spin h-10 w-10 mb-3" style="color:var(--brand-indigo);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <p class="font-bold" style="font-size:0.85rem;">Carregando historico...</p>
+            <p style="font-size:0.72rem;margin-top:4px;">Buscando dados da aba DADOS_DETALHES_HISTORICO250D</p>
+          </div>
+          <div v-else-if="listaOpcoes.length === 0"
+            class="absolute inset-0 flex flex-col items-center justify-center"
+            style="color:var(--text-muted);">
+            <i data-lucide="database" class="w-10 h-10 mb-3 opacity-40"></i>
+            <p class="font-bold" style="font-size:0.85rem;">Nenhum dado encontrado</p>
+            <p style="font-size:0.72rem;margin-top:4px;">Execute o Motor 013 (Historico Incremental) para popular a aba</p>
+          </div>
+          <div v-else-if="dadosFiltrados.length === 0"
+            class="absolute inset-0 flex flex-col items-center justify-center"
+            style="color:var(--text-muted);">
+            <i data-lucide="search-x" class="w-10 h-10 mb-3 opacity-40"></i>
+            <p class="font-bold" style="font-size:0.85rem;">Sem candles no periodo selecionado</p>
+            <p style="font-size:0.72rem;margin-top:4px;">Tente ampliar o periodo de visualizacao</p>
+          </div>
+          <div id="histPlotDiv" class="w-full h-full" style="min-height:300px;"></div>
+        </div>
+      </div>
+
+      <!-- Painel lateral -->
+      <div class="w-full lg:w-[320px] xl:w-[360px] shrink-0 flex flex-col gap-3 overflow-y-auto hide-scrollbar">
+
+        <!-- Bloco de gregas do ultimo candle -->
+        <div class="premium-card p-4 shrink-0" style="border-top:3px solid var(--brand-indigo);">
+          <h4 class="t-label mb-3 flex items-center gap-1.5" style="color:var(--brand-indigo);">
+            <i data-lucide="sigma" class="w-3.5 h-3.5"></i> Gregas (Ultimo Candle)
+          </h4>
+          <div class="grid grid-cols-3 gap-2">
+            <div v-for="g in gregasUltimoCandle" :key="g.label"
+              class="kpi-tip flex flex-col gap-0.5 p-2 rounded-lg text-center"
+              style="background:var(--surface-sunken);">
+              <span class="kpi-label-row" style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);justify-content:center;">
+                {{ g.label }}
+                <i data-lucide="info" class="kip-info-icon"></i>
+              </span>
+              <span class="kpi-tip-box">{{ g.dica }}</span>
+              <span style="font-size:0.85rem;font-weight:800;font-family:'JetBrains Mono',monospace;" :style="'color:' + g.cor + ';'">{{ g.valor }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Evolucao do P/L mini chart placeholder + tabela -->
+        <div class="premium-card p-4 shrink-0">
+          <h4 class="t-label mb-3 flex items-center gap-1.5">
+            <i data-lucide="trending-up" class="w-3.5 h-3.5" style="color:var(--brand-emerald);"></i> Evolucao do P/L
+          </h4>
+          <div v-if="evolucaoPL.length > 0">
+            <div id="miniPLDiv" style="height:100px;width:100%;"></div>
+            <div class="flex justify-between mt-2 text-xs font-bold font-mono"
+              :style="evolucaoPLFinal >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'">
+              <span>Inicio: {{ evolucaoPLInicio.toFixed(1) }}%</span>
+              <span>Agora: {{ evolucaoPLFinal >= 0 ? '+' : '' }}{{ evolucaoPLFinal.toFixed(1) }}%</span>
+            </div>
+          </div>
+          <div v-else class="text-center py-4" style="color:var(--text-muted);font-size:0.75rem;">Sem dados de P/L</div>
+        </div>
+
+        <!-- Painel IA -->
+        <div class="premium-card p-4 flex-1 flex flex-col" style="border-top:3px solid var(--brand-amber);">
+          <div class="flex justify-between items-center mb-3">
+            <h4 class="t-label flex items-center gap-1.5" style="color:var(--brand-amber);">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Analista de Trajetoria (IA)
+            </h4>
+            <span v-if="loadingIA" class="text-xs animate-pulse font-bold" style="color:var(--brand-amber);">Lendo...</span>
+          </div>
+
+          <div class="flex-1 card-inner p-3 text-sm overflow-y-auto custom-scrollbar mb-3" style="color:var(--text-secondary);min-height:120px;">
+            <div v-if="!insightIA && !loadingIA"
+              class="h-full flex flex-col items-center justify-center text-center opacity-60 py-4">
+              <i data-lucide="brain-circuit" class="w-8 h-8 mb-2"></i>
+              <p style="font-size:0.75rem;">Peca para a IA analisar a trajetoria do premio e identificar padroes de movimento.</p>
+            </div>
+            <div v-else-if="loadingIA" class="flex items-center justify-center py-6">
+              <svg class="animate-spin h-7 w-7" style="color:var(--brand-amber);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+            <div v-else v-html="insightIA" class="space-y-2" style="font-size:0.78rem;"></div>
+          </div>
+
+          <button @click="solicitarIA"
+            :disabled="loadingIA || dadosFiltrados.length === 0"
+            class="btn-action w-full"
+            :class="(loadingIA || dadosFiltrados.length === 0) ? 'btn-action-ghost opacity-50 cursor-not-allowed' : ''"
+            style="background:var(--brand-amber);color:#fff;border:none;">
+            <i data-lucide="zap" class="w-4 h-4"></i> Analisar Trajetoria
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+window.DashHistoricoOpcoes = {
+  template: '#dash-historico-opcoes-template',
+
+  props: {},
+
+  setup(props) {
+    const { ref, computed, watch, onMounted, onUnmounted, nextTick } = Vue;
+
+    // ---------------------------------------------------------------
+    // ESTADO
+    // ---------------------------------------------------------------
+    const carregando       = ref(true);   // true ate lerAbaComoJSON retornar
+    const dadosLocais      = ref([]);     // dados da aba carregados sob demanda
+    const opcaoSelecionada = ref('');
+    const periodoAtivo     = ref('ALL');
+    const tabAtiva         = ref('premium');
+    const metrica          = ref('premium');
+    const loadingIA        = ref(false);
+    const insightIA        = ref('');
+
+    let debounceTimer = null;
+
+    // Helper: converte string BR ("0,29" ou "R$ 0,29") para float
+    // Necessario porque lerAbaComoJSON usa getDisplayValues() que formata numeros com virgula
+    const parseNum = (v) => {
+      if (v === null || v === undefined || v === '') return 0;
+      if (typeof v === 'number') return v;
+      var s = String(v).trim().replace(/[R$\s]/g, '');
+      // Formato BR com milhar: "1.500,29" -> remove pontos, troca virgula por ponto
+      if (s.includes(',') && s.includes('.')) {
+        s = s.replace(/\./g, '').replace(',', '.');
+      } else if (s.includes(',')) {
+        s = s.replace(',', '.');
+      }
+      var n = parseFloat(s);
+      return isNaN(n) ? 0 : n;
+    };
+
+    // Carrega a aba sob demanda -- igual ao padrao OpLabHub
+    const carregarHistorico = () => {
+      if (typeof google === 'undefined' || !google.script) {
+        carregando.value = false;
+        return;
+      }
+      carregando.value = true;
+      google.script.run
+        .withSuccessHandler(function(dados) {
+          dadosLocais.value = Array.isArray(dados) ? dados : [];
+          carregando.value  = false;
+          if (listaOpcoes.value.length > 0 && !opcaoSelecionada.value) {
+            opcaoSelecionada.value = listaOpcoes.value[0].ticker;
+            nextTick(atualizarGrafico);
+          }
+        })
+        .withFailureHandler(function(e) {
+          console.error('[DashHistoricoOpcoes] Erro ao carregar dados:', e);
+          carregando.value = false;
+        })
+        .lerAbaComoJSON('DADOS_DETALHES_HISTORICO250D');
+    };
+
+    const periodos = [
+      { label: '30d',  val: '30'  },
+      { label: '60d',  val: '60'  },
+      { label: '120d', val: '120' },
+      { label: 'Tudo', val: 'ALL' }
+    ];
+
+    const tabs = [
+      { label: 'Premio',     val: 'premium',  icon: 'trending-down' },
+      { label: 'Delta',      val: 'delta',    icon: 'activity'      },
+      { label: 'IV + Spot',  val: 'iv_spot',  icon: 'radio'         },
+      { label: 'Gregas',     val: 'gregas',   icon: 'sigma'         }
+    ];
+
+    // ---------------------------------------------------------------
+    // LISTA DE OPCOES (deduplica por OPTION_TICKER)
+    // ---------------------------------------------------------------
+    const listaOpcoes = computed(() => {
+      const mapa = {};
+      dadosLocais.value.forEach(r => {
+        const tk = r.OPTION_TICKER || r['OPTION_TICKER'] || '';
+        if (tk && !mapa[tk]) {
+          mapa[tk] = {
+            ticker: tk,
+            tipo: r.OPTION_TYPE || r.CATEGORY || ''
+          };
+        }
+      });
+      return Object.values(mapa).sort((a, b) => a.ticker.localeCompare(b.ticker));
+    });
+
+    // Inicializa selecao quando lista chega
+    watch(listaOpcoes, (lista) => {
+      if (lista.length > 0 && !opcaoSelecionada.value) {
+        opcaoSelecionada.value = lista[0].ticker;
+        nextTick(atualizarGrafico);
+      }
+    }, { immediate: true, flush: 'post' });
+
+    // ---------------------------------------------------------------
+    // DADOS FILTRADOS (opcao selecionada + periodo)
+    // ---------------------------------------------------------------
+    const dadosBrutos = computed(() => {
+      if (!opcaoSelecionada.value) return [];
+      return dadosLocais.value
+        .filter(r => (r.OPTION_TICKER || '') === opcaoSelecionada.value)
+        .sort((a, b) => new Date(a.CANDLE_DATE) - new Date(b.CANDLE_DATE));
+    });
+
+    const dadosFiltrados = computed(() => {
+      if (!dadosBrutos.value.length) return [];
+      if (periodoAtivo.value === 'ALL') return dadosBrutos.value;
+      const corte = new Date();
+      corte.setDate(corte.getDate() - parseInt(periodoAtivo.value));
+      return dadosBrutos.value.filter(r => new Date(parseDateStr(r.CANDLE_DATE)) >= corte);
+    });
+
+    const parseDateStr = (v) => {
+      if (!v) return '';
+      const s = String(v).trim();
+      // DD/MM/YYYY
+      if (s.includes('/')) {
+        const p = s.split('/');
+        return p[2] + '-' + p[1] + '-' + p[0];
+      }
+      return s.substring(0, 10);
+    };
+
+    // ---------------------------------------------------------------
+    // KPIs
+    // ---------------------------------------------------------------
+    const kpis = computed(() => {
+      if (!dadosFiltrados.value.length) return {};
+      const ultimo   = dadosFiltrados.value[dadosFiltrados.value.length - 1];
+      const primeiro = dadosFiltrados.value[0];
+      // ENTRY_PRICE: todos os candles tem o mesmo valor -- busca no primeiro nao-zero
+      // Funciona independente do nome exato da coluna no cabecalho do Sheets
+      const entradaRaw = dadosFiltrados.value
+        .map(r => parseNum(r.ENTRY_PRICE || r['ENTRY_PRICE'] || 0))
+        .find(v => v > 0) || 0;
+      const premioEntradaNum = entradaRaw;
+      const premioAtualNum   = parseNum(ultimo.CLOSE || 0);
+      const plPct = premioEntradaNum > 0 ? ((premioEntradaNum - premioAtualNum) / premioEntradaNum * 100) : 0;
+      return {
+        ticker:          opcaoSelecionada.value,
+        premioEntrada:   premioEntradaNum.toFixed(2).replace('.', ','),
+        premioEntradaNum,
+        premioAtual:     premioAtualNum.toFixed(2).replace('.', ','),
+        premioAtualNum,
+        plPct:           plPct.toFixed(1),
+        dte:             Math.round(parseNum(ultimo.DTE_CALENDAR || 0)),
+        moneyness:       String(ultimo.MONEYNESS_CODE || '').toUpperCase()
+      };
+    });
+
+    // ---------------------------------------------------------------
+    // GREGAS DO ULTIMO CANDLE
+    // ---------------------------------------------------------------
+    const gregasUltimoCandle = computed(() => {
+      if (!dadosFiltrados.value.length) return [];
+      const u = dadosFiltrados.value[dadosFiltrados.value.length - 1];
+      const f = (v, dec) => parseNum(v || 0).toFixed(dec);
+      return [
+        {
+          label: 'Delta', valor: f(u.DELTA, 3), cor: 'var(--brand-indigo)',
+          dica: 'Sensibilidade do premio ao movimento do ativo. Delta -0.30 significa que o premio cai R$0,30 para cada R$1,00 de alta do ativo. Valores proximos de 0 = OTM seguro. Proximos de -1 (PUT) ou +1 (CALL) = ITM profundo, risco de exercicio alto.'
+        },
+        {
+          label: 'Gamma', valor: f(u.GAMMA, 4), cor: 'var(--brand-rose)',
+          dica: 'Velocidade de variacao do Delta. Gamma alto significa que o Delta pode mudar drasticamente com um pequeno movimento do ativo -- risco de aceleracao repentina. Maior proximo do ATM e com pouco DTE.'
+        },
+        {
+          label: 'Vega', valor: f(u.VEGA, 4), cor: 'var(--brand-amber)',
+          dica: 'Sensibilidade do premio a variacao de 1% na volatilidade implicita. Vega positivo = volatilidade maior encarece a opcao. Para vendedores, volatilidade alta no momento da entrada e favoravel (premio gordo).'
+        },
+        {
+          label: 'Theta', valor: f(u.THETA, 4), cor: 'var(--brand-rose)',
+          dica: 'Decaimento diario do premio pelo passar do tempo. Theta -0.015 = a opcao perde R$0,015 de valor por dia. Para vendedores de opcao, o Theta e seu aliado -- quanto mais negativo, mais centavos caem no seu bolso a cada dia.'
+        },
+        {
+          label: 'IV', valor: parseNum(u.IV_HIST || 0).toFixed(1) + '%', cor: 'var(--brand-emerald)',
+          dica: 'Volatilidade Implicita -- o quanto o mercado "acha" que o ativo vai se mover. IV alta = opcao cara (bom para vender). IV baixa = opcao barata. Compare com a IV historica do ativo para avaliar se o premio esta justo.'
+        },
+        {
+          label: 'POE', valor: parseNum(u.POE || 0).toFixed(1) + '%', cor: 'var(--text-secondary)',
+          dica: 'Probabilidade de Exercicio calculada pelo modelo Black-Scholes. POE 20% = 20% de chance de o ativo ultrapassar o strike no vencimento. Para vendedores, quanto menor o POE, mais segura e a posicao.'
+        }
+      ];
+    });
+
+    // ---------------------------------------------------------------
+    // EVOLUCAO DO P/L
+    // ---------------------------------------------------------------
+    const evolucaoPL = computed(() => {
+      if (!dadosFiltrados.value.length) return [];
+      const pm = dadosFiltrados.value
+        .map(r => parseNum(r.ENTRY_PRICE || 0))
+        .find(v => v > 0) || 0;
+      if (!pm) return [];
+      return dadosFiltrados.value.map(r => {
+        const close = parseNum(r.CLOSE || 0);
+        return ((pm - close) / pm) * 100;
+      });
+    });
+
+    const evolucaoPLInicio = computed(() => evolucaoPL.value.length > 0 ? evolucaoPL.value[0] : 0);
+    const evolucaoPLFinal  = computed(() => evolucaoPL.value.length > 0 ? evolucaoPL.value[evolucaoPL.value.length - 1] : 0);
+
+    // ---------------------------------------------------------------
+    // HELPERS
+    // ---------------------------------------------------------------
+    const getCssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+    const layoutBase = () => ({
+      paper_bgcolor: 'rgba(0,0,0,0)',
+      plot_bgcolor:  'rgba(0,0,0,0)',
+      margin: { t: 20, r: 50, b: 50, l: 55 },
+      font:   { color: getCssVar('--text-secondary'), size: 11 },
+      legend: { orientation: 'h', y: 1.12, x: 0.5, xanchor: 'center' },
+      hovermode: 'x unified',
+      xaxis: { gridcolor: getCssVar('--border-subtle'), zerolinecolor: getCssVar('--border-subtle'), type: 'date' },
+      yaxis: { gridcolor: getCssVar('--border-subtle'), zerolinecolor: getCssVar('--border-subtle') }
+    });
+
+    // marcadorEntrada e anotacaoEntrada substituidos por logica inline no bloco premium
+
+    // ---------------------------------------------------------------
+    // GRAFICO PRINCIPAL
+    // ---------------------------------------------------------------
+    const atualizarGrafico = () => {
+      const el = document.getElementById('histPlotDiv');
+      if (!el || !dadosFiltrados.value.length) return;
+
+      const dados = dadosFiltrados.value;
+      const datas = dados.map(r => parseDateStr(r.CANDLE_DATE));
+      const pm    = dados.map(r => parseNum(r.ENTRY_PRICE || 0)).find(v => v > 0) || 0;
+
+      const colorIndigo  = getCssVar('--brand-indigo')  || '#4F46E5';
+      const colorEmerald = getCssVar('--brand-emerald') || '#10B981';
+      const colorRose    = getCssVar('--brand-rose')    || '#E11D48';
+      const colorAmber   = getCssVar('--brand-amber')   || '#D97706';
+      const colorGrid    = getCssVar('--border-subtle') || '#333';
+      const colorText    = getCssVar('--text-secondary')|| '#888';
+
+      let traces = [];
+      let layout = layoutBase();
+      const shapes = [], annotations = [];
+
+      // Marcadores de entrada sao adicionados dentro de cada tab que os suporta
+
+      if (tabAtiva.value === 'premium') {
+        const premios = dados.map(r => parseNum(r.CLOSE || 0));
+        const spots   = dados.map(r => parseNum(r.SPOT  || 0));
+
+        // ---- Data de entrada (ORDER_DATE) --------------------------------
+        // ORDER_DATE e identico em todos os candles da opcao -- pega o primeiro valido
+        var orderDateStr = '';
+        for (var di = 0; di < dados.length; di++) {
+          var raw = String(dados[di].ORDER_DATE || '').trim();
+          if (raw) { orderDateStr = parseDateStr(raw); break; }
+        }
+
+        // ---- Cor da linha do premio: emerald se lucrando, rose se no prejuizo ----
+        const lucrando    = pm > 0 && premios[premios.length - 1] <= pm;
+        const colorPremio = lucrando ? colorEmerald : colorRose;
+        const colorPremioMuted = lucrando
+          ? 'rgba(16,185,129,0.06)'
+          : 'rgba(225,29,72,0.06)';
+
+        traces = [
+          // Linha principal do premio -- sem fill, elegante
+          {
+            x: datas, y: premios,
+            name: 'Premio Diario',
+            type: 'scatter', mode: 'lines',
+            line: { color: colorPremio, width: 2.5, shape: 'spline', smoothing: 0.6 },
+            yaxis: 'y1',
+            hovertemplate: '<b>%{x}</b><br>Premio: R$ %{y:.2f}<extra></extra>'
+          },
+          // Marcador do ponto mais recente
+          {
+            x: [datas[datas.length - 1]],
+            y: [premios[premios.length - 1]],
+            name: 'Atual',
+            type: 'scatter', mode: 'markers',
+            marker: { color: colorPremio, size: 9, symbol: 'circle',
+                      line: { color: getCssVar('--surface-base') || '#1a1a2e', width: 2 } },
+            yaxis: 'y1', showlegend: false,
+            hovertemplate: 'Atual: R$ %{y:.2f}<extra></extra>'
+          },
+          // Spot no eixo secundario -- linha fina discreta
+          {
+            x: datas, y: spots,
+            name: 'Spot',
+            type: 'scatter', mode: 'lines',
+            line: { color: colorAmber, width: 1.2, dash: 'dot' },
+            yaxis: 'y2',
+            hovertemplate: 'Spot: R$ %{y:.2f}<extra></extra>'
+          }
+        ];
+
+        // ---- Linha horizontal: premio de entrada (ENTRY_PRICE) -----------
+        if (pm > 0 && datas.length) {
+          shapes.push({
+            type: 'line',
+            x0: datas[0], x1: datas[datas.length - 1],
+            y0: pm, y1: pm,
+            line: { color: colorEmerald, width: 1.5, dash: 'dashdot' },
+            layer: 'above'
+          });
+          annotations.push({
+            x: datas[datas.length - 1], y: pm,
+            xanchor: 'right', yanchor: 'bottom',
+            text: '<b>Entrada R$' + pm.toFixed(2) + '</b>',
+            showarrow: false,
+            font: { color: colorEmerald, size: 10, family: 'JetBrains Mono, monospace' },
+            bgcolor: 'rgba(0,0,0,0)'
+          });
+        }
+
+        // ---- Linha vertical: data da operacao (ORDER_DATE) ---------------
+        if (orderDateStr && datas.length) {
+          shapes.push({
+            type: 'line',
+            x0: orderDateStr, x1: orderDateStr,
+            y0: 0, y1: 1, yref: 'paper',
+            line: { color: colorAmber, width: 2, dash: 'solid' },
+            layer: 'above'
+          });
+          // Preencher area desde a entrada ate hoje com cor muito suave
+          shapes.push({
+            type: 'rect',
+            x0: orderDateStr, x1: datas[datas.length - 1],
+            y0: 0, y1: 1, yref: 'paper',
+            fillcolor: colorPremioMuted,
+            line: { width: 0 },
+            layer: 'below'
+          });
+          annotations.push({
+            x: orderDateStr, y: 1.04, yref: 'paper',
+            xanchor: 'left',
+            text: '<b>Entrada</b>',
+            showarrow: false,
+            font: { color: colorAmber, size: 9, family: 'JetBrains Mono, monospace' }
+          });
+        }
+
+        layout.yaxis  = {
+          title: 'Premio (R$)',
+          gridcolor: colorGrid, zerolinecolor: colorGrid,
+          tickprefix: 'R$ ',
+          titlefont: { color: colorText }, tickfont: { color: colorText }
+        };
+        layout.yaxis2 = {
+          title: 'Spot (R$)', overlaying: 'y', side: 'right',
+          gridcolor: 'rgba(0,0,0,0)', zerolinecolor: 'rgba(0,0,0,0)',
+          tickprefix: 'R$ ',
+          titlefont: { color: colorAmber }, tickfont: { color: colorAmber }
+        };
+
+      } else if (tabAtiva.value === 'delta') {
+        const deltas = dados.map(r => parseNum(r.DELTA || 0));
+        // Colorir area: positivo = azul, negativo = rosa
+        traces = [
+          {
+            x: datas, y: deltas,
+            name: 'Delta',
+            type: 'scatter', mode: 'lines+markers',
+            marker: { size: 4 },
+            line: { color: colorIndigo, width: 2 },
+            hovertemplate: 'Delta: %{y:.4f}<extra></extra>'
+          }
+        ];
+        layout.yaxis = { title: 'Delta', gridcolor: colorGrid, zerolinecolor: colorGrid, zeroline: true };
+        // Linha de -0.3 / -0.5 para referencia
+        // Linha vertical da data de entrada tambem no delta
+        var orderDateStrD = '';
+        for (var ddi = 0; ddi < dados.length; ddi++) {
+          var rawD = String(dados[ddi].ORDER_DATE || '').trim();
+          if (rawD) { orderDateStrD = parseDateStr(rawD); break; }
+        }
+        if (orderDateStrD) {
+          shapes.push({ type: 'line', x0: orderDateStrD, x1: orderDateStrD,
+            y0: 0, y1: 1, yref: 'paper',
+            line: { color: colorAmber, width: 1.5, dash: 'solid' } });
+        }
+        shapes.push(
+          { type: 'line', x0: datas[0], x1: datas[datas.length-1], y0: -0.3, y1: -0.3, line: { color: colorEmerald, width: 1, dash: 'dot' } },
+          { type: 'line', x0: datas[0], x1: datas[datas.length-1], y0: -0.5, y1: -0.5, line: { color: colorRose,   width: 1, dash: 'dot' } }
+        );
+        annotations.push(
+          { x: datas[datas.length-1], y: -0.3, text: '-30%', showarrow: false, xanchor: 'right', font: { color: colorEmerald, size: 9 } },
+          { x: datas[datas.length-1], y: -0.5, text: '-50%', showarrow: false, xanchor: 'right', font: { color: colorRose, size: 9 } }
+        );
+
+      } else if (tabAtiva.value === 'iv_spot') {
+        const ivs   = dados.map(r => parseNum(r.IV_HIST || 0));
+        const spots = dados.map(r => parseNum(r.SPOT || 0));
+        traces = [
+          {
+            x: datas, y: ivs,
+            name: 'IV Historica (%)',
+            type: 'scatter', mode: 'lines',
+            line: { color: colorEmerald, width: 2.5 },
+            yaxis: 'y1',
+            hovertemplate: 'IV: %{y:.1f}%<extra></extra>'
+          },
+          {
+            x: datas, y: spots,
+            name: 'Spot Ativo',
+            type: 'scatter', mode: 'lines',
+            line: { color: colorAmber, width: 1.5, dash: 'dash' },
+            yaxis: 'y2',
+            hovertemplate: 'Spot: R$ %{y:.2f}<extra></extra>'
+          }
+        ];
+        layout.yaxis  = { title: 'IV (%)', gridcolor: colorGrid, ticksuffix: '%', titlefont: { color: colorEmerald }, tickfont: { color: colorEmerald } };
+        layout.yaxis2 = { title: 'Spot (R$)', overlaying: 'y', side: 'right', gridcolor: 'rgba(0,0,0,0)', tickprefix: 'R$ ', titlefont: { color: colorAmber }, tickfont: { color: colorAmber } };
+
+      } else if (tabAtiva.value === 'gregas') {
+        const gammas = dados.map(r => parseNum(r.GAMMA || 0));
+        const thetas = dados.map(r => Math.abs(parseNum(r.THETA || 0)));
+        const vegas  = dados.map(r => parseNum(r.VEGA || 0));
+        traces = [
+          {
+            x: datas, y: gammas,
+            name: 'Gamma', type: 'scatter', mode: 'lines',
+            line: { color: colorRose, width: 2 },
+            hovertemplate: 'Gamma: %{y:.5f}<extra></extra>'
+          },
+          {
+            x: datas, y: thetas,
+            name: '|Theta|', type: 'scatter', mode: 'lines',
+            line: { color: colorAmber, width: 2 },
+            yaxis: 'y2',
+            hovertemplate: '|Theta|: %{y:.5f}<extra></extra>'
+          },
+          {
+            x: datas, y: vegas,
+            name: 'Vega', type: 'scatter', mode: 'lines',
+            line: { color: colorEmerald, width: 2 },
+            yaxis: 'y2',
+            hovertemplate: 'Vega: %{y:.5f}<extra></extra>'
+          }
+        ];
+        layout.yaxis  = { title: 'Gamma', gridcolor: colorGrid, titlefont: { color: colorRose },   tickfont: { color: colorRose } };
+        layout.yaxis2 = { title: 'Theta / Vega', overlaying: 'y', side: 'right', gridcolor: 'rgba(0,0,0,0)', titlefont: { color: colorAmber }, tickfont: { color: colorAmber } };
+      }
+
+      layout.shapes      = shapes;
+      layout.annotations = annotations;
+
+      Plotly.react(el, traces, layout, { responsive: true, displayModeBar: false });
+
+      // Mini grafico P/L
+      desenharMiniPL(datas);
+    };
+
+    const desenharMiniPL = (datas) => {
+      const el = document.getElementById('miniPLDiv');
+      if (!el || !evolucaoPL.value.length) return;
+      const colorEmerald = getCssVar('--brand-emerald') || '#10B981';
+      const colorRose    = getCssVar('--brand-rose')    || '#E11D48';
+      const colorGrid    = getCssVar('--border-subtle') || '#333';
+      const pls = evolucaoPL.value;
+      const colors = pls.map(v => v >= 0 ? 'rgba(16,185,129,0.6)' : 'rgba(225,29,72,0.6)');
+      Plotly.react(el,
+        [{
+          x: datas.slice(-pls.length), y: pls,
+          type: 'bar',
+          marker: { color: colors },
+          hovertemplate: 'P/L: %{y:.1f}%<extra></extra>'
+        }],
+        {
+          paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+          margin: { t: 2, r: 4, b: 20, l: 36 },
+          font: { size: 9, color: getCssVar('--text-muted') },
+          xaxis: { gridcolor: colorGrid, showticklabels: false },
+          yaxis: { gridcolor: colorGrid, ticksuffix: '%', zeroline: true, zerolinecolor: colorGrid },
+          showlegend: false
+        },
+        { responsive: true, displayModeBar: false }
+      );
+    };
+
+    // ---------------------------------------------------------------
+    // EVENTOS
+    // ---------------------------------------------------------------
+    const aoTrocarOpcao = () => {
+      insightIA.value = '';
+      nextTick(atualizarGrafico);
+    };
+
+    const aplicarPeriodo = () => nextTick(atualizarGrafico);
+    const toggleMetrica  = () => {
+      metrica.value = metrica.value === 'premium' ? 'delta' : 'premium';
+      tabAtiva.value = metrica.value;
+      nextTick(atualizarGrafico);
+    };
+
+    const handleResize = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const el = document.getElementById('histPlotDiv');
+        if (el && el.data) Plotly.Plots.resize(el);
+        const el2 = document.getElementById('miniPLDiv');
+        if (el2 && el2.data) Plotly.Plots.resize(el2);
+      }, 200);
+    };
+
+    // Watch dados externos -- .length como trigger funciona com shallowRef do AppCore
+    watch(() => dadosLocais.value.length, (newLen) => {
+      if (!newLen) return;
+      nextTick(() => {
+        if (listaOpcoes.value.length > 0 && !opcaoSelecionada.value) {
+          opcaoSelecionada.value = listaOpcoes.value[0].ticker;
+        }
+        atualizarGrafico();
+      });
+    });
+
+    onMounted(() => {
+      carregarHistorico();
+      window.addEventListener('resize', handleResize);
+      window.addEventListener('themechange', atualizarGrafico);
+      _initTooltipGlobal();
+    });
+
+    onUnmounted(() => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('themechange', atualizarGrafico);
+      var el = document.getElementById('stockops-tooltip');
+      if (el) el.remove();
+    });
+
+    // onUnmounted ja definido acima
+
+    // ---------------------------------------------------------------
+    // IA
+    // ---------------------------------------------------------------
+    const solicitarIA = () => {
+      if (!dadosFiltrados.value.length) return;
+      loadingIA.value = true;
+      insightIA.value = '';
+
+      const dados = dadosFiltrados.value;
+      const pm    = dados.map(r => parseNum(r.ENTRY_PRICE || 0)).find(v => v > 0) || 0;
+      const ultimo = dados[dados.length - 1];
+      const primeiro = dados[0];
+
+      const premioInicio = parseNum(primeiro.CLOSE || 0);
+      const premioFim    = parseNum(ultimo.CLOSE || 0);
+      const ivInicio     = parseNum(primeiro.IV_HIST || 0);
+      const ivFim        = parseNum(ultimo.IV_HIST || 0);
+
+      const payload = {
+        opcao:         opcaoSelecionada.value,
+        ticker:        ultimo.TICKER || '',
+        tipo:          ultimo.OPTION_TYPE || '',
+        strike:        parseNum(ultimo.STRIKE || 0),
+        entryPrice:    pm,
+        premioAtual:   premioFim,
+        premioInicio:  premioInicio,
+        ivInicio:      ivInicio.toFixed(1),
+        ivAtual:       ivFim.toFixed(1),
+        dte:           Math.round(parseNum(ultimo.DTE_CALENDAR || 0)),
+        delta:         parseNum(ultimo.DELTA || 0),
+        moneyness:     (ultimo.MONEYNESS_CODE || '').toUpperCase(),
+        plPct:         pm > 0 ? ((pm - premioFim) / pm * 100).toFixed(1) : '0',
+        totalCandles:  dados.length,
+        periodoAnalis: periodoAtivo.value
+      };
+
+      if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+          .withSuccessHandler(r => { insightIA.value = r; loadingIA.value = false; })
+          .withFailureHandler(e => { insightIA.value = '<span style="color:var(--brand-rose);">Erro: ' + e.message + '</span>'; loadingIA.value = false; })
+          .apiGerarInsightHistoricoOpcao(payload);
+      } else {
+        // Dev fallback
+        setTimeout(() => {
+          insightIA.value = '<p><strong>Analise:</strong> A opcao apresentou decaimento consistente de premio, caracterizando um padrao saudavel para a estrategia de venda coberta. O Delta reduziu de forma gradual, indicando que o mercado nao provocou stress nesta posicao.</p>';
+          loadingIA.value = false;
+        }, 800);
+      }
+    };
+
+    // ---------------------------------------------------------------
+    // TOOLTIP GLOBAL (renderizado no body -- supera overflow:hidden dos cards)
+    // ---------------------------------------------------------------
+    var _tooltipEl = null;
+    var _tooltipHideTimer = null;
+
+    const _initTooltipGlobal = () => {
+      if (document.getElementById('stockops-tooltip')) return;
+      _tooltipEl = document.createElement('div');
+      _tooltipEl.id = 'stockops-tooltip';
+
+      // Estilo inline -- necessario porque CSS scoped nao alcanca elementos injetados no body
+      Object.assign(_tooltipEl.style, {
+        position:      'fixed',
+        zIndex:        '2147483647',
+        pointerEvents: 'none',
+        background:    getComputedStyle(document.documentElement).getPropertyValue('--surface-overlay').trim() || '#1e1e2e',
+        border:        '1px solid ' + (getComputedStyle(document.documentElement).getPropertyValue('--border-default').trim() || '#3a3a5c'),
+        borderRadius:  '8px',
+        padding:       '8px 11px',
+        width:         '230px',
+        maxWidth:      '90vw',
+        fontSize:      '0.7rem',
+        fontWeight:    '400',
+        lineHeight:    '1.55',
+        color:         getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#aaa',
+        boxShadow:     '0 12px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)',
+        opacity:       '0',
+        transition:    'opacity 0.15s ease',
+        whiteSpace:    'normal',
+        wordBreak:     'break-word'
+      });
+
+      document.body.appendChild(_tooltipEl);
+      document.addEventListener('mouseover', _onTipMouseover);
+      document.addEventListener('mouseout',  _onTipMouseout);
+      document.addEventListener('scroll',    _hideTooltip, true);
+    };
+
+    const _showTooltip = (texto, triggerEl) => {
+      if (!texto || !triggerEl) return;
+      if (!_tooltipEl) _tooltipEl = document.getElementById('stockops-tooltip');
+      if (!_tooltipEl) return;
+
+      clearTimeout(_tooltipHideTimer);
+      _tooltipEl.textContent = texto;
+
+      var rect = triggerEl.getBoundingClientRect();
+      var tipW = 230;
+      var gap  = 10;
+
+      // Posicao horizontal: centrado no elemento, ajustado para nao sair da tela
+      var left = rect.left + rect.width / 2 - tipW / 2;
+      if (left < 8) left = 8;
+      if (left + tipW > window.innerWidth - 8) left = window.innerWidth - tipW - 8;
+
+      // Posicionar fora da vista para medir altura real
+      _tooltipEl.style.opacity = '0';
+      _tooltipEl.style.left    = left + 'px';
+      _tooltipEl.style.top     = '-9999px';
+      var tipH = _tooltipEl.offsetHeight || 64;
+
+      // Calcular posicao vertical final: acima, ou abaixo se nao couber
+      var top = rect.top - tipH - gap;
+      if (top < 8) top = rect.bottom + gap;
+
+      _tooltipEl.style.top     = top + 'px';
+      _tooltipEl.style.opacity = '1';
+    };
+
+    const _hideTooltip = () => {
+      if (!_tooltipEl) return;
+      _tooltipEl.style.opacity = '0';
+    };
+
+    const _onTipMouseover = (e) => {
+      // Procura o icone de info ou o container .kpi-tip mais proximo
+      var icon = e.target.closest('.kip-info-icon');
+      var card = e.target.closest('.kpi-tip');
+      if (!icon && !card) return;
+
+      // Busca o span.kpi-tip-box dentro do card para pegar o texto
+      var tipBox = card ? card.querySelector('.kpi-tip-box') : null;
+      if (!tipBox || !tipBox.textContent.trim()) return;
+
+      clearTimeout(_tooltipHideTimer);
+      _showTooltip(tipBox.textContent.trim(), icon || card);
+    };
+
+    const _onTipMouseout = (e) => {
+      var card = e.target.closest('.kpi-tip');
+      if (!card) return;
+      _tooltipHideTimer = setTimeout(_hideTooltip, 80);
+    };
+
+    return {
+      carregando, opcaoSelecionada, periodoAtivo, tabAtiva, metrica,
+      loadingIA, insightIA,
+      periodos, tabs,
+      listaOpcoes, dadosFiltrados,
+      kpis, gregasUltimoCandle,
+      evolucaoPL, evolucaoPLInicio, evolucaoPLFinal,
+      aoTrocarOpcao, aplicarPeriodo, toggleMetrica,
+      atualizarGrafico, solicitarIA
+    };
+  }
+};
+</script>
+
+<style scoped>
+.custom-scrollbar::-webkit-scrollbar { width: 5px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 10px; }
+
+/* ── Tooltip sistema ──────────────────────────────────────────────── */
+.kpi-label-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.kip-info-icon {
+  width: 9px;
+  height: 9px;
+  color: var(--text-muted);
+  opacity: 0.45;
+  flex-shrink: 0;
+  display: inline-block;
+  transition: opacity 0.15s, color 0.15s;
+  cursor: help;
+}
+
+.kpi-tip:hover .kip-info-icon,
+.kip-info-icon:hover {
+  opacity: 1;
+  color: var(--brand-indigo);
+}
+
+/* O tooltip e renderizado no body via JS -- .kpi-tip-box e so um data-holder oculto */
+.kpi-tip-box { display: none; }
+
+/* Tooltip global: estilos aplicados via JS (scoped CSS nao alcanca elementos injetados no body) */
+</style>

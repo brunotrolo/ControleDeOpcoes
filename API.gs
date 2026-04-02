@@ -86,7 +86,10 @@ function getAbasPesadas() {
       SYS_CONFIG.SHEETS.RANK_FUND,
 
       // 5. Consultor IA (024_ConsultorIAClaudeSonnet45)
-      SYS_CONFIG.SHEETS.CONSULTOR_HIST
+      SYS_CONFIG.SHEETS.CONSULTOR_HIST,
+
+      // 6. Historico de Cotacoes de Opcoes 250D (013_CoreSyncStockOptionsDataHistory)
+      SYS_CONFIG.SHEETS.HIST_OPCOES_250D
     ];
 
     const data = { success: true, timestamp: new Date().toLocaleString('pt-BR'), raw: {} };
@@ -512,6 +515,57 @@ function apiIntegracaoOpLab(ticker) {
     };
   } catch (e) {
     return { success: false, error: e.message };
+  }
+}
+
+// ==========================================
+// 7. IA: INSIGHT DE HISTORICO DE OPCAO (Motor 013 / DashHistoricoOpcoes)
+// ==========================================
+
+/**
+ * Gera analise de trajetoria de premio para uma opcao especifica.
+ * Chamado pelo DashHistoricoOpcoes.html via google.script.run.
+ */
+function apiGerarInsightHistoricoOpcao(payload) {
+  try {
+    var prompt =
+      'Voce e um analista quantitativo especialista em opcoes da B3 (Brasil). ' +
+      'Analise a trajetoria de premio da seguinte opcao com base nos dados historicos fornecidos. ' +
+      'Seja objetivo, use linguagem de trader experiente, maximo 5 paragrafos curtos. ' +
+      'Use HTML simples (p, strong, ul/li). Nao use markdown.\n\n' +
+      'OPCAO: ' + (payload.opcao || '') + ' | ATIVO: ' + (payload.ticker || '') + ' | TIPO: ' + (payload.tipo || '') + '\n' +
+      'Strike: R$ ' + (payload.strike || 0) + ' | Premio de Entrada: R$ ' + (payload.entryPrice || 0) + '\n' +
+      'Premio Atual: R$ ' + (payload.premioAtual || 0) + ' | P/L Acumulado: ' + (payload.plPct || 0) + '%\n' +
+      'IV no inicio: ' + (payload.ivInicio || 0) + '% | IV atual: ' + (payload.ivAtual || 0) + '%\n' +
+      'Delta atual: ' + (payload.delta || 0) + ' | Moneyness: ' + (payload.moneyness || '') + ' | DTE: ' + (payload.dte || 0) + 'd\n' +
+      'Total de candles analisados: ' + (payload.totalCandles || 0) + '\n\n' +
+      'Responda:\n' +
+      '1. O decaimento do premio esta sendo saudavel ou ha anomalias?\n' +
+      '2. A variacao da IV afetou o preco de forma relevante?\n' +
+      '3. O posicionamento atual (Moneyness + Delta) justifica manutencao ou recompra?\n' +
+      '4. Existe risco de exercicio iminente?\n' +
+      '5. Qual a recomendacao objetiva para esta posicao?';
+
+    var apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY') || '';
+    if (!apiKey) return '<p style="color:var(--brand-rose);">Chave ANTHROPIC_API_KEY nao configurada nas propriedades do script.</p>';
+
+    var response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      payload: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 800,
+        messages: [{ role: 'user', content: prompt }]
+      }),
+      muteHttpExceptions: true
+    });
+
+    var json = JSON.parse(response.getContentText());
+    if (json && json.content && json.content[0]) return json.content[0].text;
+    return '<p style="color:var(--brand-rose);">Resposta inesperada da IA.</p>';
+  } catch (e) {
+    return '<p style="color:var(--brand-rose);">Erro ao chamar IA: ' + e.message + '</p>';
   }
 }
 

@@ -454,6 +454,43 @@ window.Tradutor = {
   },
 
   // =========================================================================
+  // DADOS_DETALHES_HISTORICO250D — Motor 013 (OptionsHistorySync_v2.0)
+  // Cabecalho: ID_TRADE | UPDATED_AT | OPTION_TICKER | TICKER | OPTION_TYPE |
+  //   DIRECTION | EXPIRY | STRIKE | MATURITY_TYPE | ORDER_DATE | ENTRY_PRICE |
+  //   CANDLE_DATE | CLOSE | SPOT | DTE_CALENDAR | MONEYNESS_CODE |
+  //   DELTA | GAMMA | VEGA | THETA | RHO | IV_HIST | POE | BS_PRICE
+  // =========================================================================
+  'DADOS_DETALHES_HISTORICO250D': {
+    headerRowIndex: 0,
+    map: {
+      'ID_TRADE':      { key: 'ID_TRADE',      type: 'texto'  },
+      'UPDATED_AT':    { key: 'UPDATED_AT',    type: 'texto'  },
+      'OPTION_TICKER': { key: 'OPTION_TICKER', type: 'texto'  },
+      'TICKER':        { key: 'TICKER',        type: 'texto'  },
+      'OPTION_TYPE':   { key: 'OPTION_TYPE',   type: 'texto'  },
+      'DIRECTION':     { key: 'DIRECTION',     type: 'texto'  },
+      'EXPIRY':        { key: 'EXPIRY',        type: 'texto'  },
+      'STRIKE':        { key: 'STRIKE',        type: 'numero' },
+      'MATURITY_TYPE': { key: 'MATURITY_TYPE', type: 'texto'  },
+      'ORDER_DATE':    { key: 'ORDER_DATE',    type: 'texto'  },
+      'ENTRY_PRICE':   { key: 'ENTRY_PRICE',   type: 'numero' },
+      'CANDLE_DATE':   { key: 'CANDLE_DATE',   type: 'texto'  },
+      'CLOSE':         { key: 'CLOSE',         type: 'numero' },
+      'SPOT':          { key: 'SPOT',          type: 'numero' },
+      'DTE_CALENDAR':  { key: 'DTE_CALENDAR',  type: 'numero' },
+      'MONEYNESS_CODE':{ key: 'MONEYNESS_CODE',type: 'texto'  },
+      'DELTA':         { key: 'DELTA',         type: 'numero' },
+      'GAMMA':         { key: 'GAMMA',         type: 'numero' },
+      'VEGA':          { key: 'VEGA',          type: 'numero' },
+      'THETA':         { key: 'THETA',         type: 'numero' },
+      'RHO':           { key: 'RHO',           type: 'numero' },
+      'IV_HIST':       { key: 'IV_HIST',       type: 'numero' },
+      'POE':           { key: 'POE',           type: 'numero' },
+      'BS_PRICE':      { key: 'BS_PRICE',      type: 'numero' }
+    }
+  },
+
+  // =========================================================================
   // PROCESSADOR PRINCIPAL
   // =========================================================================
 
@@ -477,7 +514,10 @@ window.Tradutor = {
       detalhes:     this.processar(getAba('DADOS_DETALHES'),'DADOS_DETALHES'),
       selecaoOpcoes:this.processar(getAba('SELECAO_OPCOES'),'SELECAO_OPCOES'),
 
-      // 2. INTELIGÊNCIA ARTIFICIAL (Nexo 2026)
+      // 2. HISTORICO DE COTACOES DE OPCOES 250D (Motor 013)
+      histOpcoes250d: this.processar(getAba('DADOS_DETALHES_HISTORICO250D'), 'DADOS_DETALHES_HISTORICO250D'),
+
+      // 3. INTELIGÊNCIA ARTIFICIAL (Nexo 2026)
       scannerMacro: this.processar(getAba('SCANNER_MACRO'),   'SCANNER_MACRO'),
       vereditosIA:  this.processar(getAba('DB_VEREDITOS_IA'), 'DB_VEREDITOS_IA'),
 

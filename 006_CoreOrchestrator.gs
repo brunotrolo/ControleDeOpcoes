@@ -23,6 +23,13 @@ const CoreOrchestrator = {
         exec: () => typeof StockDataSync !== 'undefined' ? StockDataSync.run() : console.warn("Motor 007 não carregado."),
         requer_token: true
       },
+      "SYNC_HIST_OPCOES_250D": {
+        nome: "Sync Historico Incremental de Opcoes 250D",
+        exec: () => typeof sincronizarHistoricoOpcoes === 'function'
+          ? sincronizarHistoricoOpcoes()
+          : console.warn("Motor 013 (OptionsHistorySync) nao carregado."),
+        requer_token: true
+      },
       "SYNC_SERIES_INSTRUMENTO": {
         nome: "Sync Séries de Opções (OPLab)",
         exec: () => typeof orquestrarSyncSeriesInstrumento === 'function'
