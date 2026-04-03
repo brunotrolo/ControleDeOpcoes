@@ -35,6 +35,8 @@ var OptionsHistorySync = {
     var inicio = Date.now();
     var stats  = { ativos: 0, cargaInicial: 0, incremento: 0, skip: 0, erros: 0, linhasNovas: 0 };
     var errosDetalhe = [];
+    var skipsDetalhe      = []; // acumula SKIPs -- log unico no FINISH
+    var incrementosBuffer = []; // acumula INCREMENTOs -- log unico apos o loop
 
     SysLogger.log(this._serviceName, "START", ">>> INICIANDO HISTORICO INCREMENTAL DE OPCOES <<<", "");
 
@@ -64,7 +66,8 @@ var OptionsHistorySync = {
       }
 
       SysLogger.log(this._serviceName, "INFO",
-        tickersAtivos.length + " opcoes ativas: " + tickersAtivos.join(", "), "");
+        tickersAtivos.length + " opcoes ativas",
+        tickersAtivos.join(", "));
 
       // ------------------------------------------------------------------
       // PASSO 2: Ler aba de historico -- cursor { OPTION_TICKER -> MAX(CANDLE_DATE) }
@@ -107,16 +110,14 @@ var OptionsHistorySync = {
 
         // Skip: ja atualizado ate ontem
         if (fromDate > ontem) {
-          SysLogger.log(this._serviceName, "SKIP",
-            optTicker + ": ja atualizado (proximo from=" + this._formatDateISO(fromDate) + ")", "");
+          skipsDetalhe.push(optTicker);
           stats.skip++;
           continue;
         }
 
         // Skip: vencimento ultrapassado
         if (fromDate > op.expiry) {
-          SysLogger.log(this._serviceName, "SKIP",
-            optTicker + ": EXPIRY ultrapassado.", "");
+          skipsDetalhe.push(optTicker + "(exp)");
           stats.skip++;
           continue;
         }
@@ -127,8 +128,8 @@ var OptionsHistorySync = {
         var fromStr = this._formatDateISO(fromDate);
         var toStr   = this._formatDateISO(toDate);
 
-        SysLogger.log(this._serviceName, tipoSync,
-          optTicker + " [" + fromStr + " -> " + toStr + "]", "");
+        // Acumula no buffer -- log unico apos o loop
+        incrementosBuffer.push({ ticker: optTicker, tipo: tipoSync, from: fromStr, to: toStr });
 
         // Chamada API
         var resAPI = OplabService.getHistoricalOptions(
@@ -137,17 +138,20 @@ var OptionsHistorySync = {
 
         if (!resAPI || !Array.isArray(resAPI) || resAPI.length === 0) {
           stats.erros++;
-          errosDetalhe.push(optTicker + " (API vazia)");
-          SysLogger.log(this._serviceName, "AVISO",
-            "API sem dados para " + optTicker + " [" + fromStr + " -> " + toStr + "]", "");
+          errosDetalhe.push(optTicker + " [" + fromStr + "->" + toStr + "]");
+          // Marca o buffer do incremento como sem dados
+          if (incrementosBuffer.length) incrementosBuffer[incrementosBuffer.length-1].ok = false;
         } else {
           var filtrados = this._filtrarPorTicker(resAPI, optTicker);
           var linhas    = this._montarLinhas(op, filtrados);
           bufferNovas   = bufferNovas.concat(linhas);
           stats.linhasNovas += linhas.length;
 
-          SysLogger.log(this._serviceName, "OK",
-            optTicker + ": +" + linhas.length + " candles [" + tipoSync + "]", "");
+          // Marca o buffer com resultado positivo
+          if (incrementosBuffer.length) {
+            incrementosBuffer[incrementosBuffer.length-1].ok = true;
+            incrementosBuffer[incrementosBuffer.length-1].candles = linhas.length;
+          }
         }
 
         if (ti < tickersAtivos.length - 1) {
@@ -174,18 +178,33 @@ var OptionsHistorySync = {
       }
 
       var duracao = ((Date.now() - inicio) / 1000).toFixed(1);
+      // Log consolidado de INCREMENTOs: 1 linha com JSON de todos os intervalos
+      if (incrementosBuffer.length > 0) {
+        var nOk  = incrementosBuffer.filter(function(x) { return x.ok; }).length;
+        var nAPI = incrementosBuffer.filter(function(x) { return !x.ok; }).length;
+        SysLogger.log(this._serviceName, "INCREMENTO",
+          incrementosBuffer.length + " consultados | " + nOk + " ok | " + nAPI + " sem dados",
+          JSON.stringify(incrementosBuffer.map(function(x) {
+            return x.ticker + (x.ok ? (" +" + x.candles + "c") : " (vazia)") + " [" + x.from + "->" + x.to + "]";
+          })));
+      }
+
+      // SKIPs: lista vai direto no CONTEXT do FINISH -- sem linha separada
+
       var payload = {
-        opcoes_ativas:   stats.ativos,
-        carga_inicial:   stats.cargaInicial,
-        incremento:      stats.incremento,
-        skip:            stats.skip,
-        erros_api:       stats.erros,
-        linhas_gravadas: stats.linhasNovas,
-        erros_detalhe:   errosDetalhe.length > 0 ? errosDetalhe : "Nenhum"
+        ativos:    stats.ativos,
+        inicial:   stats.cargaInicial,
+        increment: stats.incremento,
+        skip:      stats.skip,
+        gravadas:  stats.linhasNovas,
+        api_vazia: errosDetalhe.length > 0 ? errosDetalhe : null,
+        skip_list: skipsDetalhe.length > 0 ? skipsDetalhe : null
       };
 
       SysLogger.log(this._serviceName, "FINISH",
-        ">>> HISTORICO INCREMENTAL CONCLUIDO EM " + duracao + "s <<<",
+        ">>> CONCLUIDO EM " + duracao + "s | " +
+        stats.ativos + " ativos | " + stats.linhasNovas + " gravadas | " +
+        stats.erros + " erros <<<",
         JSON.stringify(payload));
       SysLogger.flush();
 
@@ -273,9 +292,6 @@ var OptionsHistorySync = {
         cursores[ticker] = candleDate;
       }
     }
-
-    SysLogger.log(this._serviceName, "INFO",
-      "Cursores lidos: " + Object.keys(cursores).length + " tickers com historico.", "");
 
     return cursores;
   },

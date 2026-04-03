@@ -233,312 +233,373 @@
       <div v-else :class="isMobile ? 'radar-grid-1col' : 'radar-grid-2col'"
         style="gap:1px;background:var(--border-subtle);">
 
-        <!-- ─────────────────────────────────────────────
-        <!-- BLOCO 1 - MONEYNESS -->
-        <div style="background:var(--surface-base);padding:1.25rem 1.5rem;border-left:4px solid transparent;">
-
-          <!-- Cabecalho do bloco -->
-          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.125rem;">
-            <div style="width:10px;height:10px;border-radius:50%;background:var(--brand-emerald);flex-shrink:0;"></div>
-            <span style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);">Moneyness</span>
-          </div>
-
-          <!-- Barras OTM / ATM / ITM -->
-          <div style="display:flex;flex-direction:column;gap:0.625rem;">
-            <div v-for="mv in moneynessVisoes" :key="mv.code"
-              @click="abrirDrawer('moneyness', mv.code, mv.label)"
-              style="display:flex;align-items:center;gap:0.75rem;cursor:pointer;
-                     border-radius:var(--radius-sm);padding:0.5rem 0.625rem;transition:background 0.15s;"
-              onmouseover="this.style.background='var(--surface-overlay)'"
-              onmouseout="this.style.background='transparent'">
-              <span :style="mv.badgeStyle"
-                style="font-size:0.75rem;font-weight:800;padding:3px 10px;border-radius:99px;
-                       border:2px solid;min-width:44px;text-align:center;flex-shrink:0;letter-spacing:0.05em;">
-                {{ mv.code }}
-              </span>
-              <div style="flex:1;background:var(--surface-sunken);border-radius:99px;height:8px;overflow:hidden;">
-                <div :style="'width:' + mv.pct + '%;background:' + mv.color + ';'"
-                  style="height:100%;border-radius:99px;transition:width 0.5s;"></div>
-              </div>
-              <div style="text-align:right;min-width:70px;">
-                <div style="font-size:1rem;font-weight:800;color:var(--text-primary);font-family:'JetBrains Mono',monospace;line-height:1.1;">{{ mv.count }}<span style="font-size:0.65rem;font-weight:600;color:var(--text-muted);margin-left:3px;">pos</span></div>
-                <div style="font-size:0.8rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">{{ fmtK(mv.nocional) }}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Breakdown CALL vs PUT -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-subtle);">
-            <div v-for="tp in tipoVisoes" :key="tp.tipo"
-              @click="abrirDrawer('tipo', tp.tipo, tp.label)"
-              style="border-radius:var(--radius-md);padding:0.75rem;cursor:pointer;transition:box-shadow 0.15s;"
-              :style="tp.tipo === 'CALL' ? 'background:var(--brand-indigo-light);border:1.5px solid var(--brand-indigo-muted);' : 'background:var(--brand-rose-light);border:1.5px solid var(--brand-rose-muted);'"
-              onmouseover="this.style.boxShadow='var(--shadow-md)'"
-              onmouseout="this.style.boxShadow='none'">
-              <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px;"
-                :style="tp.tipo === 'CALL' ? 'color:var(--brand-indigo);' : 'color:var(--brand-rose);'">{{ tp.label }}</div>
-              <div style="font-size:1.5rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
-                :style="tp.tipo === 'CALL' ? 'color:var(--brand-indigo);' : 'color:var(--brand-rose);'">{{ tp.count }}</div>
-              <div style="font-size:0.8rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
-                :style="tp.tipo === 'CALL' ? 'color:var(--brand-indigo);' : 'color:var(--brand-rose);'">{{ fmtK(tp.nocional) }}</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- BLOCO 2 - CICLO DE VENCIMENTO -->
+        <!-- BLOCO A — CICLO DE VENCIMENTO -->
         <div style="background:var(--surface-base);padding:1.25rem 1.5rem;">
 
-          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.125rem;">
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
             <div style="width:10px;height:10px;border-radius:50%;background:var(--brand-indigo);flex-shrink:0;"></div>
-            <span style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);">Ciclo de Vencimento</span>
+            <span class="cr-tip" data-tip="Agrupa suas posicoes pelo mes de vencimento. Cada linha mostra o nocional total e o P/L acumulado naquele ciclo, com breakdown OTM/ATM/ITM. Clique no mes para ver todas as operacoes. Clique nas celulas coloridas para filtrar por moneyness." style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);cursor:help;">Ciclo de Vencimento</span>
           </div>
 
-          <div style="display:flex;flex-direction:column;gap:0.5rem;">
+          <!-- Cabecalho de colunas -->
+          <div style="display:grid;grid-template-columns:58px 1fr 56px 56px 56px 70px;gap:4px;margin-bottom:6px;padding:0 2px;">
+            <div></div>
+            <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Nocional</div>
+            <div style="text-align:center;"><span style="font-size:0.65rem;font-weight:800;color:var(--brand-emerald);">OTM</span></div>
+            <div style="text-align:center;"><span style="font-size:0.65rem;font-weight:800;color:var(--brand-amber);">ATM</span></div>
+            <div style="text-align:center;"><span style="font-size:0.65rem;font-weight:800;color:var(--brand-rose);">ITM</span></div>
+            <div style="text-align:right;font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">P/L</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:3px;">
             <div v-for="cv in cicloVisoes" :key="cv.chave"
-              @click="abrirDrawer('ciclo', cv.chave, cv.label)"
-              style="display:flex;align-items:center;gap:0.75rem;cursor:pointer;
-                     border-radius:var(--radius-sm);padding:0.5rem 0.75rem;transition:background 0.15s;"
+              style="display:grid;grid-template-columns:58px 1fr 56px 56px 56px 70px;gap:4px;align-items:center;
+                     border-radius:var(--radius-sm);padding:4px;transition:background 0.15s;"
               onmouseover="this.style.background='var(--surface-overlay)'"
               onmouseout="this.style.background='transparent'">
 
-              <div :style="cv.badgeStyle"
-                style="min-width:52px;text-align:center;padding:5px 8px;border-radius:var(--radius-xs);
-                       font-size:0.75rem;font-weight:800;font-family:'JetBrains Mono',monospace;
-                       letter-spacing:0.04em;flex-shrink:0;">
+              <div @click="abrirDrawer('ciclo', cv.chave, cv.label)" :style="cv.badgeStyle"
+                style="text-align:center;padding:4px 6px;border-radius:var(--radius-xs);
+                       font-size:0.72rem;font-weight:800;font-family:'JetBrains Mono',monospace;cursor:pointer;">
                 {{ cv.label }}
               </div>
 
-              <div style="flex:1;background:var(--surface-sunken);border-radius:99px;height:8px;overflow:hidden;">
-                <div :style="'width:' + cv.pctNoc + '%;'" :class="cv.barClass"
-                  style="height:100%;border-radius:99px;transition:width 0.5s;"></div>
+              <div @click="abrirDrawer('ciclo', cv.chave, cv.label)" style="cursor:pointer;">
+                <div style="background:var(--surface-sunken);border-radius:99px;height:6px;overflow:hidden;margin-bottom:2px;">
+                  <div :style="'width:' + cv.pctNoc + '%;'" :class="cv.barClass"
+                    style="height:100%;border-radius:99px;transition:width 0.5s;opacity:0.7;"></div>
+                </div>
+                <div style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">
+                  {{ fmtK(cv.nocional) }} <span style="color:var(--text-muted);font-size:0.62rem;">{{ cv.count }}p</span>
+                </div>
               </div>
 
-              <div style="text-align:right;min-width:100px;">
-                <div style="font-size:1rem;font-weight:800;color:var(--text-primary);font-family:'JetBrains Mono',monospace;line-height:1.1;">{{ cv.count }}<span style="font-size:0.65rem;font-weight:600;color:var(--text-muted);margin-left:3px;">pos</span></div>
-                <div style="font-size:0.8rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">{{ fmtK(cv.nocional) }}</div>
-                <div :style="cv.plStyle" style="font-size:0.75rem;font-weight:700;font-family:'JetBrains Mono',monospace;">{{ fmtK(cv.pl) }}</div>
+              <div @click="cv.OTM && cv.OTM.count > 0 && abrirDrawer('cicloMoney', cv.chave + '|OTM', cv.label + ' OTM')"
+                style="border-radius:var(--radius-xs);padding:4px 2px;text-align:center;transition:all 0.15s;"
+                :style="cv.OTM && cv.OTM.count > 0 ? 'background:var(--brand-emerald-light);border:1.5px solid var(--brand-emerald-muted);cursor:pointer;' : 'background:var(--surface-sunken);border:1.5px solid var(--border-subtle);'">
+                <div v-if="cv.OTM && cv.OTM.count > 0">
+                  <div style="font-size:0.7rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-emerald);">{{ fmtK(cv.OTM.nocional) }}</div>
+                  <div style="font-size:0.6rem;font-weight:700;color:var(--brand-emerald);opacity:0.8;">{{ cv.OTM.count }}p</div>
+                </div>
+                <div v-else style="font-size:0.75rem;color:var(--border-strong);">-</div>
+              </div>
+
+              <div @click="cv.ATM && cv.ATM.count > 0 && abrirDrawer('cicloMoney', cv.chave + '|ATM', cv.label + ' ATM')"
+                style="border-radius:var(--radius-xs);padding:4px 2px;text-align:center;transition:all 0.15s;"
+                :style="cv.ATM && cv.ATM.count > 0 ? 'background:var(--brand-amber-light);border:1.5px solid var(--brand-amber-muted);cursor:pointer;' : 'background:var(--surface-sunken);border:1.5px solid var(--border-subtle);'">
+                <div v-if="cv.ATM && cv.ATM.count > 0">
+                  <div style="font-size:0.7rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-amber);">{{ fmtK(cv.ATM.nocional) }}</div>
+                  <div style="font-size:0.6rem;font-weight:700;color:var(--brand-amber);opacity:0.8;">{{ cv.ATM.count }}p</div>
+                </div>
+                <div v-else style="font-size:0.75rem;color:var(--border-strong);">-</div>
+              </div>
+
+              <div @click="cv.ITM && cv.ITM.count > 0 && abrirDrawer('cicloMoney', cv.chave + '|ITM', cv.label + ' ITM')"
+                style="border-radius:var(--radius-xs);padding:4px 2px;text-align:center;transition:all 0.15s;"
+                :style="cv.ITM && cv.ITM.count > 0 ? 'background:var(--brand-rose-light);border:1.5px solid var(--brand-rose-muted);cursor:pointer;' : 'background:var(--surface-sunken);border:1.5px solid var(--border-subtle);'">
+                <div v-if="cv.ITM && cv.ITM.count > 0">
+                  <div style="font-size:0.7rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-rose);">{{ fmtK(cv.ITM.nocional) }}</div>
+                  <div style="font-size:0.6rem;font-weight:700;color:var(--brand-rose);opacity:0.8;">{{ cv.ITM.count }}p</div>
+                </div>
+                <div v-else style="font-size:0.75rem;color:var(--border-strong);">-</div>
+              </div>
+
+              <div @click="abrirDrawer('ciclo', cv.chave, cv.label)" style="cursor:pointer;text-align:right;">
+                <div :style="cv.plStyle" style="font-size:0.78rem;font-weight:800;font-family:'JetBrains Mono',monospace;">{{ fmtK(cv.pl) }}</div>
               </div>
             </div>
           </div>
 
           <div v-if="cicloCorrente"
-            style="margin-top:1rem;padding:0.875rem 1rem;border-radius:var(--radius-md);
+            style="margin-top:0.875rem;padding:0.75rem 1rem;border-radius:var(--radius-md);
                    background:var(--brand-indigo);display:flex;justify-content:space-between;align-items:center;">
             <div>
-              <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.7);margin-bottom:2px;">Ciclo corrente</div>
-              <div style="font-size:1rem;font-weight:800;color:#fff;font-family:'JetBrains Mono',monospace;">{{ cicloCorrente.label }} &middot; {{ cicloCorrente.count }} pos</div>
+              <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.7);margin-bottom:2px;">Ciclo corrente</div>
+              <div style="font-size:0.9rem;font-weight:800;color:#fff;font-family:'JetBrains Mono',monospace;">{{ cicloCorrente.label }} &middot; {{ cicloCorrente.count }} pos</div>
             </div>
-            <div style="text-align:right;">
-              <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.7);margin-bottom:2px;">Nocional</div>
-              <div style="font-size:1.1rem;font-weight:800;color:#fff;font-family:'JetBrains Mono',monospace;">{{ fmtK(cicloCorrente.nocional) }}</div>
+            <div style="display:flex;gap:1rem;">
+              <div style="text-align:right;">
+                <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.7);">Nocional</div>
+                <div style="font-size:1rem;font-weight:800;color:#fff;font-family:'JetBrains Mono',monospace;">{{ fmtK(cicloCorrente.nocional) }}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.7);">P/L</div>
+                <div style="font-size:1rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
+                  :style="cicloCorrente.pl >= 0 ? 'color:#6EE7B7;' : 'color:#FCA5A5;'">{{ fmtK(cicloCorrente.pl) }}</div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- BLOCO 3 - DISTRIBUICAO POR TICKER -->
+        <!-- BLOCO C — MONEYNESS + P/L (lado a lado) -->
         <div style="background:var(--surface-base);padding:1.25rem 1.5rem;">
 
-          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.125rem;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+
+            <!-- ── Coluna esquerda: MONEYNESS ── -->
+            <div style="display:flex;flex-direction:column;gap:0.625rem;">
+              <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">
+                <div style="width:10px;height:10px;border-radius:50%;background:var(--brand-emerald);flex-shrink:0;"></div>
+                <span class="cr-tip" data-tip="Distribuicao das posicoes por distancia do strike em relacao ao preco atual do ativo. OTM (Out of the Money) = opcao tende a expirar sem valor -- zona segura para o vendedor. ATM (At the Money) = zona de atencao. ITM (In the Money) = risco de exercicio." style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);cursor:help;">Moneyness</span>
+              </div>
+
+              <div v-for="mv in moneynessVisoes" :key="mv.code"
+                @click="abrirDrawer('moneyness', mv.code, mv.label)"
+                style="display:flex;align-items:center;gap:0.625rem;cursor:pointer;
+                       border-radius:var(--radius-sm);padding:0.4rem 0.5rem;transition:background 0.15s;"
+                onmouseover="this.style.background='var(--surface-overlay)'"
+                onmouseout="this.style.background='transparent'">
+                <span :style="mv.badgeStyle"
+                  style="font-size:0.72rem;font-weight:800;padding:2px 8px;border-radius:99px;
+                         border:2px solid;min-width:42px;text-align:center;flex-shrink:0;">{{ mv.code }}</span>
+                <div style="flex:1;background:var(--surface-sunken);border-radius:99px;height:7px;overflow:hidden;">
+                  <div :style="'width:' + mv.pct + '%;background:' + mv.color + ';'"
+                    style="height:100%;border-radius:99px;transition:width 0.5s;"></div>
+                </div>
+                <div style="text-align:right;min-width:64px;">
+                  <div style="font-size:0.95rem;font-weight:800;color:var(--text-primary);font-family:'JetBrains Mono',monospace;line-height:1.1;">{{ mv.count }}<span style="font-size:0.6rem;color:var(--text-muted);margin-left:2px;">pos</span></div>
+                  <div style="font-size:0.75rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">{{ fmtK(mv.nocional) }}</div>
+                </div>
+              </div>
+
+              <!-- CALL / PUT -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;margin-top:0.25rem;padding-top:0.75rem;border-top:1px solid var(--border-subtle);">
+                <div v-for="tp in tipoVisoes" :key="tp.tipo"
+                  @click="abrirDrawer('tipo', tp.tipo, tp.label)"
+                  style="border-radius:var(--radius-md);padding:0.6rem 0.5rem;cursor:pointer;text-align:center;transition:box-shadow 0.15s;"
+                  :style="tp.tipo === 'CALL' ? 'background:var(--brand-indigo-light);border:1.5px solid var(--brand-indigo-muted);' : 'background:var(--brand-rose-light);border:1.5px solid var(--brand-rose-muted);'"
+                  onmouseover="this.style.boxShadow='var(--shadow-md)'"
+                  onmouseout="this.style.boxShadow='none'">
+                  <div style="font-size:0.6rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px;"
+                    :style="tp.tipo === 'CALL' ? 'color:var(--brand-indigo);' : 'color:var(--brand-rose);'">{{ tp.label }}</div>
+                  <div style="font-size:1.4rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
+                    :style="tp.tipo === 'CALL' ? 'color:var(--brand-indigo);' : 'color:var(--brand-rose);'">{{ tp.count }}</div>
+                  <div style="font-size:0.75rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                    :style="tp.tipo === 'CALL' ? 'color:var(--brand-indigo);' : 'color:var(--brand-rose);'">{{ fmtK(tp.nocional) }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── Coluna direita: LUCRO vs PREJUIZO ── -->
+            <div style="display:flex;flex-direction:column;gap:0.625rem;">
+              <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">
+                <div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;"
+                  :style="plVisao.pctLucro >= 50 ? 'background:var(--brand-emerald);' : 'background:var(--brand-rose);'"></div>
+                <span class="cr-tip" data-tip="Quantas posicoes estao no lucro, neutras (breakeven) ou no prejuizo agora. A barra tricolor mostra a proporcao visual. Clique em cada card para ver as operacoes daquele status." style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);cursor:help;">Lucro vs. Prejuizo</span>
+              </div>
+
+              <!-- Gauge tricolor -->
+              <div style="display:flex;border-radius:99px;height:10px;overflow:hidden;gap:2px;">
+                <div :style="'flex:' + plVisao.pctLucro + ';background:var(--brand-emerald);'" style="min-width:4px;border-radius:99px 0 0 99px;transition:flex 0.6s;"></div>
+                <div :style="'flex:' + plVisao.pctBreakeven + ';background:var(--brand-amber);'" style="min-width:0;transition:flex 0.6s;"></div>
+                <div :style="'flex:' + plVisao.pctPrejuizo + ';background:var(--brand-rose);'" style="min-width:4px;border-radius:0 99px 99px 0;transition:flex 0.6s;"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <span style="font-size:0.68rem;font-weight:700;color:var(--brand-emerald);">{{ plVisao.pctLucro }}% lucro</span>
+                <span style="font-size:0.68rem;font-weight:700;color:var(--brand-rose);">{{ plVisao.pctPrejuizo }}% prej.</span>
+              </div>
+
+              <!-- Cards Lucro / Neutro / Prejuizo -->
+              <div @click="abrirDrawer('pl', 'lucro', 'No Lucro')"
+                style="border-radius:var(--radius-md);padding:0.6rem 0.75rem;cursor:pointer;
+                       display:flex;justify-content:space-between;align-items:center;
+                       background:var(--brand-emerald-light);border:1.5px solid var(--brand-emerald);transition:box-shadow 0.15s;"
+                onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='none'">
+                <div>
+                  <div style="font-size:0.58rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-emerald);">Lucro</div>
+                  <div style="font-size:1.3rem;font-weight:800;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;line-height:1;">{{ plVisao.lucro }}</div>
+                </div>
+                <div style="font-size:0.82rem;font-weight:800;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;">{{ fmtK(plVisao.nocionalLucro) }}</div>
+              </div>
+
+              <div @click="abrirDrawer('pl', 'breakeven', 'Breakeven')"
+                style="border-radius:var(--radius-md);padding:0.6rem 0.75rem;cursor:pointer;
+                       display:flex;justify-content:space-between;align-items:center;
+                       background:var(--brand-amber-light);border:1.5px solid var(--brand-amber);transition:box-shadow 0.15s;"
+                onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='none'">
+                <div>
+                  <div style="font-size:0.58rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-amber);">Neutro</div>
+                  <div style="font-size:1.3rem;font-weight:800;color:var(--brand-amber);font-family:'JetBrains Mono',monospace;line-height:1;">{{ plVisao.breakeven }}</div>
+                </div>
+                <div style="font-size:0.82rem;font-weight:800;color:var(--brand-amber);font-family:'JetBrains Mono',monospace;">{{ fmtK(plVisao.nocionalBreakeven) }}</div>
+              </div>
+
+              <div @click="abrirDrawer('pl', 'prejuizo', 'Em Prejuizo')"
+                style="border-radius:var(--radius-md);padding:0.6rem 0.75rem;cursor:pointer;
+                       display:flex;justify-content:space-between;align-items:center;
+                       background:var(--brand-rose-light);border:1.5px solid var(--brand-rose);transition:box-shadow 0.15s;"
+                onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='none'">
+                <div>
+                  <div style="font-size:0.58rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-rose);">Prejuizo</div>
+                  <div style="font-size:1.3rem;font-weight:800;color:var(--brand-rose);font-family:'JetBrains Mono',monospace;line-height:1;">{{ plVisao.prejuizo }}</div>
+                </div>
+                <div style="font-size:0.82rem;font-weight:800;color:var(--brand-rose);font-family:'JetBrains Mono',monospace;">{{ fmtK(plVisao.nocionalPrejuizo) }}</div>
+              </div>
+
+              <!-- P/L Total -->
+              <div style="margin-top:auto;padding:0.7rem 0.875rem;border-radius:var(--radius-md);
+                          display:flex;justify-content:space-between;align-items:center;"
+                :style="totalPL >= 0 ? 'background:var(--brand-emerald);' : 'background:var(--brand-rose);'">
+                <span style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.8);">P/L Total</span>
+                <span style="font-size:1.1rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:#fff;">{{ fmt('plTotalValor', totalPL) }}</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+
+        <!-- BLOCO B — CONCENTRACAO POR ATIVO -->
+        <div style="background:var(--surface-base);padding:1.25rem 1.5rem;">
+
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
             <div style="width:10px;height:10px;border-radius:50%;background:var(--brand-amber);flex-shrink:0;"></div>
-            <span style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);">Concentracao por Ativo</span>
+            <span class="cr-tip" data-tip="Ranking de ativos por nocional total exposto. A barra mostra o peso percentual de cada ativo na carteira. Colunas OTM/ATM/ITM mostram a distribuicao de moneyness por ativo. P/L = resultado acumulado naquele ativo." style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);cursor:help;">Concentracao por Ativo</span>
           </div>
 
-          <div style="display:flex;flex-direction:column;gap:0.5rem;">
+          <!-- Cabecalho: rank | ticker | nocional% | OTM | ATM | ITM | P/L -->
+          <div style="display:grid;grid-template-columns:22px 50px 1fr 50px 50px 50px 68px;gap:4px;margin-bottom:6px;padding:0 2px;align-items:center;">
+            <div></div><div></div>
+            <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Nocional</div>
+            <div style="text-align:center;"><span style="font-size:0.62rem;font-weight:800;color:var(--brand-emerald);">OTM</span></div>
+            <div style="text-align:center;"><span style="font-size:0.62rem;font-weight:800;color:var(--brand-amber);">ATM</span></div>
+            <div style="text-align:center;"><span style="font-size:0.62rem;font-weight:800;color:var(--brand-rose);">ITM</span></div>
+            <div style="text-align:right;font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">P/L</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:3px;">
             <div v-for="(tv, idx) in tickerVisoes" :key="tv.ticker"
-              @click="abrirDrawer('ticker', tv.ticker, tv.ticker)"
-              style="display:flex;align-items:center;gap:0.75rem;cursor:pointer;
-                     border-radius:var(--radius-sm);padding:0.5rem 0.625rem;transition:background 0.15s;"
+              style="display:grid;grid-template-columns:22px 50px 1fr 50px 50px 50px 68px;gap:4px;align-items:center;
+                     border-radius:var(--radius-sm);padding:4px;transition:background 0.15s;"
               onmouseover="this.style.background='var(--surface-overlay)'"
               onmouseout="this.style.background='transparent'">
 
-              <!-- Rank badge -->
-              <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;"
-                :style="idx === 0 ? 'background:var(--brand-amber);' : idx === 1 ? 'background:var(--border-strong);' : idx === 2 ? 'background:#b08d57;' : 'background:var(--surface-sunken);'">
-                <span style="font-size:0.65rem;font-weight:800;"
-                  :style="idx < 3 ? 'color:#fff;' : 'color:var(--text-muted);'">#{{ idx + 1 }}</span>
+              <!-- Rank -->
+              <div style="width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;"
+                :style="idx===0?'background:var(--brand-amber);':idx===1?'background:var(--border-strong);':idx===2?'background:#b08d57;':'background:var(--surface-sunken);'">
+                <span style="font-size:0.55rem;font-weight:800;" :style="idx<3?'color:#fff;':'color:var(--text-muted);'">#{{ idx+1 }}</span>
               </div>
 
-              <span style="font-size:1rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.02em;min-width:56px;">{{ tv.ticker }}</span>
-
-              <div style="flex:1;background:var(--surface-sunken);border-radius:99px;height:8px;overflow:hidden;">
-                <div :style="'width:' + tv.pct + '%;background:var(--brand-amber);'"
-                  style="height:100%;border-radius:99px;transition:width 0.5s;opacity:0.85;"></div>
+              <!-- Ticker -->
+              <div @click="abrirDrawer('ticker', tv.ticker, tv.ticker)" style="cursor:pointer;">
+                <span style="font-size:0.85rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.02em;">{{ tv.ticker }}</span>
               </div>
 
-              <div style="text-align:right;min-width:80px;">
-                <div style="font-size:1rem;font-weight:800;color:var(--text-primary);font-family:'JetBrains Mono',monospace;line-height:1.1;">{{ fmtK(tv.nocional) }}</div>
-                <div style="font-size:0.75rem;color:var(--text-muted);">{{ tv.pct }}% &middot; {{ tv.count }}pos</div>
+              <!-- Barra nocional -->
+              <div @click="abrirDrawer('ticker', tv.ticker, tv.ticker)" style="cursor:pointer;">
+                <div style="background:var(--surface-sunken);border-radius:99px;height:5px;overflow:hidden;margin-bottom:2px;">
+                  <div :style="'width:' + tv.pct + '%;background:var(--brand-amber);'"
+                    style="height:100%;border-radius:99px;transition:width 0.5s;opacity:0.8;"></div>
+                </div>
+                <div style="font-size:0.68rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">
+                  {{ fmtK(tv.nocional) }} <span style="color:var(--text-muted);font-size:0.58rem;">{{ tv.pct }}%</span>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
 
-        <!-- BLOCO 4 - P/L STATUS -->
-        <div style="background:var(--surface-base);padding:1.25rem 1.5rem;">
-
-          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.125rem;">
-            <div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;"
-              :style="plVisao.pctLucro >= 50 ? 'background:var(--brand-emerald);' : 'background:var(--brand-rose);'"></div>
-            <span style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);">Lucro vs. Prejuizo</span>
-          </div>
-
-          <!-- Gauge tricolor -->
-          <div style="display:flex;border-radius:99px;height:12px;overflow:hidden;margin-bottom:0.75rem;gap:2px;">
-            <div :style="'flex:' + plVisao.pctLucro + ';background:var(--brand-emerald);'" style="min-width:4px;border-radius:99px 0 0 99px;transition:flex 0.6s;"></div>
-            <div :style="'flex:' + plVisao.pctBreakeven + ';background:var(--brand-amber);'" style="min-width:0px;transition:flex 0.6s;"></div>
-            <div :style="'flex:' + plVisao.pctPrejuizo + ';background:var(--brand-rose);'" style="min-width:4px;border-radius:0 99px 99px 0;transition:flex 0.6s;"></div>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:1rem;">
-            <span style="font-size:0.7rem;font-weight:700;color:var(--brand-emerald);">{{ plVisao.pctLucro }}% lucro</span>
-            <span style="font-size:0.7rem;font-weight:700;color:var(--brand-rose);">{{ plVisao.pctPrejuizo }}% prejuizo</span>
-          </div>
-
-          <!-- Cards de status -->
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;">
-            <div @click="abrirDrawer('pl', 'lucro', 'No Lucro')"
-              style="border-radius:var(--radius-md);padding:0.875rem 0.5rem;cursor:pointer;text-align:center;
-                     background:var(--brand-emerald-light);border:2px solid var(--brand-emerald);transition:box-shadow 0.15s;"
-              onmouseover="this.style.boxShadow='var(--shadow-md)'"
-              onmouseout="this.style.boxShadow='none'">
-              <div style="font-size:1.75rem;font-weight:800;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;line-height:1;">{{ plVisao.lucro }}</div>
-              <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-emerald);margin-top:3px;">Lucro</div>
-              <div style="font-size:0.8rem;font-weight:700;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;margin-top:2px;">{{ fmtK(plVisao.nocionalLucro) }}</div>
-            </div>
-            <div @click="abrirDrawer('pl', 'breakeven', 'Breakeven')"
-              style="border-radius:var(--radius-md);padding:0.875rem 0.5rem;cursor:pointer;text-align:center;
-                     background:var(--brand-amber-light);border:2px solid var(--brand-amber);transition:box-shadow 0.15s;"
-              onmouseover="this.style.boxShadow='var(--shadow-md)'"
-              onmouseout="this.style.boxShadow='none'">
-              <div style="font-size:1.75rem;font-weight:800;color:var(--brand-amber);font-family:'JetBrains Mono',monospace;line-height:1;">{{ plVisao.breakeven }}</div>
-              <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-amber);margin-top:3px;">Neutro</div>
-              <div style="font-size:0.8rem;font-weight:700;color:var(--brand-amber);font-family:'JetBrains Mono',monospace;margin-top:2px;">{{ fmtK(plVisao.nocionalBreakeven) }}</div>
-            </div>
-            <div @click="abrirDrawer('pl', 'prejuizo', 'Em Prejuizo')"
-              style="border-radius:var(--radius-md);padding:0.875rem 0.5rem;cursor:pointer;text-align:center;
-                     background:var(--brand-rose-light);border:2px solid var(--brand-rose);transition:box-shadow 0.15s;"
-              onmouseover="this.style.boxShadow='var(--shadow-md)'"
-              onmouseout="this.style.boxShadow='none'">
-              <div style="font-size:1.75rem;font-weight:800;color:var(--brand-rose);font-family:'JetBrains Mono',monospace;line-height:1;">{{ plVisao.prejuizo }}</div>
-              <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-rose);margin-top:3px;">Prejuizo</div>
-              <div style="font-size:0.8rem;font-weight:700;color:var(--brand-rose);font-family:'JetBrains Mono',monospace;margin-top:2px;">{{ fmtK(plVisao.nocionalPrejuizo) }}</div>
-            </div>
-          </div>
-
-          <!-- P/L Total -->
-          <div style="margin-top:1rem;padding:0.875rem 1rem;border-radius:var(--radius-md);
-                      display:flex;justify-content:space-between;align-items:center;"
-            :style="totalPL >= 0 ? 'background:var(--brand-emerald);' : 'background:var(--brand-rose);'">
-            <span style="font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.8);">P/L Aberto Total</span>
-            <span style="font-size:1.25rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:#fff;">{{ fmt('plTotalValor', totalPL) }}</span>
-          </div>
-        </div>
-
-        <!-- BLOCO 5 - THETA DIARIO -->
-        <div style="background:var(--surface-base);padding:1.25rem 1.5rem;">
-
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.125rem;">
-            <div style="display:flex;align-items:center;gap:0.5rem;">
-              <div style="width:10px;height:10px;border-radius:50%;background:#7C3AED;flex-shrink:0;"></div>
-              <span style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);">Theta Diario Acumulado</span>
-            </div>
-            <div style="text-align:right;">
-              <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Total/dia</div>
-              <div style="font-size:1.4rem;font-weight:800;font-family:'JetBrains Mono',monospace;line-height:1;color:#7C3AED;">{{ fmtK(thetaTotal) }}</div>
-            </div>
-          </div>
-
-          <!-- Barra global -->
-          <div style="background:var(--surface-sunken);border-radius:99px;height:8px;overflow:hidden;margin-bottom:1.25rem;">
-            <div style="height:100%;border-radius:99px;background:#7C3AED;transition:width 0.5s;"
-              :style="'width:' + Math.min(100, Math.abs(thetaTotal) / (Math.max.apply(null, thetaPorTicker.map(function(t) { return Math.abs(t.theta); }).concat([1]))) * 100) + '%'"></div>
-          </div>
-
-          <!-- Breakdown por ticker -->
-          <div style="display:flex;flex-direction:column;gap:0.625rem;">
-            <div v-for="tt in thetaPorTicker" :key="tt.ticker"
-              style="display:flex;align-items:center;gap:0.75rem;">
-              <span style="font-size:0.9rem;font-weight:800;color:var(--text-primary);min-width:56px;letter-spacing:-0.02em;">{{ tt.ticker }}</span>
-              <div style="flex:1;background:var(--surface-sunken);border-radius:99px;height:6px;overflow:hidden;">
-                <div :style="'width:' + tt.pct + '%;background:#7C3AED;'"
-                  style="height:100%;border-radius:99px;transition:width 0.5s;"></div>
-              </div>
-              <div style="text-align:right;min-width:80px;">
-                <div style="font-size:0.9rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:#7C3AED;">{{ fmtK(tt.theta) }}</div>
-                <div style="font-size:0.7rem;color:var(--text-muted);">{{ tt.count }}pos</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Projecao semanal -->
-          <div style="margin-top:1rem;padding:0.875rem 1rem;border-radius:var(--radius-md);
-                      background:#7C3AED;display:flex;justify-content:space-between;align-items:center;">
-            <div>
-              <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.7);margin-bottom:2px;">Projecao semanal</div>
-              <div style="font-size:0.75rem;color:rgba(255,255,255,0.85);">5 dias uteis</div>
-            </div>
-            <div style="font-size:1.25rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:#fff;">{{ fmtK(thetaTotal * 5) }}</div>
-          </div>
-        </div>
-
-        <!-- BLOCO 6 - HEATMAP -->
-        <div style="background:var(--surface-base);padding:1.25rem 1.5rem;">
-
-          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.125rem;">
-            <div style="width:10px;height:10px;border-radius:50%;background:var(--brand-rose);flex-shrink:0;"></div>
-            <span style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);">Heatmap Risco: Ativo x Moneyness</span>
-          </div>
-
-          <!-- Header colunas -->
-          <div style="display:grid;grid-template-columns:60px 1fr 1fr 1fr;gap:4px;margin-bottom:4px;">
-            <div></div>
-            <div style="text-align:center;padding:4px 2px;border-radius:var(--radius-xs);background:var(--brand-emerald-light);border:1.5px solid var(--brand-emerald-muted);">
-              <span style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-emerald);">OTM</span>
-            </div>
-            <div style="text-align:center;padding:4px 2px;border-radius:var(--radius-xs);background:var(--brand-amber-light);border:1.5px solid var(--brand-amber-muted);">
-              <span style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-amber);">ATM</span>
-            </div>
-            <div style="text-align:center;padding:4px 2px;border-radius:var(--radius-xs);background:var(--brand-rose-light);border:1.5px solid var(--brand-rose-muted);">
-              <span style="font-size:0.7rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-rose);">ITM</span>
-            </div>
-          </div>
-
-          <!-- Linhas -->
-          <div style="display:flex;flex-direction:column;gap:4px;">
-            <div v-for="hr in heatmapRows" :key="hr.ticker"
-              style="display:grid;grid-template-columns:60px 1fr 1fr 1fr;gap:4px;align-items:stretch;">
-              <div style="display:flex;align-items:center;">
-                <span style="font-size:0.85rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.02em;">{{ hr.ticker }}</span>
-              </div>
               <!-- OTM -->
-              <div @click="hr['OTM'].count > 0 && abrirDrawer('heatmap', hr.ticker + '|OTM', hr.ticker + ' OTM')"
-                style="border-radius:var(--radius-xs);padding:6px 4px;text-align:center;transition:all 0.15s;"
-                :style="hr['OTM'].count > 0 ? 'background:var(--brand-emerald-light);border:2px solid var(--brand-emerald);cursor:pointer;' : 'background:var(--surface-sunken);border:2px solid var(--border-subtle);'">
-                <div v-if="hr['OTM'].count > 0">
-                  <div style="font-size:0.8rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-emerald);">{{ fmtK(hr['OTM'].nocional) }}</div>
-                  <div style="font-size:0.65rem;font-weight:700;color:var(--brand-emerald);opacity:0.8;">{{ hr['OTM'].count }}p</div>
+              <div @click="tv.OTM && tv.OTM.count > 0 && abrirDrawer('heatmap', tv.ticker + '|OTM', tv.ticker + ' OTM')"
+                style="border-radius:var(--radius-xs);padding:3px 2px;text-align:center;transition:all 0.15s;"
+                :style="tv.OTM && tv.OTM.count > 0 ? 'background:var(--brand-emerald-light);border:1.5px solid var(--brand-emerald-muted);cursor:pointer;' : 'background:var(--surface-sunken);border:1.5px solid var(--border-subtle);'">
+                <div v-if="tv.OTM && tv.OTM.count > 0">
+                  <div style="font-size:0.65rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-emerald);">{{ fmtK(tv.OTM.nocional) }}</div>
+                  <div style="font-size:0.55rem;font-weight:700;color:var(--brand-emerald);opacity:0.8;">{{ tv.OTM.count }}p</div>
                 </div>
-                <div v-else style="font-size:0.8rem;color:var(--border-strong);">-</div>
+                <div v-else style="font-size:0.7rem;color:var(--border-strong);">-</div>
               </div>
+
               <!-- ATM -->
-              <div @click="hr['ATM'].count > 0 && abrirDrawer('heatmap', hr.ticker + '|ATM', hr.ticker + ' ATM')"
-                style="border-radius:var(--radius-xs);padding:6px 4px;text-align:center;transition:all 0.15s;"
-                :style="hr['ATM'].count > 0 ? 'background:var(--brand-amber-light);border:2px solid var(--brand-amber);cursor:pointer;' : 'background:var(--surface-sunken);border:2px solid var(--border-subtle);'">
-                <div v-if="hr['ATM'].count > 0">
-                  <div style="font-size:0.8rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-amber);">{{ fmtK(hr['ATM'].nocional) }}</div>
-                  <div style="font-size:0.65rem;font-weight:700;color:var(--brand-amber);opacity:0.8;">{{ hr['ATM'].count }}p</div>
+              <div @click="tv.ATM && tv.ATM.count > 0 && abrirDrawer('heatmap', tv.ticker + '|ATM', tv.ticker + ' ATM')"
+                style="border-radius:var(--radius-xs);padding:3px 2px;text-align:center;transition:all 0.15s;"
+                :style="tv.ATM && tv.ATM.count > 0 ? 'background:var(--brand-amber-light);border:1.5px solid var(--brand-amber-muted);cursor:pointer;' : 'background:var(--surface-sunken);border:1.5px solid var(--border-subtle);'">
+                <div v-if="tv.ATM && tv.ATM.count > 0">
+                  <div style="font-size:0.65rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-amber);">{{ fmtK(tv.ATM.nocional) }}</div>
+                  <div style="font-size:0.55rem;font-weight:700;color:var(--brand-amber);opacity:0.8;">{{ tv.ATM.count }}p</div>
                 </div>
-                <div v-else style="font-size:0.8rem;color:var(--border-strong);">-</div>
+                <div v-else style="font-size:0.7rem;color:var(--border-strong);">-</div>
               </div>
+
               <!-- ITM -->
-              <div @click="hr['ITM'].count > 0 && abrirDrawer('heatmap', hr.ticker + '|ITM', hr.ticker + ' ITM')"
-                style="border-radius:var(--radius-xs);padding:6px 4px;text-align:center;transition:all 0.15s;"
-                :style="hr['ITM'].count > 0 ? 'background:var(--brand-rose-light);border:2px solid var(--brand-rose);cursor:pointer;' : 'background:var(--surface-sunken);border:2px solid var(--border-subtle);'">
-                <div v-if="hr['ITM'].count > 0">
-                  <div style="font-size:0.8rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-rose);">{{ fmtK(hr['ITM'].nocional) }}</div>
-                  <div style="font-size:0.65rem;font-weight:700;color:var(--brand-rose);opacity:0.8;">{{ hr['ITM'].count }}p</div>
+              <div @click="tv.ITM && tv.ITM.count > 0 && abrirDrawer('heatmap', tv.ticker + '|ITM', tv.ticker + ' ITM')"
+                style="border-radius:var(--radius-xs);padding:3px 2px;text-align:center;transition:all 0.15s;"
+                :style="tv.ITM && tv.ITM.count > 0 ? 'background:var(--brand-rose-light);border:1.5px solid var(--brand-rose-muted);cursor:pointer;' : 'background:var(--surface-sunken);border:1.5px solid var(--border-subtle);'">
+                <div v-if="tv.ITM && tv.ITM.count > 0">
+                  <div style="font-size:0.65rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-rose);">{{ fmtK(tv.ITM.nocional) }}</div>
+                  <div style="font-size:0.55rem;font-weight:700;color:var(--brand-rose);opacity:0.8;">{{ tv.ITM.count }}p</div>
                 </div>
-                <div v-else style="font-size:0.8rem;color:var(--border-strong);">-</div>
+                <div v-else style="font-size:0.7rem;color:var(--border-strong);">-</div>
               </div>
+
+              <!-- P/L -->
+              <div @click="abrirDrawer('ticker', tv.ticker, tv.ticker)" style="cursor:pointer;text-align:right;">
+                <div style="font-size:0.75rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
+                  :style="tv.pl >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'">{{ fmtK(tv.pl) }}</div>
+                <div style="font-size:0.58rem;font-weight:600;color:var(--text-muted);">{{ tv.plPct }}%</div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+
+
+        <!-- BLOCO E — PREMIO CAPTURADO POR ATIVO -->
+        <div style="background:var(--surface-base);padding:1.25rem 1.5rem;">
+
+          <!-- Titulo com icone de info tooltip -->
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
+            <div style="width:10px;height:10px;border-radius:50%;background:#7C3AED;flex-shrink:0;"></div>
+            <span style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);">Premio Capturado por Ativo</span>
+            <span class="cr-tip" data-tip="Quanto do premio maximo ja foi realizado em cada ativo. Max Premio = soma de todos os premios recebidos se as opcoes virarem po. Barra verde = percentual ja capturado. Vermelho = posicao no prejuizo. Clique em qualquer linha para ver as operacoes." style="cursor:help;display:flex;align-items:center;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--text-muted);opacity:0.5;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </span>
+          </div>
+
+          <!-- Cabecalho -->
+          <div style="display:grid;grid-template-columns:52px 1fr 80px 76px;gap:6px;margin-bottom:6px;padding:0 2px;align-items:center;">
+            <div></div>
+            <div class="cr-tip" data-tip="Premio maximo possivel se todas as opcoes deste ativo virarem po no vencimento (soma dos ganhoMaximo de cada operacao)." style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#7C3AED;cursor:help;">Max Premio</div>
+            <div class="cr-tip" data-tip="P/L realizado ate agora neste ativo. Verde = lucro, vermelho = prejuizo. Compara com o Max Premio para saber o quanto falta capturar." style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);cursor:help;">P/L Atual</div>
+            <div class="cr-tip" data-tip="Percentual do premio maximo ja capturado. 100% = voce realizou tudo. Negativo = a posicao foi contra e esta no prejuizo." style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);text-align:right;cursor:help;">Capturado</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:7px;">
+            <div v-for="rv in riscoPorAtivo" :key="rv.ticker"
+              @click="abrirDrawer('ticker', rv.ticker, rv.ticker)"
+              style="cursor:pointer;border-radius:var(--radius-sm);padding:5px 4px;transition:background 0.15s;"
+              onmouseover="this.style.background='var(--surface-overlay)'"
+              onmouseout="this.style.background='transparent'">
+
+              <!-- Linha de valores -->
+              <div style="display:grid;grid-template-columns:52px 1fr 80px 76px;gap:6px;align-items:center;margin-bottom:4px;">
+                <span style="font-size:0.85rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.02em;">{{ rv.ticker }}</span>
+                <div>
+                  <span style="font-size:0.78rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:#7C3AED;">{{ fmtK(rv.ganhoMax) }}</span>
+                  <span style="font-size:0.58rem;color:var(--text-muted);margin-left:3px;">{{ rv.count }}p</span>
+                </div>
+                <div :style="rv.plAtual >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'"
+                  style="font-size:0.78rem;font-weight:800;font-family:'JetBrains Mono',monospace;">
+                  {{ fmtK(rv.plAtual) }}
+                </div>
+                <div style="text-align:right;">
+                  <span style="font-size:0.8rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
+                    :style="rv.pctCap >= 75 ? 'color:var(--brand-emerald);' : rv.pctCap >= 0 ? 'color:var(--brand-amber);' : 'color:var(--brand-rose);'">
+                    {{ rv.pctCap.toFixed(0) }}%
+                  </span>
+                </div>
+              </div>
+
+              <!-- Barra de progresso -->
+              <div style="background:var(--surface-sunken);border-radius:99px;height:6px;overflow:hidden;position:relative;">
+                <!-- Parte positiva (captura) -->
+                <div v-if="rv.pctCap >= 0"
+                  :style="'width:' + rv.barPct + '%;background:' + (rv.pctCap >= 75 ? 'var(--brand-emerald)' : 'var(--brand-amber)') + ';'"
+                  style="height:100%;border-radius:99px;transition:width 0.5s;"></div>
+                <!-- Parte negativa (prejuizo) -->
+                <div v-else
+                  :style="'width:' + rv.negPct + '%;'"
+                  style="height:100%;border-radius:99px;background:var(--brand-rose);transition:width 0.5s;"></div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -570,6 +631,19 @@
   .radar-bar-rose   { background:var(--brand-rose); }
   .radar-bar-amber  { background:var(--brand-amber); }
   .radar-bar-indigo { background:var(--brand-indigo); }
+
+  /* Tooltip trigger */
+  .cr-tip { cursor:help; }
+  .cr-tip:hover svg, .cr-tip:hover { opacity:1 !important; }
+
+  /* Tooltip global (renderizado no body via JS -- acima de tudo) */
+  #cr-tooltip {
+    position:fixed;
+    z-index:2147483647;
+    pointer-events:none;
+    opacity:0;
+    transition:opacity 0.15s ease;
+  }
 </style>
 
 <script>
@@ -659,14 +733,35 @@ window.CardRadar = {
       var mapa = {};
       ops.forEach(function(o) {
         var t = o.tickerAtivo || 'N/A';
-        if (!mapa[t]) mapa[t] = { ticker: t, count: 0, nocional: 0 };
+        if (!mapa[t]) mapa[t] = {
+          ticker: t, count: 0, nocional: 0, pl: 0,
+          OTM: { count: 0, nocional: 0 },
+          ATM: { count: 0, nocional: 0 },
+          ITM: { count: 0, nocional: 0 }
+        };
+        var mon = String(o.moneynessCode || '').toUpperCase();
+        var col = mon.indexOf('OTM') >= 0 ? 'OTM' : mon.indexOf('ATM') >= 0 ? 'ATM' : mon.indexOf('ITM') >= 0 ? 'ITM' : null;
         mapa[t].count++;
-        mapa[t].nocional += parseFloat(o.nocional) || 0;
+        mapa[t].nocional += parseFloat(o.nocional)     || 0;
+        mapa[t].pl       += parseFloat(o.plTotalValor) || 0;
+        if (col) {
+          mapa[t][col].count++;
+          mapa[t][col].nocional += parseFloat(o.nocional) || 0;
+        }
       });
       return Object.keys(mapa)
-        .map(function(t) { return { ticker: mapa[t].ticker, count: mapa[t].count, nocional: mapa[t].nocional, pct: Math.round((mapa[t].nocional / totalNoc) * 100) }; })
-        .sort(function(a, b) { return b.nocional - a.nocional; })
-        .slice(0, 6);
+        .map(function(t) {
+          var noc = mapa[t].nocional;
+          var pl  = mapa[t].pl;
+          return {
+            ticker: mapa[t].ticker, count: mapa[t].count, nocional: noc,
+            pct:    Math.round((noc / totalNoc) * 100),
+            pl:     pl,
+            plPct:  noc > 0 ? (pl / noc * 100).toFixed(1) : '0.0',
+            OTM: mapa[t].OTM, ATM: mapa[t].ATM, ITM: mapa[t].ITM
+          };
+        })
+        .sort(function(a, b) { return b.nocional - a.nocional; });
     },
 
     // -- P/L STATUS ---
@@ -702,12 +797,24 @@ window.CardRadar = {
         var chave = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
         var label = meses[d.getMonth()] + '/' + String(d.getFullYear()).slice(2);
         if (!mapa[chave]) {
-          mapa[chave] = { chave: chave, label: label, count: 0, nocional: 0, pl: 0, mes: d.getMonth(), ano: d.getFullYear() };
+          mapa[chave] = {
+            chave: chave, label: label, count: 0, nocional: 0, pl: 0,
+            mes: d.getMonth(), ano: d.getFullYear(),
+            OTM: { count: 0, nocional: 0 },
+            ATM: { count: 0, nocional: 0 },
+            ITM: { count: 0, nocional: 0 }
+          };
           ordem.push(chave);
         }
+        var mon = String(o.moneynessCode || '').toUpperCase();
+        var col = mon.indexOf('OTM') >= 0 ? 'OTM' : mon.indexOf('ATM') >= 0 ? 'ATM' : mon.indexOf('ITM') >= 0 ? 'ITM' : null;
         mapa[chave].count++;
         mapa[chave].nocional += parseFloat(o.nocional)     || 0;
         mapa[chave].pl       += parseFloat(o.plTotalValor) || 0;
+        if (col) {
+          mapa[chave][col].count++;
+          mapa[chave][col].nocional += parseFloat(o.nocional) || 0;
+        }
       });
 
       var maxNoc = 1;
@@ -729,7 +836,10 @@ window.CardRadar = {
           pctNoc:     Math.round((v.nocional / maxNoc) * 100),
           badgeStyle: badgeStyle,
           barClass:   'radar-bar-indigo',
-          plStyle:    v.pl >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'
+          plStyle:    v.pl >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);',
+          OTM:        v.OTM,
+          ATM:        v.ATM,
+          ITM:        v.ITM
         };
       });
     },
@@ -774,6 +884,46 @@ window.CardRadar = {
         .slice(0, 6);
     },
 
+    // -- PRÊMIO CAPTURADO POR ATIVO ---
+    // Max Ganho = soma dos prêmios recebidos (o máximo possível se tudo virar pó)
+    // P/L Atual = quanto já foi realizado
+    // % Capturada = P/L / MaxGanho -- o termômetro de cada posição
+    riscoPorAtivo: function() {
+      var ops  = this.operacoes;
+      var mapa = {};
+      var ordem = [];
+
+      ops.forEach(function(o) {
+        var t = o.tickerAtivo || 'N/A';
+        if (!mapa[t]) {
+          mapa[t] = { ticker: t, ganhoMax: 0, plAtual: 0, count: 0 };
+          ordem.push(t);
+        }
+        mapa[t].ganhoMax += parseFloat(o.ganhoMaximo)  || 0;
+        mapa[t].plAtual  += parseFloat(o.plTotalValor) || 0;
+        mapa[t].count++;
+      });
+
+      return ordem
+        .map(function(t) {
+          var v       = mapa[t];
+          var pctCap  = v.ganhoMax > 0 ? (v.plAtual / v.ganhoMax) * 100 : 0;
+          // Barra: 0 a 100% = emerald, negativo = rose, >100% impossível mas clampa
+          var barPct  = Math.min(100, Math.max(0, pctCap));
+          var negPct  = pctCap < 0 ? Math.min(100, Math.abs(pctCap)) : 0;
+          return {
+            ticker:   v.ticker,
+            ganhoMax: v.ganhoMax,
+            plAtual:  v.plAtual,
+            count:    v.count,
+            pctCap:   pctCap,
+            barPct:   barPct,
+            negPct:   negPct
+          };
+        })
+        .sort(function(a, b) { return b.ganhoMax - a.ganhoMax; });
+    },
+
     // -- HEATMAP ---
     heatmapRows: function() {
       var ops = this.operacoes;
@@ -795,7 +945,7 @@ window.CardRadar = {
       return ordem
         .map(function(t) { return mapa[t]; })
         .sort(function(a, b) { return b.nocTotal - a.nocTotal; })
-        .slice(0, 7);
+;
     },
 
     heatmapMaxNoc: function() {
@@ -815,6 +965,18 @@ window.CardRadar = {
         { label: '100', color: 'var(--brand-indigo)',   opacity: '1'    }
       ];
     }
+  },
+
+  mounted: function() {
+    this._initTooltipCR();
+  },
+
+  beforeUnmount: function() {
+    var el = document.getElementById('cr-tooltip');
+    if (el) el.remove();
+    document.removeEventListener('mouseover', this._crTipOver);
+    document.removeEventListener('mouseout',  this._crTipOut);
+    document.removeEventListener('scroll',    this._crTipHide, true);
   },
 
   methods: {
@@ -843,6 +1005,18 @@ window.CardRadar = {
           var chave = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
           return chave === filtro;
         });
+      } else if (tipo === 'cicloMoney') {
+        var parts2   = filtro.split('|');
+        var cChave   = parts2[0];
+        var cMoney   = parts2[1];
+        filtered = ops.filter(function(o) {
+          var d = o.dataVencimento instanceof Date ? o.dataVencimento : new Date(o.dataVencimento);
+          if (isNaN(d.getTime())) return false;
+          var chave = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+          var mon = String(o.moneynessCode || '').toUpperCase();
+          var col = mon.indexOf('OTM') >= 0 ? 'OTM' : mon.indexOf('ATM') >= 0 ? 'ATM' : mon.indexOf('ITM') >= 0 ? 'ITM' : '';
+          return chave === cChave && col === cMoney;
+        });
       } else if (tipo === 'ticker') {
         filtered = ops.filter(function(o) { return o.tickerAtivo === filtro; });
       } else if (tipo === 'heatmap') {
@@ -868,6 +1042,7 @@ window.CardRadar = {
         moneyness: 'Moneyness',
         tipo:      'Tipo de Opcao',
         ciclo:     'Ciclo de Vencimento',
+        cicloMoney:'Ciclo x Moneyness',
         ticker:    'Ativo',
         heatmap:   'Heatmap Ativo x Moneyness',
         pl:        'P/L Status'
@@ -910,6 +1085,78 @@ window.CardRadar = {
       if (t.indexOf('CALL') >= 0) return 'background:var(--brand-indigo-light);color:var(--brand-indigo);border-color:var(--brand-indigo-muted);';
       if (t.indexOf('PUT')  >= 0) return 'background:var(--brand-rose-light);color:var(--brand-rose);border-color:var(--brand-rose-muted);';
       return 'background:var(--surface-overlay);color:var(--text-muted);border-color:var(--border-default);';
+    },
+
+    // ── SISTEMA DE TOOLTIP GLOBAL ─────────────────────────────────────────
+    // Injetado no body -- z-index maximo, nunca cortado por overflow:hidden
+    _initTooltipCR: function() {
+      var self = this;
+      if (document.getElementById('cr-tooltip')) return;
+
+      var el = document.createElement('div');
+      el.id = 'cr-tooltip';
+      Object.assign(el.style, {
+        position:      'fixed',
+        zIndex:        '2147483647',
+        pointerEvents: 'none',
+        background:    getComputedStyle(document.documentElement).getPropertyValue('--surface-overlay').trim() || '#1e1e2e',
+        border:        '1px solid ' + (getComputedStyle(document.documentElement).getPropertyValue('--border-default').trim() || '#3a3a5c'),
+        borderRadius:  '8px',
+        padding:       '8px 11px',
+        width:         '240px',
+        maxWidth:      '90vw',
+        fontSize:      '0.7rem',
+        fontWeight:    '400',
+        lineHeight:    '1.55',
+        color:         getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#aaa',
+        boxShadow:     '0 12px 32px rgba(0,0,0,0.5)',
+        opacity:       '0',
+        transition:    'opacity 0.15s ease',
+        whiteSpace:    'normal',
+        wordBreak:     'break-word'
+      });
+      document.body.appendChild(el);
+      self._crTipEl = el;
+
+      self._crTipHide = function() { el.style.opacity = '0'; };
+
+      self._crTipShow = function(texto, triggerEl) {
+        if (!texto || !triggerEl) return;
+        el.textContent = texto;
+        var rect = triggerEl.getBoundingClientRect();
+        var w    = 240;
+        var gap  = 10;
+        var left = rect.left + rect.width / 2 - w / 2;
+        if (left < 8) left = 8;
+        if (left + w > window.innerWidth - 8) left = window.innerWidth - w - 8;
+        el.style.opacity = '0';
+        el.style.left    = left + 'px';
+        el.style.top     = '-9999px';
+        var h = el.offsetHeight || 60;
+        var top = rect.top - h - gap;
+        if (top < 8) top = rect.bottom + gap;
+        el.style.top     = top + 'px';
+        el.style.opacity = '1';
+      };
+
+      self._crTipOver = function(e) {
+        var t = e.target.closest('.cr-tip');
+        if (!t) return;
+        var txt = t.getAttribute('data-tip');
+        if (!txt) return;
+        clearTimeout(self._crTipTimer);
+        self._crTipShow(txt, t);
+      };
+
+      self._crTipOut = function(e) {
+        var t = e.target.closest('.cr-tip');
+        if (!t) return;
+        self._crTipTimer = setTimeout(self._crTipHide, 80);
+      };
+
+      document.addEventListener('mouseover', self._crTipOver);
+      document.addEventListener('mouseout',  self._crTipOut);
+      document.addEventListener('scroll',    self._crTipHide, true);
     }
   }
 };
