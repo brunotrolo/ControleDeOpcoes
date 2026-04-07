@@ -129,19 +129,19 @@
 
       <!-- Barra de filtros -->
       <div style="display:flex;flex-wrap:wrap;gap:0.625rem;margin-bottom:1.25rem;align-items:center;">
-        <select v-model="filtro.ticker" class="input-base" style="font-size:0.75rem;padding:0.375rem 0.75rem;min-width:130px;">
-          <option value="">Todos os ativos</option>
-          <option v-for="t in tickersUnicos" :key="t" :value="t">{{ t }}</option>
-        </select>
-        <div style="display:flex;border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--border-default);">
-          <button v-for="op in ['','CALL','PUT']" :key="op" @click="filtro.category = op"
-            style="padding:0.375rem 0.75rem;font-size:0.72rem;font-weight:700;border:none;cursor:pointer;transition:all 0.15s;"
-            :style="filtro.category === op
-              ? op==='CALL' ? 'background:var(--brand-indigo);color:#fff;'
-              : op==='PUT'  ? 'background:var(--brand-amber);color:#fff;'
-              : 'background:var(--brand-indigo);color:#fff;'
-              : 'background:var(--surface-base);color:var(--text-muted);'">
-            {{ op === '' ? 'C+P' : op }}
+        <div style="position:relative;display:flex;align-items:center;min-width:180px;">
+          <i data-lucide="search" style="width:14px;height:14px;display:block;position:absolute;left:0.625rem;color:var(--text-muted);pointer-events:none;"></i>
+          <input
+            v-model="filtro.buscaAtivo"
+            type="text"
+            placeholder="Buscar ativo..."
+            class="input-base"
+            style="font-size:0.75rem;padding:0.375rem 0.625rem 0.375rem 1.875rem;width:100%;"
+          />
+          <button v-if="filtro.buscaAtivo" @click="filtro.buscaAtivo = ''"
+            style="position:absolute;right:0.375rem;background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:0.15rem;display:flex;align-items:center;"
+            title="Limpar busca">
+            <i data-lucide="x" style="width:12px;height:12px;display:block;"></i>
           </button>
         </div>
         <div style="display:flex;border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--border-default);">
@@ -155,7 +155,22 @@
             {{ op === '' ? 'V+C' : op === 'V' ? 'Venda' : 'Compra' }}
           </button>
         </div>
-        <select v-model="filtro.statusOp" class="input-base" style="font-size:0.75rem;padding:0.375rem 0.75rem;min-width:120px;">
+        <div style="display:flex;border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--border-default);">
+          <button v-for="op in ['','CALL','PUT']" :key="op" @click="filtro.category = op"
+            style="padding:0.375rem 0.75rem;font-size:0.72rem;font-weight:700;border:none;cursor:pointer;transition:all 0.15s;"
+            :style="filtro.category === op
+              ? op==='CALL' ? 'background:var(--brand-indigo);color:#fff;'
+              : op==='PUT'  ? 'background:var(--brand-amber);color:#fff;'
+              : 'background:var(--brand-indigo);color:#fff;'
+              : 'background:var(--surface-base);color:var(--text-muted);'">
+            {{ op === '' ? 'C+P' : op }}
+          </button>
+        </div>
+        <select v-model="filtro.ticker" class="input-base" style="font-size:0.75rem;padding:0.375rem 0.75rem;min-width:130px;flex:0 0 auto;width:auto;">
+          <option value="">Todos os ativos</option>
+          <option v-for="t in tickersUnicos" :key="t" :value="t">{{ t }}</option>
+        </select>
+        <select v-model="filtro.statusOp" class="input-base" style="font-size:0.75rem;padding:0.375rem 0.75rem;min-width:120px;flex:0 0 auto;width:auto;">
           <option value="">Todos status</option>
           <option v-for="s in statusUnicos" :key="s" :value="s">{{ s }}</option>
         </select>
@@ -333,7 +348,7 @@ window.NectonImport = {
       isDeleting: null,
       salvandoStatus: null,
       modalExclusao: { isOpen: false, linhaReal: null, ativo: null },
-      filtro: { ticker: '', category: '', direcao: '', statusOp: '' },
+      filtro: { ticker: '', category: '', direcao: '', statusOp: '', buscaAtivo: '' },
       sortCol: 'linhaReal',
       sortDir: 'desc',
       paginaAtual: 1,
@@ -398,7 +413,7 @@ window.NectonImport = {
       return [...new Set(this.history.map(i => i.statusOp).filter(Boolean))].sort();
     },
     temFiltroAtivo() {
-      return this.filtro.ticker || this.filtro.category || this.filtro.direcao || this.filtro.statusOp;
+      return this.filtro.ticker || this.filtro.category || this.filtro.direcao || this.filtro.statusOp || this.filtro.buscaAtivo;
     },
     historyFiltrado() {
       let lista = this.history;
@@ -406,6 +421,12 @@ window.NectonImport = {
       if (this.filtro.category) lista = lista.filter(i => i.category === this.filtro.category);
       if (this.filtro.direcao)  lista = lista.filter(i => i.direcao  === this.filtro.direcao);
       if (this.filtro.statusOp) lista = lista.filter(i => i.statusOp === this.filtro.statusOp);
+      if (this.filtro.buscaAtivo) {
+        const termo = String(this.filtro.buscaAtivo).trim().toLowerCase();
+        if (termo) {
+          lista = lista.filter(i => String(i.ativo || '').toLowerCase().includes(termo));
+        }
+      }
       const col = this.sortCol;
       const dir = this.sortDir === 'asc' ? 1 : -1;
       return [...lista].sort((a, b) => {
@@ -418,6 +439,11 @@ window.NectonImport = {
       });
     },
     historyPaginado() {
+      // Quando o filtro de busca por ativo esta ativo, retorna TODA a lista filtrada
+      // (paginacao / Ver mais sao desabilitados para garantir busca global)
+      if (this.filtro.buscaAtivo && String(this.filtro.buscaAtivo).trim()) {
+        return this.historyFiltrado;
+      }
       return this.historyFiltrado.slice(0, this.paginaAtual * this.tamanhoPagina);
     },
     temMais() {
@@ -630,7 +656,7 @@ window.NectonImport = {
     },
 
     limparFiltros() {
-      this.filtro = { ticker: '', category: '', direcao: '', statusOp: '' };
+      this.filtro = { ticker: '', category: '', direcao: '', statusOp: '', buscaAtivo: '' };
       this.paginaAtual = 1;
     },
 
