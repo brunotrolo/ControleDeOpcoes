@@ -1,0 +1,1054 @@
+<template id="card-notional-template">
+  <div style="width:100%;font-family:'Plus Jakarta Sans',sans-serif;">
+
+    <!-- ═══════════════════════════════════
+         DRAWER LATERAL
+         ═══════════════════════════════════ -->
+    <transition name="notional-drawer">
+      <div v-if="drawer.aberto"
+        style="position:fixed;top:0;right:0;bottom:0;width:440px;max-width:95vw;z-index:1000;
+               display:flex;flex-direction:column;background:var(--surface-base);
+               box-shadow:-8px 0 48px rgba(0,0,0,0.2);border-left:1px solid var(--border-subtle);">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;
+                    padding:1.25rem 1.5rem;border-bottom:1px solid var(--border-subtle);
+                    background:var(--surface-overlay);">
+          <div>
+            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
+                        letter-spacing:0.18em;color:var(--text-muted);margin-bottom:4px;">
+              {{ drawer.categoriaLabel }}
+            </div>
+            <div style="font-size:1.05rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.02em;">
+              {{ drawer.titulo }}
+            </div>
+          </div>
+          <button @click="fecharDrawer"
+            style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border-subtle);
+                   background:var(--surface-base);cursor:pointer;display:flex;align-items:center;
+                   justify-content:center;color:var(--text-muted);font-size:1rem;">x</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;
+                    background:var(--border-subtle);border-bottom:1px solid var(--border-subtle);">
+          <div style="background:var(--surface-base);padding:1rem 1.25rem;">
+            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
+                        letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;">Posicoes</div>
+            <div style="font-size:1.5rem;font-weight:800;color:var(--text-primary);
+                        font-family:'JetBrains Mono',monospace;">{{ drawer.ops.length }}</div>
+          </div>
+          <div style="background:var(--surface-base);padding:1rem 1.25rem;">
+            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
+                        letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;">Nocional</div>
+            <div style="font-size:1.05rem;font-weight:800;color:var(--brand-indigo);
+                        font-family:'JetBrains Mono',monospace;">{{ fmtK(somaDrawer('nocional')) }}</div>
+          </div>
+          <div style="background:var(--surface-base);padding:1rem 1.25rem;">
+            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
+                        letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;">Yield Medio</div>
+            <div style="font-size:1.05rem;font-weight:800;font-family:'JetBrains Mono',monospace;
+                        color:var(--brand-emerald);">{{ yieldDrawer }}%</div>
+          </div>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;padding:1rem;">
+          <div v-for="op in drawer.ops" :key="op.tradeId || op.simboloOpcao"
+            style="border-radius:var(--radius-lg);border:1px solid var(--border-subtle);
+                   background:var(--surface-base);margin-bottom:0.625rem;overflow:hidden;">
+            <div style="display:grid;grid-template-columns:4px 1fr;">
+              <div :style="corBarraOp(op)" style="min-height:100%;"></div>
+              <div style="padding:0.875rem 1.125rem;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.5rem;">
+                  <div>
+                    <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:2px;">
+                      <span style="font-size:1.05rem;font-weight:800;color:var(--text-primary);">{{ op.tickerAtivo }}</span>
+                      <span :style="styleMoney(op.moneynessCode)"
+                        style="font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:99px;border:1.5px solid;">
+                        {{ op.moneynessCode || '—' }}
+                      </span>
+                    </div>
+                    <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);
+                                font-family:'JetBrains Mono',monospace;">
+                      {{ op.simboloOpcao }} &middot; {{ op.tipoOpcao }} &middot; Strike {{ fmt('currency', op.strike) }}
+                    </div>
+                  </div>
+                  <div style="text-align:right;">
+                    <div style="font-size:1.05rem;font-weight:800;font-family:'JetBrains Mono',monospace;
+                                color:var(--brand-indigo);">{{ fmtK(op.nocional) }}</div>
+                    <div style="font-size:0.6rem;color:var(--brand-emerald);font-weight:700;margin-top:2px;">
+                      {{ calcYieldOp(op) }}% yield
+                    </div>
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.375rem;
+                            padding-top:0.5rem;border-top:1px solid var(--border-subtle);">
+                  <div>
+                    <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+                                letter-spacing:0.08em;color:var(--text-muted);">Premio PM</div>
+                    <div style="font-size:0.8rem;font-weight:700;color:var(--text-secondary);
+                                font-family:'JetBrains Mono',monospace;">{{ fmt('currency', op.premioMedio) }}</div>
+                  </div>
+                  <div>
+                    <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+                                letter-spacing:0.08em;color:var(--text-muted);">Ganho Max</div>
+                    <div style="font-size:0.8rem;font-weight:700;color:var(--text-secondary);
+                                font-family:'JetBrains Mono',monospace;">{{ fmtK(op.ganhoMaximo) }}</div>
+                  </div>
+                  <div>
+                    <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+                                letter-spacing:0.08em;color:var(--text-muted);">DTE</div>
+                    <div style="font-size:0.8rem;font-weight:700;color:var(--text-secondary);
+                                font-family:'JetBrains Mono',monospace;">{{ op.dteCorridos ? op.dteCorridos + 'd' : '—' }}</div>
+                  </div>
+                  <div>
+                    <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+                                letter-spacing:0.08em;color:var(--text-muted);">P/L</div>
+                    <div style="font-size:0.8rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                      :style="(parseFloat(op.plTotalValor)||0) >= 0 ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">
+                      {{ fmtK(op.plTotalValor) }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-if="drawer.ops.length === 0"
+            style="padding:3rem;text-align:center;color:var(--text-muted);font-size:0.85rem;">
+            Nenhuma operacao neste grupo.
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <transition name="notional-overlay">
+      <div v-if="drawer.aberto" @click="fecharDrawer"
+        style="position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.35);"></div>
+    </transition>
+
+    <!-- ═══════════════════════════════════
+         CARD PRINCIPAL
+         ═══════════════════════════════════ -->
+    <div class="premium-card" style="padding:0;overflow:hidden;">
+
+      <!-- HEADER -->
+      <div style="padding:1.125rem 1.75rem;border-bottom:1px solid var(--border-subtle);
+                  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;
+                  background:var(--surface-overlay);">
+        <div style="display:flex;align-items:center;gap:0.875rem;">
+          <div style="padding:0.6rem;background:var(--brand-indigo-light);border:1px solid var(--brand-indigo-muted);
+                      border-radius:var(--radius-md);color:var(--brand-indigo);">
+            <i data-lucide="landmark" style="width:18px;height:18px;display:block;"></i>
+          </div>
+          <div>
+            <div style="font-size:0.95rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.01em;">
+              Controle de Nocional
+            </div>
+            <div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;
+                        letter-spacing:0.15em;color:var(--text-muted);margin-top:1px;">
+              Rendimento &middot; Risco real &middot; Liberacao &middot; Alavancagem
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
+          <!-- Campo limite inline -->
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <span style="font-size:0.62rem;font-weight:700;text-transform:uppercase;
+                         letter-spacing:0.15em;color:var(--text-muted);">Limite Capital:</span>
+            <div style="position:relative;">
+              <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);
+                           font-size:0.72rem;font-weight:700;color:var(--text-muted);pointer-events:none;">R$</span>
+              <input
+                v-model="limiteEditavel"
+                @keydown.enter="salvarLimite"
+                @blur="salvarLimite"
+                @focus="focuLimite = true"
+                type="text"
+                inputmode="numeric"
+                style="width:8.5rem;padding:0.4rem 0.5rem 0.4rem 1.75rem;font-size:0.78rem;font-weight:700;
+                       font-family:'JetBrains Mono',monospace;border-radius:var(--radius-sm);
+                       background:var(--surface-sunken);color:var(--text-primary);outline:none;
+                       transition:border-color 0.15s,background 0.15s;"
+                :style="focuLimite
+                  ? 'border:1.5px solid var(--brand-indigo);background:var(--surface-base);'
+                  : 'border:1.5px solid var(--border-default);'"
+              >
+              <span v-if="salvandoLimite"
+                style="position:absolute;right:7px;top:50%;transform:translateY(-50%);
+                       width:8px;height:8px;border-radius:50%;border:1.5px solid var(--brand-indigo);
+                       border-top-color:transparent;animation:notional-spin 0.6s linear infinite;"></span>
+              <span v-else-if="limiteOk"
+                style="position:absolute;right:7px;top:50%;transform:translateY(-50%);
+                       font-size:0.65rem;font-weight:800;color:var(--brand-emerald);">ok</span>
+            </div>
+          </div>
+
+          <!-- Termometro -->
+          <div style="display:flex;flex-direction:column;gap:4px;min-width:200px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;">
+              <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
+                           letter-spacing:0.14em;color:var(--text-muted);">Utilizacao do limite</span>
+              <span style="font-size:0.82rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
+                :style="corUtil">{{ pctUtilizacao }}%</span>
+            </div>
+            <div style="height:7px;border-radius:99px;background:var(--border-subtle);overflow:hidden;">
+              <div style="height:100%;border-radius:99px;transition:width 0.5s cubic-bezier(.4,0,.2,1);"
+                :style="'width:' + Math.min(pctUtilizacao,100) + '%;background:' + corBarraUtil">
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="font-size:0.58rem;color:var(--text-muted);">Alocado: {{ fmtK(totalNocional) }}</span>
+              <span style="font-size:0.58rem;font-weight:700;color:var(--brand-emerald);">
+                Livre: {{ fmtK(Math.max(0, limiteNumerico - totalNocional)) }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+           SKELETON (enquanto isLoading = true)
+           ══════════════════════════════════════ -->
+      <div v-if="isLoading"
+        style="padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1px;
+               background:var(--border-subtle);">
+        <!-- 4 blocos skeleton simulando os 4 paineis -->
+        <div v-for="n in 4" :key="n"
+          style="background:var(--surface-base);padding:1.25rem;
+                 animation:notional-pulse 1.5s ease infinite;">
+          <!-- Label skeleton -->
+          <div style="height:10px;background:var(--surface-overlay);border-radius:4px;
+                      width:50%;margin-bottom:12px;"></div>
+          <!-- Valor principal skeleton -->
+          <div style="height:22px;background:var(--surface-overlay);border-radius:4px;
+                      width:70%;margin-bottom:14px;"></div>
+          <!-- Linha de barras skeleton -->
+          <div style="display:flex;gap:6px;margin-bottom:10px;">
+            <div style="height:36px;background:var(--surface-overlay);border-radius:var(--radius-md);flex:1;"></div>
+            <div style="height:36px;background:var(--surface-overlay);border-radius:var(--radius-md);flex:1;"></div>
+            <div style="height:36px;background:var(--surface-overlay);border-radius:var(--radius-md);flex:1;"></div>
+          </div>
+          <!-- Barra fina skeleton -->
+          <div style="height:6px;background:var(--surface-overlay);border-radius:99px;width:100%;"></div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════
+           CONTEUDO REAL (quando nao carregando)
+           ══════════════════════════════════════ -->
+      <template v-else>
+
+        <!-- ═══════════════════════════════════
+             LINHA 1 (410px fixo): YIELD + RISCO REAL
+             - Yield: header fixo + lista com scroll interno
+             - Risco Real: altura natural (referencia da trava)
+             ═══════════════════════════════════ -->
+        <div style="display:grid;border-bottom:1px solid var(--border-subtle);height:410px;"
+             :style="isMobile ? 'grid-template-columns:1fr;height:auto;' : 'grid-template-columns:1fr 1fr;'">
+
+          <!-- [A] YIELD -->
+          <div style="display:flex;flex-direction:column;border-right:1px solid var(--border-subtle);overflow:hidden;"
+               :style="isMobile ? 'border-right:none;border-bottom:1px solid var(--border-subtle);max-height:380px;' : ''">
+
+            <!-- Header fixo do painel -->
+            <div style="flex-shrink:0;padding:1rem 1.5rem;border-bottom:1px solid var(--border-subtle);
+                        display:flex;align-items:center;gap:0.5rem;">
+              <i data-lucide="percent" style="width:14px;height:14px;color:var(--brand-emerald);"></i>
+              <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;
+                           letter-spacing:0.15em;color:var(--text-secondary);">Rendimento sobre Capital (Yield)</span>
+              <span style="margin-left:auto;font-size:0.58rem;color:var(--text-muted);">ganhoMax / nocional</span>
+            </div>
+
+            <!-- Lista com scroll -->
+            <div style="flex:1;overflow-y:auto;padding:0.875rem 1.25rem;
+                        scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent;">
+              <div v-for="item in yieldPorAtivo" :key="item.ticker"
+                @click="abrirDrawer('yield', item.ticker, item.ops)"
+                style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0.625rem;
+                       border-radius:var(--radius-md);cursor:pointer;margin-bottom:5px;
+                       transition:background 0.12s;"
+                onmouseover="this.style.background='var(--surface-overlay)'"
+                onmouseout="this.style.background='transparent'">
+
+                <span style="font-size:0.82rem;font-weight:800;color:var(--text-primary);
+                             font-family:'JetBrains Mono',monospace;min-width:4rem;">{{ item.ticker }}</span>
+
+                <div style="flex:1;">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">
+                    <span style="font-size:0.65rem;color:var(--text-muted);">
+                      {{ fmtK(item.ganhoTotal) }} em {{ fmtK(item.nocional) }}
+                    </span>
+                    <span style="font-size:0.85rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
+                      :style="item.yield >= 10 ? 'color:var(--brand-emerald)' :
+                              item.yield >= 5  ? 'color:var(--brand-amber)'   : 'color:var(--text-secondary)'">
+                      {{ item.yield }}%
+                    </span>
+                  </div>
+                  <div style="height:5px;border-radius:99px;background:var(--border-subtle);overflow:hidden;">
+                    <div style="height:100%;border-radius:99px;transition:width 0.4s;"
+                      :style="'width:' + Math.min(item.yieldPct,100) + '%;' +
+                              (item.yield >= 10 ? 'background:var(--brand-emerald)' :
+                               item.yield >= 5  ? 'background:var(--brand-amber)'   :
+                                                  'background:var(--brand-indigo)')">
+                    </div>
+                  </div>
+                </div>
+
+                <span style="font-size:0.62rem;color:var(--text-muted);min-width:1.5rem;text-align:right;">
+                  {{ item.ops.length }}x
+                </span>
+              </div>
+
+              <div v-if="yieldPorAtivo.length === 0"
+                style="padding:2rem 0;text-align:center;color:var(--text-muted);font-size:0.8rem;">
+                Sem posicoes ativas
+              </div>
+            </div>
+
+            <!-- Rodape fixo com yield medio -->
+            <div style="flex-shrink:0;padding:0.625rem 1.25rem;
+                        border-top:1px solid var(--border-subtle);background:var(--surface-overlay);
+                        display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
+                           letter-spacing:0.12em;color:var(--text-muted);">Yield Medio da Carteira</span>
+              <span style="font-size:1rem;font-weight:800;font-family:'JetBrains Mono',monospace;
+                           color:var(--brand-emerald);">{{ yieldMedioCarteira }}%</span>
+            </div>
+          </div>
+
+          <!-- [C] RISCO REAL -->
+          <div style="display:flex;flex-direction:column;overflow:hidden;">
+            <div style="flex-shrink:0;padding:1rem 1.5rem;border-bottom:1px solid var(--border-subtle);
+                        display:flex;align-items:center;gap:0.5rem;">
+              <i data-lucide="shield-alert" style="width:14px;height:14px;color:var(--brand-rose);"></i>
+              <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;
+                           letter-spacing:0.15em;color:var(--text-secondary);">Capital em Risco Real</span>
+              <span style="margin-left:auto;font-size:0.58rem;color:var(--text-muted);">nocional por moneyness em R$</span>
+            </div>
+
+            <div style="padding:1.25rem 1.5rem;">
+              <!-- 3 blocos ITM / ATM / OTM -->
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.625rem;margin-bottom:1.25rem;">
+
+                <div @click="abrirDrawer('risco', 'ITM — Capital Comprometido', riscoCapital.itmOps)"
+                  style="padding:1rem 0.875rem;border-radius:var(--radius-lg);cursor:pointer;text-align:center;
+                         background:var(--brand-rose-light);border:1px solid var(--brand-rose-muted);
+                         transition:opacity 0.12s;"
+                  onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                  <div style="font-size:0.56rem;font-weight:700;text-transform:uppercase;
+                              letter-spacing:0.12em;color:var(--brand-rose);margin-bottom:5px;">ITM</div>
+                  <div style="font-size:1.25rem;font-weight:800;color:var(--brand-rose);
+                              font-family:'JetBrains Mono',monospace;line-height:1;">
+                    {{ fmtK(riscoCapital.itmNocional) }}
+                  </div>
+                  <div style="font-size:0.62rem;color:var(--brand-rose);opacity:0.8;margin-top:5px;">
+                    {{ riscoCapital.itmPct }}% &middot; {{ riscoCapital.itmOps.length }} pos
+                  </div>
+                </div>
+
+                <div @click="abrirDrawer('risco', 'ATM — Capital em Transicao', riscoCapital.atmOps)"
+                  style="padding:1rem 0.875rem;border-radius:var(--radius-lg);cursor:pointer;text-align:center;
+                         background:var(--brand-amber-light);border:1px solid var(--brand-amber-muted);
+                         transition:opacity 0.12s;"
+                  onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                  <div style="font-size:0.56rem;font-weight:700;text-transform:uppercase;
+                              letter-spacing:0.12em;color:var(--brand-amber);margin-bottom:5px;">ATM</div>
+                  <div style="font-size:1.25rem;font-weight:800;color:var(--brand-amber);
+                              font-family:'JetBrains Mono',monospace;line-height:1;">
+                    {{ fmtK(riscoCapital.atmNocional) }}
+                  </div>
+                  <div style="font-size:0.62rem;color:var(--brand-amber);opacity:0.8;margin-top:5px;">
+                    {{ riscoCapital.atmPct }}% &middot; {{ riscoCapital.atmOps.length }} pos
+                  </div>
+                </div>
+
+                <div @click="abrirDrawer('risco', 'OTM — Capital Protegido', riscoCapital.otmOps)"
+                  style="padding:1rem 0.875rem;border-radius:var(--radius-lg);cursor:pointer;text-align:center;
+                         background:var(--brand-emerald-light);border:1px solid var(--brand-emerald-muted);
+                         transition:opacity 0.12s;"
+                  onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                  <div style="font-size:0.56rem;font-weight:700;text-transform:uppercase;
+                              letter-spacing:0.12em;color:var(--brand-emerald);margin-bottom:5px;">OTM</div>
+                  <div style="font-size:1.25rem;font-weight:800;color:var(--brand-emerald);
+                              font-family:'JetBrains Mono',monospace;line-height:1;">
+                    {{ fmtK(riscoCapital.otmNocional) }}
+                  </div>
+                  <div style="font-size:0.62rem;color:var(--brand-emerald);opacity:0.8;margin-top:5px;">
+                    {{ riscoCapital.otmPct }}% &middot; {{ riscoCapital.otmOps.length }} pos
+                  </div>
+                </div>
+              </div>
+
+              <!-- Barra tricolor -->
+              <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
+                          letter-spacing:0.12em;color:var(--text-muted);margin-bottom:6px;">
+                Perfil de risco do capital alocado
+              </div>
+              <div style="height:12px;border-radius:99px;background:var(--border-subtle);
+                          overflow:hidden;display:flex;">
+                <div style="transition:flex 0.5s;border-radius:99px 0 0 99px;"
+                  :style="'flex:' + (riscoCapital.itmPct || 0) + ';background:var(--brand-rose);'"></div>
+                <div style="transition:flex 0.5s;"
+                  :style="'flex:' + (riscoCapital.atmPct || 0) + ';background:var(--brand-amber);'"></div>
+                <div style="transition:flex 0.5s;border-radius:0 99px 99px 0;"
+                  :style="'flex:' + (riscoCapital.otmPct || 0) + ';background:var(--brand-emerald);'"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-top:5px;">
+                <span style="font-size:0.58rem;font-weight:700;color:var(--brand-rose);">
+                  ITM {{ riscoCapital.itmPct }}%
+                </span>
+                <span style="font-size:0.58rem;font-weight:700;color:var(--brand-amber);">
+                  ATM {{ riscoCapital.atmPct }}%
+                </span>
+                <span style="font-size:0.58rem;font-weight:700;color:var(--brand-emerald);">
+                  OTM {{ riscoCapital.otmPct }}%
+                </span>
+              </div>
+
+              <!-- ── TOP ITM: proximo vencimento ── -->
+              <div v-if="topItm.ops.length > 0"
+                style="margin-top:1.125rem;padding-top:1rem;border-top:1px solid var(--border-subtle);">
+
+                <!-- Cabecalho da secao com toggle -->
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.625rem;">
+                  <div style="display:flex;align-items:center;gap:0.4rem;">
+                    <span style="width:6px;height:6px;border-radius:50%;background:var(--brand-rose);
+                                 display:inline-block;animation:notional-pulse 1.8s ease infinite;"></span>
+                    <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
+                                 letter-spacing:0.14em;color:var(--brand-rose);">ITM &mdash; Proximo Vencimento</span>
+                    <span style="font-size:0.6rem;font-family:'JetBrains Mono',monospace;
+                                 color:var(--text-muted);">{{ topItm.dataFormatada }}</span>
+                  </div>
+                  <!-- Toggle Top 3 / Top 5 -->
+                  <div style="display:flex;border:1px solid var(--border-default);
+                              border-radius:var(--radius-xs);overflow:hidden;">
+                    <button @click="topItmLimite = 3"
+                      style="padding:2px 8px;font-size:0.6rem;font-weight:700;border:none;cursor:pointer;
+                             transition:background 0.12s,color 0.12s;"
+                      :style="topItmLimite === 3
+                        ? 'background:var(--brand-rose);color:#fff;'
+                        : 'background:var(--surface-base);color:var(--text-muted);'">
+                      TOP 3
+                    </button>
+                    <button @click="topItmLimite = 5"
+                      style="padding:2px 8px;font-size:0.6rem;font-weight:700;border:none;cursor:pointer;
+                             border-left:1px solid var(--border-default);transition:background 0.12s,color 0.12s;"
+                      :style="topItmLimite === 5
+                        ? 'background:var(--brand-rose);color:#fff;'
+                        : 'background:var(--surface-base);color:var(--text-muted);'">
+                      TOP 5
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Cabecalho das colunas -->
+                <div style="display:grid;grid-template-columns:1fr 0.7fr 0.7fr 0.7fr 1fr;
+                            gap:0.25rem;padding:0 0.375rem 0.375rem;
+                            border-bottom:1px solid var(--border-subtle);margin-bottom:0.25rem;">
+                  <span style="font-size:0.55rem;font-weight:700;text-transform:uppercase;
+                               letter-spacing:0.1em;color:var(--text-muted);">Opcao</span>
+                  <span style="font-size:0.55rem;font-weight:700;text-transform:uppercase;
+                               letter-spacing:0.1em;color:var(--text-muted);text-align:right;">PM</span>
+                  <span style="font-size:0.55rem;font-weight:700;text-transform:uppercase;
+                               letter-spacing:0.1em;color:var(--text-muted);text-align:right;">Atual</span>
+                  <span style="font-size:0.55rem;font-weight:700;text-transform:uppercase;
+                               letter-spacing:0.1em;color:var(--text-muted);text-align:right;">Lucro%</span>
+                  <span style="font-size:0.55rem;font-weight:700;text-transform:uppercase;
+                               letter-spacing:0.1em;color:var(--brand-rose);text-align:right;">Custo Recomp.</span>
+                </div>
+
+                <!-- Linhas de operacoes (scroll quando exceder topItmLimite) -->
+                <div style="max-height:160px;overflow-y:auto;
+                            scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent;">
+                <div v-for="op in topItm.ops.slice(0, topItmLimite)" :key="op.tradeId || op.simboloOpcao"
+                  @click="abrirDrawer('risco', 'ITM — Proximo Vencimento', topItm.ops)"
+                  style="display:grid;grid-template-columns:1fr 0.7fr 0.7fr 0.7fr 1fr;
+                         gap:0.25rem;padding:0.375rem;border-radius:var(--radius-xs);
+                         cursor:pointer;margin-bottom:2px;transition:background 0.1s;"
+                  onmouseover="this.style.background='var(--brand-rose-light)'"
+                  onmouseout="this.style.background='transparent'">
+
+                  <!-- Opcao + ticker -->
+                  <div style="min-width:0;">
+                    <div style="font-size:0.72rem;font-weight:800;color:var(--text-primary);
+                                font-family:'JetBrains Mono',monospace;
+                                white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                      {{ op.simboloOpcao }}
+                    </div>
+                    <div style="font-size:0.6rem;color:var(--text-muted);">
+                      {{ op.tickerAtivo }} &middot; {{ op.quantidade }}x
+                    </div>
+                  </div>
+
+                  <!-- Premio Medio (entry) -->
+                  <div style="text-align:right;">
+                    <div style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);
+                                font-family:'JetBrains Mono',monospace;">
+                      {{ fmt('currency', op.premioMedio) }}
+                    </div>
+                  </div>
+
+                  <!-- Premio Atual (last) -->
+                  <div style="text-align:right;">
+                    <div style="font-size:0.72rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                      :style="(parseFloat(op.premioAtual)||0) > (parseFloat(op.premioMedio)||0)
+                        ? 'color:var(--brand-rose)' : 'color:var(--brand-emerald)'">
+                      {{ fmt('currency', op.premioAtual) }}
+                    </div>
+                  </div>
+
+                  <!-- Lucro % (potencialLucroPct = fracao decimal) -->
+                  <div style="text-align:right;">
+                    <div style="font-size:0.72rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                      :style="(parseFloat(op.potencialLucroPct)||0) >= 0
+                        ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">
+                      {{ fmtPct(op.potencialLucroPct) }}
+                    </div>
+                  </div>
+
+                  <!-- Custo total de recompra = premioAtual * quantidade -->
+                  <div style="text-align:right;">
+                    <div style="font-size:0.72rem;font-weight:800;color:var(--brand-rose);
+                                font-family:'JetBrains Mono',monospace;">
+                      {{ fmtK(custoRecompra(op)) }}
+                    </div>
+                    <div style="font-size:0.58rem;color:var(--text-muted);">
+                      recompra
+                    </div>
+                  </div>
+
+                </div>
+                </div>
+                <!-- /scroll wrapper -->
+
+                <!-- Totais do grupo visivel + link Ver todas -->
+                <div style="display:grid;grid-template-columns:1fr 0.7fr 0.7fr 0.7fr 1fr;
+                            gap:0.25rem;padding:0.375rem;margin-top:2px;
+                            border-top:1px solid var(--border-subtle);
+                            background:var(--surface-overlay);border-radius:var(--radius-xs);">
+                  <div>
+                    <span style="font-size:0.6rem;font-weight:700;color:var(--text-muted);
+                                 text-transform:uppercase;letter-spacing:0.1em;">
+                      Top {{ Math.min(topItmLimite, topItm.ops.length) }} de {{ topItm.ops.length }}
+                    </span>
+                    <span v-if="topItm.ops.length > topItmLimite"
+                      @click="abrirDrawer('risco', 'ITM — Proximo Vencimento', topItm.ops)"
+                      style="display:block;font-size:0.6rem;font-weight:700;cursor:pointer;
+                             color:var(--brand-indigo);text-decoration:underline;margin-top:1px;
+                             transition:opacity 0.12s;"
+                      onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+                      Ver todas ({{ topItm.ops.length }}) &rarr;
+                    </span>
+                  </div>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                  <div style="text-align:right;">
+                    <div style="font-size:0.75rem;font-weight:800;color:var(--brand-rose);
+                                font-family:'JetBrains Mono',monospace;">
+                      {{ fmtK(totalRecompraVisivel) }}
+                    </div>
+                    <div style="font-size:0.56rem;color:var(--text-muted);">total top {{ Math.min(topItmLimite, topItm.ops.length) }}</div>
+                  </div>
+                </div>
+
+              </div>
+              <!-- /Top ITM -->
+
+            </div>
+          </div>
+
+        </div>
+        <!-- /Linha 1 -->
+
+        <!-- ═══════════════════════════════════
+             LINHA 2: LIBERACAO + ALAVANCAGEM
+             ═══════════════════════════════════ -->
+        <div style="display:grid;border-bottom:1px solid var(--border-subtle);"
+             :style="isMobile ? 'grid-template-columns:1fr;' : 'grid-template-columns:1fr 1fr;'">
+
+          <!-- [D] LIBERACAO DE CAPITAL -->
+          <div style="border-right:1px solid var(--border-subtle);"
+               :style="isMobile ? 'border-right:none;border-bottom:1px solid var(--border-subtle);' : ''">
+
+            <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border-subtle);
+                        display:flex;align-items:center;gap:0.5rem;">
+              <i data-lucide="trending-down" style="width:14px;height:14px;color:var(--brand-indigo);"></i>
+              <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;
+                           letter-spacing:0.15em;color:var(--text-secondary);">Liberacao de Capital</span>
+              <span style="margin-left:auto;font-size:0.58rem;color:var(--text-muted);">acumulado progressivo por DTE</span>
+            </div>
+
+            <div style="padding:1.125rem 1.5rem;">
+              <div style="font-size:0.62rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.5;">
+                Capital liberado conforme os vencimentos ocorrem — quanto fica disponivel
+                para realocacao a cada janela de tempo.
+              </div>
+
+              <div v-for="faixa in liberacaoCapital" :key="faixa.label"
+                @click="abrirDrawer('liberacao', faixa.label, faixa.ops)"
+                style="display:flex;align-items:center;gap:0.875rem;padding:0.625rem 0.875rem;
+                       border-radius:var(--radius-md);cursor:pointer;margin-bottom:0.5rem;
+                       border-left:3px solid;transition:background 0.12s;"
+                :style="'border-color:' + faixa.cor"
+                onmouseover="this.style.background='var(--surface-overlay)'"
+                onmouseout="this.style.background='transparent'">
+                <div style="flex:1;">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">
+                    <div style="display:flex;align-items:baseline;gap:0.5rem;">
+                      <span style="font-size:0.8rem;font-weight:700;color:var(--text-primary);">{{ faixa.label }}</span>
+                      <span style="font-size:0.6rem;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">
+                        +{{ fmtK(faixa.nocional) }} nesta janela
+                      </span>
+                    </div>
+                    <span style="font-size:0.88rem;font-weight:800;font-family:'JetBrains Mono',monospace;
+                                 color:var(--brand-indigo);">{{ fmtK(faixa.acumulado) }}</span>
+                  </div>
+                  <div style="height:6px;border-radius:99px;background:var(--border-subtle);overflow:hidden;">
+                    <div style="height:100%;border-radius:99px;transition:width 0.5s;"
+                      :style="'width:' + faixa.pctAcum + '%;background:' + faixa.cor"></div>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;margin-top:3px;">
+                    <span style="font-size:0.58rem;color:var(--text-muted);">
+                      {{ faixa.ops.length }} posicao{{ faixa.ops.length !== 1 ? 'oes' : '' }}
+                    </span>
+                    <span style="font-size:0.58rem;font-weight:700;"
+                      :style="'color:' + faixa.cor">{{ faixa.pctAcum }}% liberado</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- [E] ALAVANCAGEM IMPLICITA -->
+          <div>
+            <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border-subtle);
+                        display:flex;align-items:center;gap:0.5rem;">
+              <i data-lucide="layers" style="width:14px;height:14px;color:var(--brand-amber);"></i>
+              <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;
+                           letter-spacing:0.15em;color:var(--text-secondary);">Alavancagem Implicita</span>
+              <span style="margin-left:auto;font-size:0.58rem;color:var(--text-muted);">nocional / limite</span>
+            </div>
+
+            <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:1rem;">
+
+              <div style="display:grid;grid-template-columns:auto 1fr;gap:1.5rem;align-items:center;
+                          padding:1.25rem 1.5rem;border-radius:var(--radius-lg);border:1px solid;"
+                :style="alavancagem.nivel === 'CRITICA' ? 'background:var(--brand-rose-light);border-color:var(--brand-rose-muted);' :
+                        alavancagem.nivel === 'ATENCAO' ? 'background:var(--brand-amber-light);border-color:var(--brand-amber-muted);' :
+                                                          'background:var(--brand-emerald-light);border-color:var(--brand-emerald-muted);'">
+                <div style="text-align:center;">
+                  <div style="font-size:3rem;font-weight:900;font-family:'JetBrains Mono',monospace;
+                              line-height:1;letter-spacing:-0.04em;"
+                    :style="alavancagem.nivel === 'CRITICA' ? 'color:var(--brand-rose)' :
+                            alavancagem.nivel === 'ATENCAO' ? 'color:var(--brand-amber)' :
+                                                              'color:var(--brand-emerald)'">
+                    {{ alavancagem.fator }}x
+                  </div>
+                  <div style="font-size:0.62rem;font-weight:800;letter-spacing:0.12em;margin-top:4px;"
+                    :style="alavancagem.nivel === 'CRITICA' ? 'color:var(--brand-rose)' :
+                            alavancagem.nivel === 'ATENCAO' ? 'color:var(--brand-amber)' :
+                                                              'color:var(--brand-emerald)'">
+                    {{ alavancagem.nivel }}
+                  </div>
+                </div>
+                <div style="font-size:0.62rem;color:var(--text-muted);line-height:1.5;">
+                  {{ alavancagem.descricao }}
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;
+                            padding:0.5rem 0;border-bottom:1px solid var(--border-subtle);">
+                  <span style="font-size:0.7rem;color:var(--text-muted);">Nocional Total Alocado</span>
+                  <span style="font-size:0.78rem;font-weight:700;font-family:'JetBrains Mono',monospace;
+                               color:var(--brand-indigo);">{{ fmtK(totalNocional) }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;
+                            padding:0.5rem 0;border-bottom:1px solid var(--border-subtle);">
+                  <span style="font-size:0.7rem;color:var(--text-muted);">Limite Configurado</span>
+                  <span style="font-size:0.78rem;font-weight:700;font-family:'JetBrains Mono',monospace;
+                               color:var(--text-secondary);">{{ fmtK(limiteNumerico) }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;
+                            padding:0.5rem 0;border-bottom:1px solid var(--border-subtle);">
+                  <span style="font-size:0.7rem;color:var(--text-muted);">Nocional em ITM (comprometido)</span>
+                  <span style="font-size:0.78rem;font-weight:700;font-family:'JetBrains Mono',monospace;
+                               color:var(--brand-rose);">{{ fmtK(riscoCapital.itmNocional) }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;">
+                  <span style="font-size:0.7rem;color:var(--text-muted);">Capital livre para novas ops</span>
+                  <span style="font-size:0.78rem;font-weight:700;font-family:'JetBrains Mono',monospace;
+                               color:var(--brand-emerald);">
+                    {{ fmtK(Math.max(0, limiteNumerico - totalNocional)) }}
+                  </span>
+                </div>
+              </div>
+
+              <div style="padding:0.625rem 0.875rem;border-radius:var(--radius-md);
+                          background:var(--surface-sunken);border:1px solid var(--border-subtle);">
+                <div style="font-size:0.58rem;color:var(--text-muted);line-height:1.7;">
+                  <span style="color:var(--brand-emerald);font-weight:700;">SEGURO</span> abaixo de 1x
+                  &nbsp;&middot;&nbsp;
+                  <span style="color:var(--brand-amber);font-weight:700;">ATENCAO</span> 1x a 1.5x
+                  &nbsp;&middot;&nbsp;
+                  <span style="color:var(--brand-rose);font-weight:700;">CRITICA</span> acima de 1.5x
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+        <!-- /Linha 2 -->
+
+        <!-- RODAPE -->
+        <div style="padding:0.875rem 1.75rem;display:flex;flex-wrap:wrap;gap:2rem;
+                    background:var(--surface-overlay);">
+          <div v-for="kpi in totaisRodape" :key="kpi.label" style="display:flex;flex-direction:column;gap:2px;">
+            <span style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+                         letter-spacing:0.15em;color:var(--text-muted);">{{ kpi.label }}</span>
+            <span style="font-size:0.85rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
+              :style="'color:' + kpi.cor">{{ kpi.valor }}</span>
+          </div>
+        </div>
+
+      </template>
+      <!-- /conteudo real -->
+
+    </div>
+  </div>
+</template>
+
+<style>
+  @keyframes notional-spin  { to { transform: rotate(360deg); } }
+  @keyframes notional-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .notional-drawer-enter-active, .notional-drawer-leave-active {
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .notional-drawer-enter-from, .notional-drawer-leave-to { transform: translateX(100%); }
+
+  .notional-overlay-enter-active, .notional-overlay-leave-active { transition: opacity 0.22s ease; }
+  .notional-overlay-enter-from, .notional-overlay-leave-to { opacity: 0; }
+</style>
+
+<script>
+window.CardNotional = {
+  name: 'card-notional',
+  template: '#card-notional-template',
+
+  props: {
+    statsPreCalculados: { type: Object,  default: function() { return {}; } },
+    configGlobais:      { type: Object,  default: function() { return {}; } },
+    isMobile:           { type: Boolean, default: false },
+    isLoading:          { type: Boolean, default: false }
+  },
+
+  data: function() {
+    return {
+      drawer:         { aberto: false, titulo: '', categoriaLabel: '', ops: [] },
+      limiteEditavel: '',
+      limiteNumerico: 0,
+      focuLimite:     false,
+      salvandoLimite: false,
+      limiteOk:       false,
+      _limiteOkTimer: null,
+      topItmLimite:   3
+    };
+  },
+
+  watch: {
+    configGlobais: {
+      immediate: true,
+      handler: function(val) {
+        var raw = (val && val['Notional_Limite_Total']) || '0';
+        var n = parseFloat(String(raw).replace(/[R$\s.]/g, '').replace(',', '.')) || 0;
+        this.limiteNumerico = n;
+        this.limiteEditavel = n > 0 ? String(Math.round(n)) : '';
+      }
+    }
+  },
+
+  computed: {
+    trades: function() {
+      return (this.statsPreCalculados && this.statsPreCalculados.listaAtivas) || [];
+    },
+
+    totalNocional: function() {
+      return this.trades.reduce(function(acc, t) { return acc + (parseFloat(t.nocional) || 0); }, 0);
+    },
+
+    pctUtilizacao: function() {
+      if (!this.limiteNumerico) return 0;
+      return Math.round((this.totalNocional / this.limiteNumerico) * 100);
+    },
+
+    corUtil: function() {
+      var p = this.pctUtilizacao;
+      return p >= 90 ? 'color:var(--brand-rose)' : p >= 75 ? 'color:var(--brand-amber)' : 'color:var(--brand-emerald)';
+    },
+
+    corBarraUtil: function() {
+      var p = this.pctUtilizacao;
+      return p >= 90 ? 'var(--brand-rose)' : p >= 75 ? 'var(--brand-amber)' : 'var(--brand-emerald)';
+    },
+
+    yieldPorAtivo: function() {
+      var mapa = {};
+      var ordem = [];
+      this.trades.forEach(function(t) {
+        var tk = String(t.tickerAtivo || 'OUTROS').trim().toUpperCase();
+        if (!mapa[tk]) { mapa[tk] = { ticker: tk, nocional: 0, ganhoTotal: 0, ops: [] }; ordem.push(tk); }
+        mapa[tk].nocional   += (parseFloat(t.nocional)    || 0);
+        mapa[tk].ganhoTotal += (parseFloat(t.ganhoMaximo) || 0);
+        mapa[tk].ops.push(t);
+      });
+      var lista = ordem
+        .map(function(tk) { return mapa[tk]; })
+        .filter(function(i) { return i.nocional > 0; })
+        .map(function(i) {
+          return Object.assign({}, i, {
+            yield: parseFloat((i.ganhoTotal / i.nocional * 100).toFixed(1))
+          });
+        })
+        .sort(function(a, b) { return b.yield - a.yield; });
+      var maxY = lista.length > 0 ? lista[0].yield : 1;
+      return lista.map(function(i) {
+        return Object.assign({}, i, { yieldPct: Math.round((i.yield / (maxY || 1)) * 100) });
+      });
+    },
+
+    yieldMedioCarteira: function() {
+      if (!this.totalNocional) return '0.0';
+      var ganho = this.trades.reduce(function(acc, t) { return acc + (parseFloat(t.ganhoMaximo) || 0); }, 0);
+      return (ganho / this.totalNocional * 100).toFixed(1);
+    },
+
+    yieldDrawer: function() {
+      var noc  = this.somaDrawer('nocional');
+      var gain = this.somaDrawer('ganhoMaximo');
+      return noc > 0 ? (gain / noc * 100).toFixed(1) : '0.0';
+    },
+
+    riscoCapital: function() {
+      var total = this.totalNocional || 1;
+      var r = { itmNocional: 0, atmNocional: 0, otmNocional: 0, itmOps: [], atmOps: [], otmOps: [] };
+      this.trades.forEach(function(t) {
+        var mc  = String(t.moneynessCode || '').toUpperCase();
+        var noc = parseFloat(t.nocional) || 0;
+        if      (mc.includes('ITM')) { r.itmNocional += noc; r.itmOps.push(t); }
+        else if (mc.includes('ATM')) { r.atmNocional += noc; r.atmOps.push(t); }
+        else                         { r.otmNocional += noc; r.otmOps.push(t); }
+      });
+      return {
+        itmNocional: r.itmNocional, itmOps: r.itmOps, itmPct: Math.round(r.itmNocional / total * 100),
+        atmNocional: r.atmNocional, atmOps: r.atmOps, atmPct: Math.round(r.atmNocional / total * 100),
+        otmNocional: r.otmNocional, otmOps: r.otmOps, otmPct: Math.round(r.otmNocional / total * 100)
+      };
+    },
+
+    liberacaoCapital: function() {
+      var total = this.totalNocional || 1;
+      var janelas = [
+        { label: 'Ate 15d',   min: 0,  max: 15,   cor: 'var(--brand-rose)',   nocional: 0, ops: [] },
+        { label: 'Ate 30d',   min: 16, max: 30,   cor: 'var(--brand-amber)',  nocional: 0, ops: [] },
+        { label: 'Ate 45d',   min: 31, max: 45,   cor: 'var(--brand-indigo)', nocional: 0, ops: [] },
+        { label: 'Acima 45d', min: 46, max: 9999, cor: 'var(--text-muted)',   nocional: 0, ops: [] }
+      ];
+      this.trades.forEach(function(t) {
+        var dte = parseInt(t.dteCorridos, 10);
+        if (isNaN(dte)) return;
+        for (var i = 0; i < janelas.length; i++) {
+          if (dte >= janelas[i].min && dte <= janelas[i].max) {
+            janelas[i].nocional += (parseFloat(t.nocional) || 0);
+            janelas[i].ops.push(t);
+            break;
+          }
+        }
+      });
+      var acum = 0;
+      return janelas.map(function(j) {
+        acum += j.nocional;
+        return Object.assign({}, j, { acumulado: acum, pctAcum: Math.round(acum / total * 100) });
+      });
+    },
+
+    alavancagem: function() {
+      if (!this.limiteNumerico) {
+        return { fator: '—', nivel: 'INDEFINIDO', descricao: 'Configure o limite de capital para calcular a alavancagem implicita da carteira.' };
+      }
+      var fator = this.totalNocional / this.limiteNumerico;
+      var nivel, descricao;
+      if (fator >= 1.5) {
+        nivel     = 'CRITICA';
+        descricao = 'Nocional supera o limite em mais de 50%. Risco de chamada de margem elevado. Reducao de posicoes recomendada.';
+      } else if (fator >= 1.0) {
+        nivel     = 'ATENCAO';
+        descricao = 'Nocional igual ou superior ao limite configurado. Evite novas entradas pesadas e monitore de perto.';
+      } else {
+        nivel     = 'SEGURO';
+        descricao = 'Nocional dentro do limite de capital. Ha espaco disponivel para novas operacoes conforme o plano.';
+      }
+      return { fator: fator.toFixed(2), nivel: nivel, descricao: descricao };
+    },
+
+    // TOP ITM: posicoes ITM do proximo vencimento, ordenadas por nocional desc
+    topItm: function() {
+      var itmOps = this.riscoCapital.itmOps;
+      if (!itmOps || itmOps.length === 0) return { ops: [], dataFormatada: '' };
+
+      var menorData = null;
+      itmOps.forEach(function(t) {
+        if (!t.dataVencimento) return;
+        var d = t.dataVencimento instanceof Date ? t.dataVencimento : new Date(t.dataVencimento);
+        if (isNaN(d.getTime())) return;
+        if (!menorData || d < menorData) menorData = d;
+      });
+
+      if (!menorData) return { ops: [], dataFormatada: '' };
+
+      var chaveAlvo = menorData.toISOString().split('T')[0];
+      var opsVenc = itmOps.filter(function(t) {
+        if (!t.dataVencimento) return false;
+        var d = t.dataVencimento instanceof Date ? t.dataVencimento : new Date(t.dataVencimento);
+        return !isNaN(d.getTime()) && d.toISOString().split('T')[0] === chaveAlvo;
+      }).slice().sort(function(a, b) {
+        return (parseFloat(b.nocional) || 0) - (parseFloat(a.nocional) || 0);
+      });
+
+      var F = window.Formatador;
+      var dataFmt = F && F.data ? F.data(menorData) : chaveAlvo;
+      return { ops: opsVenc, dataFormatada: dataFmt };
+    },
+
+    totalRecompraVisivel: function() {
+      var self = this;
+      return self.topItm.ops.slice(0, self.topItmLimite).reduce(function(acc, op) {
+        return acc + self.custoRecompra(op);
+      }, 0);
+    },
+
+    totaisRodape: function() {
+      var self = this;
+      return [
+        { label: 'Nocional Total',        valor: self.fmtK(self.totalNocional),                                     cor: 'var(--brand-indigo)'  },
+        { label: 'Yield Medio',           valor: self.yieldMedioCarteira + '%',                                     cor: 'var(--brand-emerald)' },
+        { label: 'ITM (Risco Real)',       valor: self.fmtK(self.riscoCapital.itmNocional),                          cor: 'var(--brand-rose)'    },
+        { label: 'Libera em 15d',         valor: self.fmtK((self.liberacaoCapital[0] || {}).nocional || 0),         cor: 'var(--brand-amber)'   },
+        { label: 'Alavancagem',           valor: self.alavancagem.fator + 'x',                                     cor: 'var(--text-secondary)'},
+        { label: 'Capital Livre',         valor: self.fmtK(Math.max(0, self.limiteNumerico - self.totalNocional)), cor: 'var(--brand-emerald)' }
+      ];
+    }
+  },
+
+  methods: {
+    abrirDrawer: function(categoria, titulo, ops) {
+      var labels = {
+        yield:    'RENDIMENTO SOBRE NOCIONAL',
+        risco:    'CAPITAL EM RISCO REAL',
+        liberacao:'LIBERACAO DE CAPITAL'
+      };
+      this.drawer.aberto         = true;
+      this.drawer.titulo         = titulo;
+      this.drawer.categoriaLabel = labels[categoria] || categoria.toUpperCase();
+      this.drawer.ops            = (ops || []).slice().sort(function(a, b) {
+        return parseInt(a.dteCorridos || 999) - parseInt(b.dteCorridos || 999);
+      });
+    },
+
+    fecharDrawer: function() { this.drawer.aberto = false; this.drawer.ops = []; },
+
+    somaDrawer: function(campo) {
+      return this.drawer.ops.reduce(function(acc, op) { return acc + (parseFloat(op[campo]) || 0); }, 0);
+    },
+
+    calcYieldOp: function(op) {
+      var noc  = parseFloat(op.nocional)    || 0;
+      var gain = parseFloat(op.ganhoMaximo) || 0;
+      return noc > 0 ? (gain / noc * 100).toFixed(1) : '0.0';
+    },
+
+    // custo total para recomprar/desmontar: premioAtual * quantidade
+    custoRecompra: function(op) {
+      var premioAtual = parseFloat(op.premioAtual) || 0;
+      var qtd         = parseFloat(op.quantidade)  || 0;
+      return premioAtual * qtd;
+    },
+
+    // formata potencialLucroPct (fracao decimal, ex: 0.0181 => "1,8%")
+    // se vier negativo (prejuizo): mostra negativo
+    fmtPct: function(v) {
+      var F = window.Formatador;
+      if (F && F.pct) return F.pct(parseFloat(v || 0) * 100, 1);
+      var n = parseFloat(v || 0) * 100;
+      return n.toFixed(1).replace('.', ',') + '%';
+    },
+
+    fmtK: function(v) {
+      var F = window.Formatador;
+      if (F && F.moedaCompacta) return F.moedaCompacta(v);
+      var n = parseFloat(v) || 0;
+      if (Math.abs(n) >= 1000000) return 'R$' + (n / 1000000).toFixed(1) + 'M';
+      if (Math.abs(n) >= 1000)    return 'R$' + (n / 1000).toFixed(1) + 'k';
+      return 'R$' + n.toFixed(2).replace('.', ',');
+    },
+
+    fmt: function(tipo, val) {
+      var F = window.Formatador;
+      if (!F) return val != null ? String(val) : '—';
+      return tipo === 'currency' ? F.moeda(val) : String(val != null ? val : '—');
+    },
+
+    corBarraOp: function(op) {
+      var mc = String(op.moneynessCode || '').toUpperCase();
+      if (mc.includes('ITM')) return 'background:var(--brand-rose)';
+      if (mc.includes('ATM')) return 'background:var(--brand-amber)';
+      return 'background:var(--brand-emerald)';
+    },
+
+    styleMoney: function(code) {
+      var mc = String(code || '').toUpperCase();
+      if (mc.includes('ITM')) return 'color:var(--brand-rose);border-color:var(--brand-rose-muted);background:var(--brand-rose-light)';
+      if (mc.includes('ATM')) return 'color:var(--brand-amber);border-color:var(--brand-amber-muted);background:var(--brand-amber-light)';
+      return 'color:var(--brand-emerald);border-color:var(--brand-emerald-muted);background:var(--brand-emerald-light)';
+    },
+
+    salvarLimite: function() {
+      var self = this;
+      self.focuLimite = false;
+      var n = parseFloat(String(self.limiteEditavel).replace(/[R$\s.]/g, '').replace(',', '.')) || 0;
+      if (n === self.limiteNumerico) return;
+      self.limiteNumerico = n;
+      self.limiteEditavel = String(Math.round(n));
+      self.salvandoLimite = true;
+      self.limiteOk       = false;
+      var payload = {};
+      payload['Notional_Limite_Total'] = String(n);
+      if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            self.salvandoLimite = false;
+            if (res && res.success) {
+              self.limiteOk = true;
+              if (self._limiteOkTimer) clearTimeout(self._limiteOkTimer);
+              self._limiteOkTimer = setTimeout(function() { self.limiteOk = false; }, 2200);
+              self.$emit('refresh');
+            }
+          })
+          .withFailureHandler(function() { self.salvandoLimite = false; })
+          .apiAtualizarChaveValor('Config_Global', payload);
+      } else {
+        setTimeout(function() {
+          self.salvandoLimite = false;
+          self.limiteOk = true;
+          if (self._limiteOkTimer) clearTimeout(self._limiteOkTimer);
+          self._limiteOkTimer = setTimeout(function() { self.limiteOk = false; }, 2200);
+        }, 800);
+      }
+    }
+  },
+
+  mounted:  function() { if (typeof lucide !== 'undefined') lucide.createIcons(); },
+  updated:  function() { if (typeof lucide !== 'undefined') lucide.createIcons(); }
+};
+</script>
