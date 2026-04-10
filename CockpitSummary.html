@@ -5,75 +5,208 @@
          BLOCO 1: RESUMO CONSOLIDADO
          ================================================================ -->
     <div class="premium-card" style="overflow:hidden;">
-      <div style="padding:0.75rem 1.5rem;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+
+      <!-- Header -->
+      <div style="padding:0.875rem 1.5rem;border-bottom:1px solid var(--border-subtle);
+                  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
         <div style="display:flex;align-items:center;gap:0.75rem;">
-          <div style="padding:0.4rem;background:var(--brand-indigo-light);border-radius:var(--radius-md);border:1px solid var(--brand-indigo-muted);">
+          <div style="padding:0.4rem;background:var(--brand-indigo-light);border-radius:var(--radius-md);
+                      border:1px solid var(--brand-indigo-muted);">
             <i data-lucide="table-2" style="width:0.875rem;height:0.875rem;color:var(--brand-indigo);display:block;"></i>
           </div>
-          <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);">Resumo Consolidado</span>
+          <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;
+                       letter-spacing:0.15em;color:var(--text-muted);">Resumo Consolidado</span>
         </div>
-        <span style="font-size:0.68rem;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);">
+        <span style="font-size:0.68rem;font-family:'JetBrains Mono',monospace;
+                     color:var(--brand-indigo);font-weight:700;">
           {{ linhasFiltradas.length }} / {{ cockpit.length }} ops
         </span>
       </div>
+
       <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:separate;border-spacing:0;min-width:760px;">
           <thead>
             <tr style="background:var(--surface-overlay);">
-              <th style="padding:0.5rem 1.25rem;text-align:left;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);border-bottom:2px solid var(--border-default);position:sticky;left:0;background:var(--surface-overlay);z-index:2;white-space:nowrap;min-width:120px;">Operacao</th>
-              <th style="padding:0.5rem 0.875rem;text-align:right;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);border-bottom:2px solid var(--border-default);white-space:nowrap;">Qtde</th>
-              <th style="padding:0.5rem 0.875rem;text-align:right;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);border-bottom:2px solid var(--border-default);white-space:nowrap;">Ganho Max</th>
-              <th style="padding:0.5rem 0.875rem;text-align:right;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);border-bottom:2px solid var(--border-default);white-space:nowrap;">Lucro Max %</th>
-              <th style="padding:0.5rem 0.875rem;text-align:right;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);border-bottom:2px solid var(--border-default);white-space:nowrap;">Nocional</th>
-              <th style="padding:0.5rem 0.875rem;text-align:right;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);border-bottom:2px solid var(--border-default);white-space:nowrap;">Perda Max</th>
-              <th style="padding:0.5rem 0.875rem;text-align:right;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);border-bottom:2px solid var(--border-default);white-space:nowrap;">Premio PM</th>
-              <th style="padding:0.5rem 0.875rem;text-align:right;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);border-bottom:2px solid var(--border-default);white-space:nowrap;">Premio Atual</th>
-              <th style="padding:0.5rem 0.875rem;text-align:right;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);border-bottom:2px solid var(--border-default);white-space:nowrap;">P/L %</th>
-              <th style="padding:0.5rem 1.25rem;text-align:right;font-size:0.56rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);border-bottom:2px solid var(--border-default);white-space:nowrap;">P/L R$</th>
+              <th style="padding:0.625rem 1.25rem;text-align:left;font-size:0.56rem;font-weight:700;
+                         text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);
+                         border-bottom:2px solid var(--border-default);
+                         position:sticky;left:0;background:var(--surface-overlay);z-index:2;
+                         white-space:nowrap;min-width:140px;">Operacao</th>
+              <th style="padding:0.625rem 1rem;text-align:right;font-size:0.56rem;font-weight:700;
+                         text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);
+                         border-bottom:2px solid var(--border-default);white-space:nowrap;">Qtde</th>
+              <th style="padding:0.625rem 1rem;text-align:right;font-size:0.56rem;font-weight:700;
+                         text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);
+                         border-bottom:2px solid var(--border-default);white-space:nowrap;">Ganho Max</th>
+              <th style="padding:0.625rem 1rem;text-align:right;font-size:0.56rem;font-weight:700;
+                         text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);
+                         border-bottom:2px solid var(--border-default);white-space:nowrap;">Lucro Max %</th>
+              <th style="padding:0.625rem 1rem;text-align:right;font-size:0.56rem;font-weight:700;
+                         text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);
+                         border-bottom:2px solid var(--border-default);white-space:nowrap;">Nocional</th>
+              <th style="padding:0.625rem 1rem;text-align:right;font-size:0.56rem;font-weight:700;
+                         text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);
+                         border-bottom:2px solid var(--border-default);white-space:nowrap;">Perda Max</th>
+              <th style="padding:0.625rem 1rem;text-align:right;font-size:0.56rem;font-weight:700;
+                         text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);
+                         border-bottom:2px solid var(--border-default);white-space:nowrap;">Premio PM</th>
+              <th style="padding:0.625rem 1rem;text-align:right;font-size:0.56rem;font-weight:700;
+                         text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);
+                         border-bottom:2px solid var(--border-default);white-space:nowrap;">Premio Atual</th>
+              <th style="padding:0.625rem 1rem;text-align:right;font-size:0.56rem;font-weight:700;
+                         text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);
+                         border-bottom:2px solid var(--border-default);white-space:nowrap;">P/L %</th>
+              <th style="padding:0.625rem 1.25rem;text-align:right;font-size:0.56rem;font-weight:700;
+                         text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);
+                         border-bottom:2px solid var(--border-default);white-space:nowrap;">P/L R$</th>
             </tr>
           </thead>
           <tbody>
             <template v-for="row in resumoCalculado" :key="row.id">
-              <tr v-if="row.t === 'd'" onmouseover="this.style.background='var(--surface-overlay)'" onmouseout="this.style.background='transparent'" style="transition:background 0.1s;">
-                <td style="padding:0.5rem 1.25rem;border-bottom:1px solid var(--border-subtle);position:sticky;left:0;background:inherit;z-index:1;white-space:nowrap;">
-                  <span style="font-size:0.75rem;font-weight:700;" :style="row.side==='VENDA'?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ row.side }}</span>
-                  <span style="color:var(--border-strong);margin:0 4px;font-size:0.75rem;">|</span>
-                  <span style="font-size:0.75rem;font-weight:700;color:var(--text-secondary);">{{ row.tipo }}</span>
+
+              <!-- LINHA DETALHE (d): VENDA PUT / COMPRA CALL etc -->
+              <tr v-if="row.t === 'd'"
+                onmouseover="this.style.background='var(--surface-overlay)'"
+                onmouseout="this.style.background='transparent'"
+                style="transition:background 0.12s;">
+                <td style="padding:0.5rem 1.25rem;border-bottom:1px solid var(--border-subtle);
+                            position:sticky;left:0;background:inherit;z-index:1;white-space:nowrap;">
+                  <div style="display:flex;align-items:center;gap:0.5rem;">
+                    <span style="font-size:0.62rem;font-weight:800;padding:2px 7px;
+                                 border-radius:var(--radius-xs);border:1.5px solid;"
+                      :style="row.side==='VENDA'
+                        ? 'color:var(--brand-emerald);background:var(--brand-emerald-light);border-color:var(--brand-emerald-muted);'
+                        : 'color:var(--brand-rose);background:var(--brand-rose-light);border-color:var(--brand-rose-muted);'">
+                      {{ row.side }}
+                    </span>
+                    <span style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);
+                                 letter-spacing:0.04em;">{{ row.tipo }}</span>
+                  </div>
                 </td>
-                <td style="padding:0.5rem 0.875rem;text-align:right;font-size:0.78rem;font-weight:700;color:var(--text-primary);border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtQ(row.qtd) }}</td>
-                <td style="padding:0.5rem 0.875rem;text-align:right;font-size:0.78rem;font-weight:700;border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.gmax>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(row.gmax) }}</td>
-                <td style="padding:0.5rem 0.875rem;text-align:right;font-size:0.78rem;font-weight:700;border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.lmp>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(row.lmp) }}</td>
-                <td style="padding:0.5rem 0.875rem;text-align:right;font-size:0.78rem;color:var(--text-secondary);border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.noc) }}</td>
-                <td style="padding:0.5rem 0.875rem;text-align:right;font-size:0.78rem;color:var(--text-muted);border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.pmax) }}</td>
-                <td style="padding:0.5rem 0.875rem;text-align:right;font-size:0.78rem;color:var(--text-secondary);border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.pm) }}</td>
-                <td style="padding:0.5rem 0.875rem;text-align:right;font-size:0.78rem;color:var(--text-secondary);border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.pa) }}</td>
-                <td style="padding:0.5rem 0.875rem;text-align:right;font-size:0.78rem;font-weight:800;border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.plp>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(row.plp) }}</td>
-                <td style="padding:0.5rem 1.25rem;text-align:right;font-size:0.78rem;font-weight:800;border-bottom:1px solid var(--border-subtle);font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.plv>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(row.plv) }}</td>
+                <td style="padding:0.5rem 1rem;text-align:right;border-bottom:1px solid var(--border-subtle);
+                            font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:700;
+                            color:var(--text-primary);white-space:nowrap;">{{ fmtQ(row.qtd) }}</td>
+                <td style="padding:0.5rem 1rem;text-align:right;border-bottom:1px solid var(--border-subtle);
+                            font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:700;
+                            white-space:nowrap;"
+                  :style="row.gmax>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(row.gmax) }}</td>
+                <td style="padding:0.5rem 1rem;text-align:right;border-bottom:1px solid var(--border-subtle);
+                            font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:700;
+                            white-space:nowrap;"
+                  :style="row.lmp>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(row.lmp) }}</td>
+                <td style="padding:0.5rem 1rem;text-align:right;border-bottom:1px solid var(--border-subtle);
+                            font-family:'JetBrains Mono',monospace;font-size:0.78rem;
+                            color:var(--text-secondary);white-space:nowrap;">{{ fmtR(row.noc) }}</td>
+                <td style="padding:0.5rem 1rem;text-align:right;border-bottom:1px solid var(--border-subtle);
+                            font-family:'JetBrains Mono',monospace;font-size:0.78rem;
+                            color:var(--text-muted);white-space:nowrap;">{{ fmtR(row.pmax) }}</td>
+                <td style="padding:0.5rem 1rem;text-align:right;border-bottom:1px solid var(--border-subtle);
+                            font-family:'JetBrains Mono',monospace;font-size:0.78rem;
+                            color:var(--text-secondary);white-space:nowrap;">{{ fmtR(row.pm) }}</td>
+                <td style="padding:0.5rem 1rem;text-align:right;border-bottom:1px solid var(--border-subtle);
+                            font-family:'JetBrains Mono',monospace;font-size:0.78rem;
+                            color:var(--text-secondary);white-space:nowrap;">{{ fmtR(row.pa) }}</td>
+                <td style="padding:0.5rem 1rem;text-align:right;border-bottom:1px solid var(--border-subtle);
+                            font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:800;
+                            white-space:nowrap;"
+                  :style="row.plp>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(row.plp) }}</td>
+                <td style="padding:0.5rem 1.25rem;text-align:right;border-bottom:1px solid var(--border-subtle);
+                            font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:800;
+                            white-space:nowrap;"
+                  :style="row.plv>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(row.plv) }}</td>
               </tr>
+
+              <!-- LINHA SUBTOTAL (s): fundo diferenciado + borda PUT/CALL -->
               <tr v-else-if="row.t === 's'" style="background:var(--surface-sunken);">
-                <td style="padding:0.4rem 1.25rem;font-size:0.6rem;font-weight:900;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);position:sticky;left:0;background:var(--surface-sunken);z-index:1;white-space:nowrap;">SUBTOTAL {{ row.tipo }}</td>
-                <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.72rem;font-weight:800;color:var(--text-primary);border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtQ(row.qtd) }}</td>
-                <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.72rem;font-weight:800;border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.gmax>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(row.gmax) }}</td>
-                <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.72rem;font-weight:800;border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.lmp>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(row.lmp) }}</td>
-                <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.72rem;font-weight:800;color:var(--text-secondary);border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.noc) }}</td>
-                <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.72rem;color:var(--text-muted);border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.pmax) }}</td>
-                <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.72rem;color:var(--text-secondary);border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.pm) }}</td>
-                <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.72rem;color:var(--text-secondary);border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.pa) }}</td>
-                <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.72rem;font-weight:900;border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.plp>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(row.plp) }}</td>
-                <td style="padding:0.4rem 1.25rem;text-align:right;font-size:0.72rem;font-weight:900;border-top:1px solid var(--border-default);border-bottom:2px solid var(--border-default);font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.plv>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(row.plv) }}</td>
+                <td style="padding:0.5rem 1.25rem;
+                            border-top:2px solid var(--border-default);
+                            border-bottom:2px solid var(--border-default);
+                            position:sticky;left:0;background:var(--surface-sunken);z-index:1;white-space:nowrap;">
+                  <div style="display:flex;align-items:center;gap:0.5rem;">
+                    <span style="font-size:0.52rem;font-weight:800;text-transform:uppercase;
+                                 letter-spacing:0.14em;color:var(--text-muted);">SUBTOTAL</span>
+                    <span style="font-size:0.72rem;font-weight:900;letter-spacing:0.04em;"
+                      :style="row.tipo==='PUT'
+                        ? 'color:var(--brand-amber);'
+                        : 'color:var(--brand-indigo);'">
+                      {{ row.tipo }}
+                    </span>
+                  </div>
+                </td>
+                <td style="padding:0.5rem 1rem;text-align:right;
+                            border-top:2px solid var(--border-default);border-bottom:2px solid var(--border-default);
+                            font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:800;
+                            color:var(--text-primary);white-space:nowrap;">{{ fmtQ(row.qtd) }}</td>
+                <td style="padding:0.5rem 1rem;text-align:right;
+                            border-top:2px solid var(--border-default);border-bottom:2px solid var(--border-default);
+                            font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:800;
+                            white-space:nowrap;"
+                  :style="row.gmax>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(row.gmax) }}</td>
+                <td style="padding:0.5rem 1rem;text-align:right;
+                            border-top:2px solid var(--border-default);border-bottom:2px solid var(--border-default);
+                            font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:800;
+                            white-space:nowrap;"
+                  :style="row.lmp>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(row.lmp) }}</td>
+                <td style="padding:0.5rem 1rem;text-align:right;
+                            border-top:2px solid var(--border-default);border-bottom:2px solid var(--border-default);
+                            font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:800;
+                            color:var(--text-secondary);white-space:nowrap;">{{ fmtR(row.noc) }}</td>
+                <td style="padding:0.5rem 1rem;text-align:right;
+                            border-top:2px solid var(--border-default);border-bottom:2px solid var(--border-default);
+                            font-family:'JetBrains Mono',monospace;font-size:0.78rem;
+                            color:var(--text-muted);white-space:nowrap;">{{ fmtR(row.pmax) }}</td>
+                <td style="padding:0.5rem 1rem;text-align:right;
+                            border-top:2px solid var(--border-default);border-bottom:2px solid var(--border-default);
+                            font-family:'JetBrains Mono',monospace;font-size:0.78rem;
+                            color:var(--text-secondary);white-space:nowrap;">{{ fmtR(row.pm) }}</td>
+                <td style="padding:0.5rem 1rem;text-align:right;
+                            border-top:2px solid var(--border-default);border-bottom:2px solid var(--border-default);
+                            font-family:'JetBrains Mono',monospace;font-size:0.78rem;
+                            color:var(--text-secondary);white-space:nowrap;">{{ fmtR(row.pa) }}</td>
+                <td style="padding:0.5rem 1rem;text-align:right;
+                            border-top:2px solid var(--border-default);border-bottom:2px solid var(--border-default);
+                            font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:900;
+                            white-space:nowrap;"
+                  :style="row.plp>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(row.plp) }}</td>
+                <td style="padding:0.5rem 1.25rem;text-align:right;
+                            border-top:2px solid var(--border-default);border-bottom:2px solid var(--border-default);
+                            font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:900;
+                            white-space:nowrap;"
+                  :style="row.plv>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(row.plv) }}</td>
               </tr>
-              <tr v-else-if="row.t === 'T'" style="background:var(--brand-indigo-light);">
-                <td style="padding:0.55rem 1.25rem;font-size:0.62rem;font-weight:900;text-transform:uppercase;letter-spacing:0.14em;color:var(--brand-indigo);position:sticky;left:0;background:var(--brand-indigo-light);z-index:1;white-space:nowrap;">TOTAL GERAL</td>
-                <td style="padding:0.55rem 0.875rem;text-align:right;font-size:0.82rem;font-weight:900;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtQ(row.qtd) }}</td>
-                <td style="padding:0.55rem 0.875rem;text-align:right;font-size:0.82rem;font-weight:900;font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.gmax>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(row.gmax) }}</td>
-                <td style="padding:0.55rem 0.875rem;text-align:right;font-size:0.82rem;font-weight:900;font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.lmp>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(row.lmp) }}</td>
-                <td style="padding:0.55rem 0.875rem;text-align:right;font-size:0.82rem;font-weight:900;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.noc) }}</td>
-                <td style="padding:0.55rem 0.875rem;text-align:right;font-size:0.82rem;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.pmax) }}</td>
-                <td style="padding:0.55rem 0.875rem;text-align:right;font-size:0.82rem;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.pm) }}</td>
-                <td style="padding:0.55rem 0.875rem;text-align:right;font-size:0.82rem;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtR(row.pa) }}</td>
-                <td style="padding:0.55rem 0.875rem;text-align:right;font-size:0.88rem;font-weight:900;font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.plp>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtP(row.plp) }}</td>
-                <td style="padding:0.55rem 1.25rem;text-align:right;font-size:0.88rem;font-weight:900;font-family:'JetBrains Mono',monospace;white-space:nowrap;" :style="row.plv>=0?'color:var(--brand-emerald);':'color:var(--brand-rose);'">{{ fmtR(row.plv) }}</td>
+
+              <!-- LINHA TOTAL GERAL (T): destaque indigo sólido -->
+              <tr v-else-if="row.t === 'T'"
+                style="background:var(--brand-indigo);border-top:2px solid var(--brand-indigo);">
+                <td style="padding:0.625rem 1.25rem;position:sticky;left:0;
+                            background:var(--brand-indigo);z-index:1;white-space:nowrap;">
+                  <span style="font-size:0.6rem;font-weight:900;text-transform:uppercase;
+                               letter-spacing:0.18em;color:rgba(255,255,255,0.9);">TOTAL GERAL</span>
+                </td>
+                <td style="padding:0.625rem 1rem;text-align:right;font-family:'JetBrains Mono',monospace;
+                            font-size:0.85rem;font-weight:900;color:#fff;white-space:nowrap;">{{ fmtQ(row.qtd) }}</td>
+                <td style="padding:0.625rem 1rem;text-align:right;font-family:'JetBrains Mono',monospace;
+                            font-size:0.85rem;font-weight:900;white-space:nowrap;"
+                  :style="row.gmax>=0?'color:#6EE7B7;':'color:#FCA5A5;'">{{ fmtR(row.gmax) }}</td>
+                <td style="padding:0.625rem 1rem;text-align:right;font-family:'JetBrains Mono',monospace;
+                            font-size:0.85rem;font-weight:900;white-space:nowrap;"
+                  :style="row.lmp>=0?'color:#6EE7B7;':'color:#FCA5A5;'">{{ fmtP(row.lmp) }}</td>
+                <td style="padding:0.625rem 1rem;text-align:right;font-family:'JetBrains Mono',monospace;
+                            font-size:0.85rem;font-weight:900;color:rgba(255,255,255,0.85);white-space:nowrap;">{{ fmtR(row.noc) }}</td>
+                <td style="padding:0.625rem 1rem;text-align:right;font-family:'JetBrains Mono',monospace;
+                            font-size:0.82rem;color:rgba(255,255,255,0.65);white-space:nowrap;">{{ fmtR(row.pmax) }}</td>
+                <td style="padding:0.625rem 1rem;text-align:right;font-family:'JetBrains Mono',monospace;
+                            font-size:0.82rem;color:rgba(255,255,255,0.65);white-space:nowrap;">{{ fmtR(row.pm) }}</td>
+                <td style="padding:0.625rem 1rem;text-align:right;font-family:'JetBrains Mono',monospace;
+                            font-size:0.82rem;color:rgba(255,255,255,0.65);white-space:nowrap;">{{ fmtR(row.pa) }}</td>
+                <td style="padding:0.625rem 1rem;text-align:right;font-family:'JetBrains Mono',monospace;
+                            font-size:0.92rem;font-weight:900;white-space:nowrap;"
+                  :style="row.plp>=0?'color:#6EE7B7;':'color:#FCA5A5;'">{{ fmtP(row.plp) }}</td>
+                <td style="padding:0.625rem 1.25rem;text-align:right;font-family:'JetBrains Mono',monospace;
+                            font-size:0.92rem;font-weight:900;white-space:nowrap;"
+                  :style="row.plv>=0?'color:#6EE7B7;':'color:#FCA5A5;'">{{ fmtR(row.plv) }}</td>
               </tr>
+
             </template>
           </tbody>
         </table>
@@ -594,6 +727,16 @@ window.CockpitSummary = {
         if (f.dirFlag.length && f.dirFlag.indexOf(String(o.directionFlag||'').trim().toUpperCase())<0) return false;
         if (f.ctrlFlag.length && f.ctrlFlag.indexOf(String(o.controlFlag||'').trim().toUpperCase())<0) return false;
         return true;
+      }).sort(function(a, b) {
+        var da = a.dataVencimento instanceof Date ? a.dataVencimento : new Date(a.dataVencimento);
+        var db = b.dataVencimento instanceof Date ? b.dataVencimento : new Date(b.dataVencimento);
+        var ta = isNaN(da.getTime()) ? Infinity : da.getTime();
+        var tb = isNaN(db.getTime()) ? Infinity : db.getTime();
+        if (ta !== tb) return ta - tb;
+        // Mesmo vencimento: agrupar pela estrategia
+        var ea = String(a.estrategiaId || '');
+        var eb = String(b.estrategiaId || '');
+        return ea < eb ? -1 : ea > eb ? 1 : 0;
       });
     },
 
