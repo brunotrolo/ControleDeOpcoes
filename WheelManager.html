@@ -1,119 +1,96 @@
 <template id="wheel-manager-template">
-  <div style="max-width: 95%; margin: 1.5rem auto 4rem; display: flex; flex-direction: column; gap: 1.25rem; min-height: 100vh;"
-       :style="isMobile ? 'max-width: 100%; margin: 0.75rem auto 4rem; gap: 1rem; padding: 0 0.5rem;' : ''">
-    
+  <div style="max-width:95%;margin:1.5rem auto 4rem;display:flex;flex-direction:column;gap:1.25rem;min-height:100vh;"
+    :style="isMobile ? 'max-width:100%;margin:0.75rem auto 4rem;gap:1rem;padding:0 0.5rem;' : ''">
+
+    <!-- Header -->
     <div class="premium-card"
-         style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; position: relative; z-index: 30;"
-         :style="isMobile ? 'padding: 1rem; gap: 1rem;' : 'padding: 1.5rem 2rem; gap: 1.5rem;'">
-      
-      <div style="display: flex; align-items: center; gap: 1.25rem;">
-        <div style="padding: 0.75rem; background: var(--brand-indigo-light); color: var(--brand-indigo); border-radius: var(--radius-lg); border: 1px solid var(--brand-indigo-muted);">
-          <i data-lucide="rotate-cw" style="width: 1.5rem; height: 1.5rem;"></i>
+      style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;position:relative;z-index:30;"
+      :style="isMobile ? 'padding:1rem;gap:1rem;' : 'padding:1.5rem 2rem;gap:1.5rem;'">
+      <div style="display:flex;align-items:center;gap:1.25rem;">
+        <div style="padding:0.75rem;background:var(--brand-indigo-light);color:var(--brand-indigo);border-radius:var(--radius-lg);border:1px solid var(--brand-indigo-muted);">
+          <i data-lucide="rotate-cw" style="width:1.5rem;height:1.5rem;"></i>
         </div>
         <div>
-          <h2 class="t-title" style="color: var(--text-primary); letter-spacing: -0.02em;">A Roda (Wheel)</h2>
-          <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.375rem;">
-            <span style="width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--brand-emerald); display: inline-block; animation: comp-pulse 2s ease-in-out infinite;"></span>
-            <p class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.25em;">Gestão de Custódia e Prêmios</p>
+          <h2 class="t-title" style="color:var(--text-primary);letter-spacing:-0.02em;">A Roda (Wheel)</h2>
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-top:0.375rem;">
+            <span style="width:0.5rem;height:0.5rem;border-radius:50%;background:var(--brand-emerald);display:inline-block;animation:wm-pulse 2s ease-in-out infinite;"></span>
+            <p class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.25em;">Gestao de Custodia e Premios</p>
           </div>
         </div>
       </div>
-
-      <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; visibility: hidden;"
-           :style="isMobile ? 'padding: 0.375rem 0.5rem; width: 100%; justify-content: space-between;' : 'padding: 0.375rem 0.75rem;'">
-        <div style="padding: 0.5rem 0.75rem; border: 1px solid transparent;">
-          <div style="min-width: 140px; height: 16px;"></div>
-        </div>
-        <div style="width: 1px; height: 1.5rem;"></div>
-        <button style="padding: 0.5rem 1.25rem; border-radius: var(--radius-md);">
-          <i style="width: 1rem; height: 1rem;"></i>
-          <span style="margin-left: 0.25rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em;"
-                :style="isMobile ? 'font-size: 18px;' : 'font-size: 10px;'">Adicionar</span>
-        </button>
-      </div>
     </div>
 
-    <div v-if="!dadosWheel || dadosWheel.length === 0" class="premium-card" 
-         style="padding: 4rem 2rem; text-align: center; display: flex; flex-direction: column; align-items: center; opacity: 0.8;">
-      <i data-lucide="shield-check" style="width: 4rem; height: 4rem; color: var(--brand-emerald); margin-bottom: 1rem;"></i>
-      <h3 class="t-title" style="margin-bottom: 0.5rem; color: var(--text-primary);">Sua custódia está limpa!</h3>
-      <p style="color: var(--text-secondary); max-width: 500px; line-height: 1.6;">
-        Você não possui nenhuma ação alocada por exercício de PUT no momento.<br>
-        Assim que uma PUT for marcada como "EXERCIDA" no Cockpit, a Roda começará a girar aqui.
+    <!-- Vazio -->
+    <div v-if="!dadosWheel || dadosWheel.length === 0" class="premium-card"
+      style="padding:4rem 2rem;text-align:center;display:flex;flex-direction:column;align-items:center;opacity:0.8;">
+      <i data-lucide="shield-check" style="width:4rem;height:4rem;color:var(--brand-emerald);margin-bottom:1rem;"></i>
+      <h3 class="t-title" style="margin-bottom:0.5rem;color:var(--text-primary);">Sua custodia esta limpa!</h3>
+      <p style="color:var(--text-secondary);max-width:500px;line-height:1.6;">
+        Voce nao possui nenhuma acao alocada por exercicio de PUT no momento.
       </p>
     </div>
 
-    <div v-else style="display: flex; flex-direction: column; gap: 1.5rem;">
-      
-      <!-- ── KPIs Executivos — strip integrado ── -->
-      <div style="width:100%;border-radius:var(--radius-xl);overflow:hidden;border:1px solid var(--border-subtle);box-shadow:var(--shadow-sm);background:var(--surface-base);">
+    <div v-else style="display:flex;flex-direction:column;gap:1.5rem;">
 
-        <!-- Header do resumo -->
+      <!-- KPIs Executivos -->
+      <div style="width:100%;border-radius:var(--radius-xl);overflow:hidden;border:1px solid var(--border-subtle);box-shadow:var(--shadow-sm);background:var(--surface-base);">
         <div style="display:flex;align-items:center;gap:0.75rem;padding:0.875rem 1.5rem;border-bottom:1px solid var(--border-subtle);">
-          <div style="width:7px;height:7px;border-radius:50%;background:var(--brand-emerald);animation:comp-pulse 2s ease-in-out infinite;flex-shrink:0;"></div>
+          <div style="width:7px;height:7px;border-radius:50%;background:var(--brand-emerald);animation:wm-pulse 2s ease-in-out infinite;flex-shrink:0;"></div>
           <span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);">Resumo Executivo</span>
           <span style="font-size:0.75rem;font-weight:700;padding:2px 10px;border-radius:99px;background:var(--brand-indigo-light);color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);margin-left:auto;">
-            {{ dadosWheel.length }} ativo(s) em custódia
+            {{ dadosWheel.length }} ativo(s) em custodia
           </span>
         </div>
-
-        <!-- Strip de KPIs -->
         <div style="display:flex;flex-direction:row;overflow-x:auto;background:var(--border-subtle);gap:1px;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
-
           <div style="flex:1 1 0%;min-width:160px;padding:1.25rem 1.5rem;background:var(--surface-base);display:flex;flex-direction:column;gap:0.5rem;">
             <div class="calc-tooltip-wrapper" style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">
               Capital Alocado <i data-lucide="info" style="width:11px;height:11px;"></i>
-              <div class="calc-tooltip">Volume total de dinheiro travado para a aquisição destas ações.<span class="math-highlight">Σ (Qtd × Strike) = {{ formatarMoeda(resumoExecutivo.totalAlocado) }}</span></div>
+              <div class="calc-tooltip">Volume total de dinheiro travado para a aquisicao destas acoes.<span class="math-highlight">Sigma (Qtd x Strike) = {{ formatarMoeda(resumoExecutivo.totalAlocado) }}</span></div>
             </div>
             <span style="font-size:1.5rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;line-height:1;">{{ formatarMoeda(resumoExecutivo.totalAlocado) }}</span>
-            <span style="font-size:0.72rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">{{ resumoExecutivo.totalAcoes.toLocaleString() }} ações presas</span>
+            <span style="font-size:0.72rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">{{ resumoExecutivo.totalAcoes.toLocaleString() }} acoes presas</span>
           </div>
-
           <div style="flex:1 1 0%;min-width:160px;padding:1.25rem 1.5rem;background:var(--surface-base);display:flex;flex-direction:column;gap:0.5rem;">
             <div class="calc-tooltip-wrapper" style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">
               Caixa Gerado <i data-lucide="info" style="width:11px;height:11px;"></i>
-              <div class="calc-tooltip">Dinheiro real gerado pelas vendas de opções destas campanhas.<span class="math-highlight">Σ Prêmios Recebidos = {{ formatarMoeda(resumoExecutivo.totalPremios) }}</span></div>
+              <div class="calc-tooltip">Dinheiro real gerado pelas vendas de opcoes destas campanhas.<span class="math-highlight">Sigma Premios Recebidos = {{ formatarMoeda(resumoExecutivo.totalPremios) }}</span></div>
             </div>
             <span style="font-size:1.5rem;font-weight:700;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;line-height:1;">{{ formatarMoeda(resumoExecutivo.totalPremios) }}</span>
-            <span style="font-size:0.72rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">Redução direta do risco</span>
+            <span style="font-size:0.72rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">Reducao direta do risco</span>
           </div>
-
           <div style="flex:1 1 0%;min-width:160px;padding:1.25rem 1.5rem;background:var(--surface-base);display:flex;flex-direction:column;gap:0.5rem;">
             <div class="calc-tooltip-wrapper" style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">
               RoC (Retorno s/ Custo) <i data-lucide="info" style="width:11px;height:11px;"></i>
-              <div class="calc-tooltip">Quantos % do seu capital já retornou para o seu bolso.<span class="math-highlight" style="color:var(--brand-indigo);">(Prêmios ÷ Alocado) × 100 = {{ resumoExecutivo.yieldTotal }}%</span></div>
+              <div class="calc-tooltip">Quantos % do seu capital ja retornou para o seu bolso.<span class="math-highlight" style="color:var(--brand-indigo);">(Premios / Alocado) x 100 = {{ resumoExecutivo.yieldTotal }}%</span></div>
             </div>
             <span style="font-size:1.5rem;font-weight:700;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;line-height:1;">{{ resumoExecutivo.yieldTotal }}%</span>
-            <span style="font-size:0.72rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">Amortização da posição</span>
+            <span style="font-size:0.72rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">Amortizacao da posicao</span>
           </div>
-
           <div style="flex:1 1 0%;min-width:160px;padding:1.25rem 1.5rem;background:var(--brand-amber-light);display:flex;flex-direction:column;gap:0.5rem;border-left:3px solid var(--brand-amber);">
             <div class="calc-tooltip-wrapper" style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--brand-amber);">
               Risco Remanescente <i data-lucide="info" style="width:11px;height:11px;"></i>
-              <div class="calc-tooltip">Quanto falta recuperar para esta operação sair de graça (Custo Zero).<span class="math-highlight" style="color:var(--brand-amber);">Capital Alocado − Caixa Gerado</span></div>
+              <div class="calc-tooltip">Quanto falta recuperar para esta operacao sair de graca (Custo Zero).<span class="math-highlight" style="color:var(--brand-amber);">Capital Alocado - Caixa Gerado</span></div>
             </div>
             <span style="font-size:1.5rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;line-height:1;">{{ formatarMoeda(resumoExecutivo.totalAlocado - resumoExecutivo.totalPremios) }}</span>
-            <span style="font-size:0.72rem;color:var(--brand-amber);font-weight:700;font-family:'JetBrains Mono',monospace;">Falta para o "Custo Zero"</span>
+            <span style="font-size:0.72rem;color:var(--brand-amber);font-weight:700;font-family:'JetBrains Mono',monospace;">Falta para o Custo Zero</span>
           </div>
-
         </div>
       </div>
 
-      <h3 class="t-label" style="color: var(--text-secondary); margin-top: 0.5rem;">Mesas de Operação (Ativos)</h3>
-      
-      <div style="display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
-        
-        <div v-for="cofre in dadosWheel" :key="cofre.ticker" class="premium-card" style="display: flex; flex-direction: column; overflow: hidden; position: relative;">
-          
-          <!-- Topo colorido do card -->
-          <div style="height:5px;width:100%;background:linear-gradient(90deg, var(--brand-indigo), var(--brand-indigo-muted));"></div>
+      <h3 class="t-label" style="color:var(--text-secondary);margin-top:0.5rem;">Mesas de Operacao (Ativos)</h3>
+
+      <div style="display:grid;gap:1.25rem;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));">
+        <div v-for="cofre in dadosWheel" :key="cofre.ticker" class="premium-card"
+          style="display:flex;flex-direction:column;overflow:hidden;position:relative;">
+
+          <div style="height:4px;width:100%;background:linear-gradient(90deg, var(--brand-indigo), var(--brand-indigo-muted));"></div>
 
           <div style="padding:1.25rem 1.5rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border-subtle);background:var(--surface-base);">
             <div style="display:flex;flex-direction:column;gap:4px;">
               <span style="font-size:1.75rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.04em;line-height:1;">{{ cofre.ticker }}</span>
               <div style="display:flex;align-items:center;gap:6px;color:var(--text-muted);">
                 <i data-lucide="calendar" style="width:11px;height:11px;flex-shrink:0;"></i>
-                <span style="font-size:0.72rem;font-weight:600;">Início: {{ formatarData(cofre.dataZeroNascimento) }}</span>
+                <span style="font-size:0.72rem;font-weight:600;">Inicio: {{ formatarData(cofre.dataZeroNascimento) }}</span>
               </div>
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
@@ -123,418 +100,340 @@
           </div>
 
           <div style="padding:1.25rem 1.5rem;flex:1;display:flex;flex-direction:column;gap:1rem;">
-            <div><!-- espaço ocupado pelo header acima --></div>
 
-            <div style="background: var(--surface-sunken); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); overflow: hidden;">
-              <div style="padding: 0.5rem 0.75rem; background: var(--surface-overlay); border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between;">
-                <span style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted);">Composição da Roda</span>
-                <span style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted);">Prêmio PM</span>
+            <!-- Tabela composicao LAPIDADA -->
+            <div style="border-radius:var(--radius-md);border:1px solid var(--border-subtle);overflow:hidden;">
+              <div style="display:grid;grid-template-columns:1fr auto;padding:0.5rem 0.875rem;background:var(--surface-overlay);border-bottom:1px solid var(--border-subtle);">
+                <span style="font-size:0.6rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Composicao da Roda</span>
+                <span style="font-size:0.6rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">Premio PM</span>
               </div>
-              
-              <div style="max-height: 180px; overflow-y: auto;" class="custom-scrollbar">
-                <div v-for="op in cofre.detalhamento" :key="op.tradeId" 
-                     style="padding: 0.6rem 0.75rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle);">
-                  
-                  <div style="display: flex; flex-direction: column; gap: 3px;">
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                      <span :style="{ color: op.tipoOpcao === 'PUT' ? 'var(--brand-amber)' : 'var(--brand-indigo)' }" style="font-size: 0.7rem; font-weight: 900;">
+              <div style="max-height:200px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent;">
+                <div v-for="op in cofre.detalhamento" :key="op.tradeId"
+                  style="display:grid;grid-template-columns:1fr auto;gap:0.75rem;padding:0.75rem 0.875rem;border-bottom:1px solid var(--border-subtle);align-items:center;transition:background 0.12s;"
+                  onmouseover="this.style.background='var(--surface-overlay)'"
+                  onmouseout="this.style.background='transparent'">
+                  <div style="display:flex;flex-direction:column;gap:5px;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:6px;">
+                      <span style="font-size:0.58rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;padding:2px 6px;border-radius:var(--radius-xs);border:1.5px solid;"
+                        :style="op.tipoOpcao === 'PUT' ? 'color:var(--brand-amber);background:var(--brand-amber-light);border-color:var(--brand-amber-muted);' : 'color:var(--brand-indigo);background:var(--brand-indigo-light);border-color:var(--brand-indigo-muted);'">
                         {{ op.tipoOpcao }}
                       </span>
-                      <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary);">{{ op.simboloOpcao }}</span>
+                      <span style="font-size:0.8rem;font-weight:700;color:var(--text-primary);font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        {{ op.simboloOpcao }}
+                      </span>
                     </div>
-                    <span style="font-size: 0.65rem; color: var(--text-muted);">
-                      {{ op.quantidade.toLocaleString() }} un @ Strike {{ formatarMoeda(op.strike) }}
-                    </span>
-                    <span style="font-size: 0.65rem; color: var(--text-primary); font-weight: 700; display: flex; align-items: center; gap: 4px;">
-                      <i data-lucide="corner-down-right" style="width: 10px; height: 10px; color: var(--brand-emerald);"></i>
-                      {{ op.tipoOpcao === 'PUT' ? 'Custo Efetivo:' : 'Saída Real:' }} 
-                      <span style="color: var(--brand-emerald);">{{ formatarMoeda(calcularPMPerna(op)) }}</span>
-                    </span>
+                    <div style="font-size:0.65rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">
+                      {{ op.quantidade.toLocaleString() }} un &middot; Strike {{ formatarMoeda(op.strike) }}
+                    </div>
+                    <div style="display:flex;align-items:center;gap:4px;">
+                      <span style="font-size:0.6rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">
+                        {{ op.tipoOpcao === 'PUT' ? 'Custo Efetivo:' : 'Saida Real:' }}
+                      </span>
+                      <span style="font-size:0.72rem;font-weight:800;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;">
+                        {{ formatarMoeda(calcularPMPerna(op)) }}
+                      </span>
+                    </div>
                   </div>
-
-                  <div style="text-align: right;">
-                    <div style="font-size: 0.8rem; font-weight: 700; color: var(--brand-emerald);">{{ formatarMoeda(op.premioMedio) }}</div>
-                    <div style="font-size: 0.6rem; font-weight: 600; text-transform: uppercase; color: var(--text-tertiary);">{{ op.status }}</div>
+                  <div style="text-align:right;flex-shrink:0;">
+                    <div style="font-size:0.88rem;font-weight:800;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;line-height:1;">
+                      {{ formatarMoeda(op.premioMedio) }}
+                    </div>
+                    <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-top:3px;"
+                      :style="op.status === 'ATIVO' ? 'color:var(--brand-emerald);' : 'color:var(--text-muted);'">
+                      {{ op.status }}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
+            <!-- Média risco + prêmio acumulado -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border-subtle);border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--border-subtle);">
               <div style="padding:0.875rem 1rem;background:var(--surface-base);display:flex;flex-direction:column;gap:4px;">
                 <div class="calc-tooltip-wrapper" style="font-size:0.65rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;">
-                  Média do Risco <i data-lucide="info" style="width:10px;height:10px;"></i>
-                  <div class="calc-tooltip" style="bottom:140%;">O peso real da sua posição. Risco Remanescente distribuído por ação.<span class="math-highlight">Risco Total ÷ Volume de Ações</span></div>
+                  Media do Risco <i data-lucide="info" style="width:10px;height:10px;"></i>
+                  <div class="calc-tooltip" style="bottom:140%;">O peso real da sua posicao. Risco Remanescente distribuido por acao.<span class="math-highlight">Risco Total / Volume de Acoes</span></div>
                 </div>
                 <span style="font-size:1.1rem;font-weight:800;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;line-height:1;">{{ formatarMoeda(cofre.breakevenReal) }}</span>
               </div>
               <div style="padding:0.875rem 1rem;background:var(--brand-emerald-light);display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
                 <div class="calc-tooltip-wrapper" style="font-size:0.65rem;color:var(--brand-emerald);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;justify-content:flex-end;">
-                  <i data-lucide="info" style="width:10px;height:10px;"></i> Prêmio Acum.
-                  <div class="calc-tooltip" style="bottom:140%;left:auto;right:0;transform:none;">Soma de todos os prêmios coletados nas rolagens desta campanha.<span class="math-highlight">{{ formatarMoeda(cofre.premiosAcumuladosPorAcao) }}</span></div>
+                  <i data-lucide="info" style="width:10px;height:10px;"></i> Premio Acum.
+                  <div class="calc-tooltip" style="bottom:140%;left:auto;right:0;transform:none;">Soma de todos os premios coletados nas rolagens desta campanha.<span class="math-highlight">{{ formatarMoeda(cofre.premiosAcumuladosPorAcao) }}</span></div>
                 </div>
                 <span style="font-size:1.1rem;font-weight:800;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;line-height:1;">+{{ formatarMoeda(cofre.premiosAcumuladosPorAcao) }}</span>
               </div>
             </div>
 
-            <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border-subtle);">
-              
-              <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.75rem;">
+            <!-- Ponto de fuga + mercado -->
+            <div style="margin-top:auto;padding-top:1rem;border-top:1px solid var(--border-subtle);">
+              <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:0.75rem;">
                 <div>
-                    <div style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted);">Ponto de Fuga</div>
-                    <div class="calc-tooltip-wrapper" style="font-size: 0.9rem; font-weight: 700; text-transform: uppercase; color: var(--text-tertiary);">
-                      PM Real (Breakeven) <i data-lucide="info" style="width: 12px; height: 12px;"></i>
-                      <div class="calc-tooltip" style="bottom: 130%; left: 0; transform: none;">
-                        Preço exato de mercado onde você pode vender todas as ações e empatar a operação financeira sem prejuízo.
-                        <span class="math-highlight">Igual à Média do Risco ({{ formatarMoeda(cofre.breakevenReal) }})</span>
-                      </div>
-                    </div>
-                    <div style="font-size: 1.5rem; font-weight: 900; color: var(--brand-emerald); font-family: 'JetBrains Mono', monospace; line-height: 1;">{{ formatarMoeda(cofre.breakevenReal) }}</div>
+                  <div style="font-size:0.7rem;font-weight:800;text-transform:uppercase;color:var(--text-muted);">Ponto de Fuga</div>
+                  <div class="calc-tooltip-wrapper" style="font-size:0.9rem;font-weight:700;text-transform:uppercase;color:var(--text-tertiary);">
+                    PM Real (Breakeven) <i data-lucide="info" style="width:12px;height:12px;"></i>
+                    <div class="calc-tooltip" style="bottom:130%;left:0;transform:none;">Preco exato de mercado onde voce pode vender todas as acoes e empatar.<span class="math-highlight">Igual a Media do Risco ({{ formatarMoeda(cofre.breakevenReal) }})</span></div>
+                  </div>
+                  <div style="font-size:1.5rem;font-weight:900;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;line-height:1;">{{ formatarMoeda(cofre.breakevenReal) }}</div>
                 </div>
-                
-                <div style="text-align: right;">
-                    <div style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted);">Mercado Agora</div>
-                    <div style="font-size: 0.9rem; font-weight: 700; text-transform: uppercase; color: var(--brand-indigo);">Spot Price</div>
-                    <div style="font-size: 1.5rem; font-weight: 900; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; line-height: 1;">{{ formatarMoeda(cofre.spotPriceAtivo) }}</div>
+                <div style="text-align:right;">
+                  <div style="font-size:0.7rem;font-weight:800;text-transform:uppercase;color:var(--text-muted);">Mercado Agora</div>
+                  <div style="font-size:0.9rem;font-weight:700;text-transform:uppercase;color:var(--brand-indigo);">Spot Price</div>
+                  <div style="font-size:1.5rem;font-weight:900;color:var(--text-primary);font-family:'JetBrains Mono',monospace;line-height:1;">{{ formatarMoeda(cofre.spotPriceAtivo) }}</div>
                 </div>
               </div>
 
-              <div style="padding: 0.5rem; border-radius: var(--radius-sm); text-align: center; font-weight: 800; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; margin-bottom: 0.75rem;"
-                   :style="avaliarSinal(cofre).style">
-                <i :data-lucide="avaliarSinal(cofre).icon" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i>
+              <div style="padding:0.5rem;border-radius:var(--radius-sm);text-align:center;font-weight:800;text-transform:uppercase;font-size:0.75rem;letter-spacing:0.05em;margin-bottom:0.75rem;"
+                :style="avaliarSinal(cofre).style">
+                <i :data-lucide="avaliarSinal(cofre).icon" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:4px;"></i>
                 {{ avaliarSinal(cofre).texto }}
               </div>
 
               <div v-if="cofre.breakevenReal > cofre.spotPriceAtivo && cofre.spotPriceAtivo > 0"
-                   style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; background: var(--surface-overlay); border: 1px dashed var(--border-subtle); border-radius: var(--radius-sm); margin-bottom: 0.75rem;">
-                <div style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted);">
-                  Meta para empatar com o Mercado
-                </div>
-                <div style="font-size: 0.85rem; font-weight: 900; color: var(--brand-amber); font-family: 'JetBrains Mono', monospace;">
+                style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0.75rem;background:var(--surface-overlay);border:1px dashed var(--border-subtle);border-radius:var(--radius-sm);margin-bottom:0.75rem;">
+                <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;color:var(--text-muted);">Meta para empatar com o Mercado</div>
+                <div style="font-size:0.85rem;font-weight:900;color:var(--brand-amber);font-family:'JetBrains Mono',monospace;">
                   Falta coletar {{ formatarMoeda(cofre.breakevenReal - cofre.spotPriceAtivo) }} / un
                 </div>
               </div>
-              
-              <div style="width: 100%; height: 6px; border-radius: 9999px; overflow: hidden; display: flex; background: var(--surface-base); border: 1px solid var(--border-subtle);">
-                <div style="height: 100%; border-radius: 9999px;" 
-                     :style="{ width: calcularProgresso(cofre) + '%', background: 'var(--brand-emerald)' }">
-                </div>
+
+              <div style="width:100%;height:6px;border-radius:9999px;overflow:hidden;display:flex;background:var(--surface-base);border:1px solid var(--border-subtle);">
+                <div style="height:100%;border-radius:9999px;background:var(--brand-emerald);"
+                  :style="'width:' + calcularProgresso(cofre) + '%;'"></div>
               </div>
-              <div style="display: flex; justify-content: space-between; font-size: 10px; margin-top: 4px; color: var(--text-muted);">
+              <div style="display:flex;justify-content:space-between;font-size:10px;margin-top:4px;color:var(--text-muted);">
                 <span>Falta para Custo Zero: {{ formatarMoeda(cofre.custoTotalAlocado - cofre.premiosRecebidos) }}</span>
-                <span style="color: var(--brand-emerald); font-weight: 700;">{{ calcularProgresso(cofre) }}% Abatido</span>
+                <span style="color:var(--brand-emerald);font-weight:700;">{{ calcularProgresso(cofre) }}% Abatido</span>
               </div>
 
-              <div style="margin-top: 1rem; border-top: 1px dashed var(--border-subtle); padding-top: 0.75rem;">
+              <!-- Simulador -->
+              <div style="margin-top:1rem;border-top:1px dashed var(--border-subtle);padding-top:0.75rem;">
                 <button @click="toggleSimulador(cofre)"
-                        style="width: 100%; padding: 0.5rem; background: var(--surface-overlay); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 0.5rem; transition: all 0.2s;"
-                        onmouseover="this.style.background='var(--brand-indigo-light)'; this.style.color='var(--brand-indigo)'; this.style.borderColor='var(--brand-indigo-muted)';"
-                        onmouseout="this.style.background='var(--surface-overlay)'; this.style.color='var(--text-secondary)'; this.style.borderColor='var(--border-subtle)';">
-                  <i data-lucide="calculator" style="width: 14px; height: 14px;"></i>
+                  style="width:100%;padding:0.5rem;background:var(--surface-overlay);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);color:var(--text-secondary);font-size:0.75rem;font-weight:700;text-transform:uppercase;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:0.5rem;transition:all 0.2s;"
+                  onmouseover="this.style.background='var(--brand-indigo-light)';this.style.color='var(--brand-indigo)';this.style.borderColor='var(--brand-indigo-muted)';"
+                  onmouseout="this.style.background='var(--surface-overlay)';this.style.color='var(--text-secondary)';this.style.borderColor='var(--border-subtle)';">
+                  <i data-lucide="calculator" style="width:14px;height:14px;"></i>
                   {{ simuladoresAbertos[cofre.ticker] ? 'Fechar Simulador' : 'Simular Venda de CALL' }}
                 </button>
 
-                <div v-if="simuladoresAbertos[cofre.ticker]" 
-                     style="margin-top: 0.75rem; padding: 1rem; background: var(--surface-sunken); border-radius: var(--radius-md); border: 1px solid var(--border-strong); box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); animation: comp-pulse 0.3s ease-out 1;">
-                  
-                  <div style="display: flex; justify-content: flex-start; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-subtle);">
-                    <div style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: var(--brand-indigo); display: flex; align-items: center; gap: 6px;">
-                      <i data-lucide="flask-conical" style="width: 14px; height: 14px;"></i>
-                      Projeção What-If: Nova CALL
+                <div v-if="simuladoresAbertos[cofre.ticker]"
+                  style="margin-top:0.75rem;padding:1rem;background:var(--surface-sunken);border-radius:var(--radius-md);border:1px solid var(--border-strong);box-shadow:inset 0 2px 4px rgba(0,0,0,0.05);">
+                  <div style="display:flex;align-items:center;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid var(--border-subtle);">
+                    <div style="font-size:0.7rem;font-weight:800;text-transform:uppercase;color:var(--brand-indigo);display:flex;align-items:center;gap:6px;">
+                      <i data-lucide="flask-conical" style="width:14px;height:14px;"></i>
+                      Projecao What-If: Nova CALL
                     </div>
                   </div>
-
-                  <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-                    <div style="flex: 1;">
-                      <label style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.25rem; display: block;">Qtd (Lote)</label>
+                  <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
+                    <div style="flex:1;">
+                      <label style="font-size:0.65rem;font-weight:800;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.25rem;display:block;">Qtd (Lote)</label>
                       <input type="number" v-model.number="qtdSimulador[cofre.ticker]" step="100" min="100"
-                             style="width: 100%; padding: 0.375rem 0.5rem; background: var(--surface-base); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1rem; outline: none; transition: border-color 0.2s;"
-                             onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+                        style="width:100%;padding:0.375rem 0.5rem;background:var(--surface-base);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1rem;outline:none;transition:border-color 0.2s;"
+                        onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
                     </div>
-                    <div style="flex: 1;">
-                      <label style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.25rem; display: block;">Prêmio (R$)</label>
+                    <div style="flex:1;">
+                      <label style="font-size:0.65rem;font-weight:800;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.25rem;display:block;">Premio (R$)</label>
                       <input type="number" v-model.number="premiosProjetados[cofre.ticker]" step="0.01" min="0" placeholder="0.00"
-                             style="width: 100%; padding: 0.375rem 0.5rem; background: var(--surface-base); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 1rem; outline: none; transition: border-color 0.2s;"
-                             onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+                        style="width:100%;padding:0.375rem 0.5rem;background:var(--surface-base);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1rem;outline:none;transition:border-color 0.2s;"
+                        onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
                     </div>
-                    <div style="flex: 1.2; text-align: right;">
-                      <div style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted);">Novo Caixa</div>
-                      <div style="font-size: 1.1rem; font-weight: 900; color: var(--brand-emerald); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">
+                    <div style="flex:1.2;text-align:right;">
+                      <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;color:var(--text-muted);">Novo Caixa</div>
+                      <div style="font-size:1.1rem;font-weight:900;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;margin-top:4px;">
                         + {{ formatarMoeda((premiosProjetados[cofre.ticker] || 0) * (qtdSimulador[cofre.ticker] || 0)) }}
                       </div>
                     </div>
                   </div>
-
-                  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px dashed var(--border-subtle);">
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding-top:0.75rem;border-top:1px dashed var(--border-subtle);">
                     <div>
-                      <div style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted);">Novo PM Real Projetado</div>
-                      <div style="font-size: 1.25rem; font-weight: 900; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; letter-spacing: -0.03em; display: flex; align-items: center; gap: 4px;">
-                        <i data-lucide="arrow-down-right" style="width: 16px; height: 16px; color: var(--brand-emerald);"></i>
-                        {{ formatarMoeda( (cofre.custoTotalAlocado - cofre.premiosRecebidos - ((premiosProjetados[cofre.ticker] || 0) * (qtdSimulador[cofre.ticker] || 0))) / cofre.quantidadeAcoesAtuais ) }}
+                      <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;color:var(--text-muted);">Novo PM Real Projetado</div>
+                      <div style="font-size:1.25rem;font-weight:900;color:var(--text-primary);font-family:'JetBrains Mono',monospace;letter-spacing:-0.03em;display:flex;align-items:center;gap:4px;">
+                        <i data-lucide="arrow-down-right" style="width:16px;height:16px;color:var(--brand-emerald);"></i>
+                        {{ formatarMoeda((cofre.custoTotalAlocado - cofre.premiosRecebidos - ((premiosProjetados[cofre.ticker] || 0) * (qtdSimulador[cofre.ticker] || 0))) / cofre.quantidadeAcoesAtuais) }}
                       </div>
                     </div>
-                    <div style="text-align: right;">
-                      <div style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted);">Novo RoC Global</div>
-                      <div style="font-size: 1.25rem; font-weight: 900; color: var(--brand-indigo); font-family: 'JetBrains Mono', monospace; letter-spacing: -0.03em; display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
-                        <i data-lucide="trending-up" style="width: 16px; height: 16px;"></i>
-                        {{ (((cofre.premiosRecebidos + ((premiosProjetados[cofre.ticker] || 0) * (qtdSimulador[cofre.ticker] || 0))) / cofre.custoTotalAlocado) * 100).toFixed(2) }}%
+                    <div style="text-align:right;">
+                      <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;color:var(--text-muted);">Novo RoC Global</div>
+                      <div style="font-size:1.25rem;font-weight:900;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;letter-spacing:-0.03em;display:flex;align-items:center;justify-content:flex-end;gap:4px;">
+                        <i data-lucide="trending-up" style="width:16px;height:16px;"></i>
+                        {{ calcularNovoRoc(cofre) }}%
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
           </div>
         </div>
-
       </div>
     </div>
   </div>
 </template>
 
+<style>
+  @keyframes wm-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .calc-tooltip-wrapper { position:relative;display:inline-flex;align-items:center;gap:4px;cursor:help; }
+  .calc-tooltip-wrapper i { color:var(--text-muted);transition:color 0.2s; }
+  .calc-tooltip-wrapper:hover i { color:var(--brand-indigo); }
+  .calc-tooltip {
+    visibility:hidden;opacity:0;position:absolute;bottom:120%;left:50%;
+    transform:translateX(-50%) translateY(10px);
+    background:var(--surface-sunken);border:1px solid var(--border-strong);
+    color:var(--text-secondary);padding:0.85rem;border-radius:var(--radius-md);
+    font-size:0.75rem;width:240px;box-shadow:0 10px 25px rgba(0,0,0,0.3);
+    z-index:100;transition:all 0.2s ease;pointer-events:none;
+    text-align:left;text-transform:none;letter-spacing:normal;line-height:1.4;
+  }
+  .calc-tooltip::after {
+    content:'';position:absolute;top:100%;left:50%;margin-left:-5px;
+    border-width:5px;border-style:solid;
+    border-color:var(--border-strong) transparent transparent transparent;
+  }
+  .calc-tooltip-wrapper:hover .calc-tooltip { visibility:visible;opacity:1;transform:translateX(-50%) translateY(0); }
+  .math-highlight {
+    color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;
+    font-weight:800;display:block;margin-top:6px;background:var(--surface-overlay);
+    padding:6px;border-radius:4px;border:1px dashed var(--border-subtle);font-size:0.7rem;
+  }
+</style>
+
 <script>
 window.WheelManager = {
   template: '#wheel-manager-template',
+
   props: {
-    dadosWheel: { type: Array,   default: () => [] },
+    dadosWheel: { type: Array, default: function() { return []; } },
     isMobile:   { type: Boolean, default: false }
   },
-  setup(props) {
-    const { computed, onMounted, nextTick, ref } = Vue;
 
-    // Variáveis do Simulador (Limpo e focado)
-    const simuladoresAbertos = ref({});
-    const premiosProjetados = ref({});
-    const qtdSimulador = ref({}); 
-
-    const toggleSimulador = (cofre) => {
-      const ticker = cofre.ticker;
-      simuladoresAbertos.value[ticker] = !simuladoresAbertos.value[ticker];
-      
-      // Ao abrir, injeta a quantidade total de ações como sugestão inicial
-      if (simuladoresAbertos.value[ticker]) {
-        if (!qtdSimulador.value[ticker]) qtdSimulador.value[ticker] = cofre.quantidadeAcoesAtuais;
-      }
+  data: function() {
+    return {
+      simuladoresAbertos: {},
+      premiosProjetados:  {},
+      qtdSimulador:       {}
     };
+  },
 
-    onMounted(() => {
-      nextTick(() => {
-        if (window.lucide) window.lucide.createIcons();
-      });
-    });
-
-    const resumoExecutivo = computed(() => {
-      let totalAlocado = 0;
-      let totalPremios = 0;
-      let totalAcoes = 0;
-      let somaYields = 0;
-
-      if (props.dadosWheel && props.dadosWheel.length > 0) {
-        props.dadosWheel.forEach(cofre => {
-          totalAlocado += (cofre.custoTotalAlocado || 0);
-          totalPremios += (cofre.premiosRecebidos || 0);
-          totalAcoes += (cofre.quantidadeAcoesAtuais || 0);
-          somaYields += (cofre.yieldEstrategia || 0);
+  computed: {
+    resumoExecutivo: function() {
+      var totalAlocado = 0;
+      var totalPremios = 0;
+      var totalAcoes   = 0;
+      var somaYields   = 0;
+      var self = this;
+      if (self.dadosWheel && self.dadosWheel.length > 0) {
+        self.dadosWheel.forEach(function(cofre) {
+          totalAlocado += (cofre.custoTotalAlocado     || 0);
+          totalPremios += (cofre.premiosRecebidos       || 0);
+          totalAcoes   += (cofre.quantidadeAcoesAtuais  || 0);
+          somaYields   += (cofre.yieldEstrategia        || 0);
         });
       }
+      var yieldTotal = (self.dadosWheel && self.dadosWheel.length > 0)
+        ? (somaYields / self.dadosWheel.length).toFixed(2) : '0.00';
+      return { totalAlocado: totalAlocado, totalPremios: totalPremios, totalAcoes: totalAcoes, yieldTotal: yieldTotal };
+    }
+  },
 
-      const yieldTotal = props.dadosWheel.length > 0 
-        ? (somaYields / props.dadosWheel.length).toFixed(2) 
-        : "0.00";
+  methods: {
+    formatarMoeda: function(valor) {
+      var F = window.Formatador;
+      if (F && F.moedaCompleta) return F.moedaCompleta(valor);
+      return 'R$ ' + parseFloat(valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    },
 
-      return { totalAlocado, totalPremios, totalAcoes, yieldTotal };
-    });
-
-    // Formatação delegada ao Formatador global (Presentation Utilities Layer)
-    const formatarMoeda = (valor) => window.Formatador
-      ? window.Formatador.moedaCompleta(valor)
-      : 'R$ ' + parseFloat(valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-    const formatarData = (dataIsoString) => {
+    formatarData: function(dataIsoString) {
       if (!dataIsoString) return '--';
       try {
-        const d = new Date(dataIsoString);
+        var d = new Date(dataIsoString);
         return d.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
-      } catch (e) { return '--'; }
-    };
+      } catch(e) { return '--'; }
+    },
 
-    const calcularProgresso = (cofre) => {
-      if (!cofre || cofre.progressoCampanha === undefined) return "0.0";
+    calcularProgresso: function(cofre) {
+      if (!cofre || cofre.progressoCampanha === undefined) return '0.0';
       return Math.min(Math.max(cofre.progressoCampanha, 0), 100).toFixed(1);
-    };
+    },
 
-    // 🚀 MOTOR DE SINAIS 2.0 (Radar de Cobertura e Lucratividade)
-    const avaliarSinal = (cofre) => {
-      const spot = parseFloat(cofre.spotPriceAtivo) || 0;
-      const mediaRisco = parseFloat(cofre.breakevenReal) || 0;
-      const totalAcoes = parseInt(cofre.quantidadeAcoesAtuais) || 0;
+    calcularPMPerna: function(op) {
+      var strike = parseFloat(op.strike) || 0;
+      var premio = parseFloat(op.premioMedio || op.entryPrice) || 0;
+      if (op.tipoOpcao === 'CALL') return strike + Math.abs(premio);
+      return strike - Math.abs(premio);
+    },
+
+    calcularNovoRoc: function(cofre) {
+      var premioProj = parseFloat(this.premiosProjetados[cofre.ticker]) || 0;
+      var qtd        = parseFloat(this.qtdSimulador[cofre.ticker])      || 0;
+      var novoCaixa  = premioProj * qtd;
+      if (!cofre.custoTotalAlocado) return '0.00';
+      return (((cofre.premiosRecebidos + novoCaixa) / cofre.custoTotalAlocado) * 100).toFixed(2);
+    },
+
+    toggleSimulador: function(cofre) {
+      var ticker = cofre.ticker;
+      var atual  = this.simuladoresAbertos[ticker];
+      // Vue 3: substituir objeto inteiro para disparar reatividade
+      var novoAbertos = Object.assign({}, this.simuladoresAbertos);
+      novoAbertos[ticker] = !atual;
+      this.simuladoresAbertos = novoAbertos;
+      if (!atual && !this.qtdSimulador[ticker]) {
+        var novoQtd = Object.assign({}, this.qtdSimulador);
+        novoQtd[ticker] = cofre.quantidadeAcoesAtuais;
+        this.qtdSimulador = novoQtd;
+      }
+    },
+
+    avaliarSinal: function(cofre) {
+      var spot       = parseFloat(cofre.spotPriceAtivo) || 0;
+      var mediaRisco = parseFloat(cofre.breakevenReal)  || 0;
+      var totalAcoes = parseInt(cofre.quantidadeAcoesAtuais) || 0;
 
       if (spot <= 0) {
-         return { 
-           texto: "Aguardando Cotação", 
-           style: "background: var(--surface-overlay); color: var(--text-muted); border: 1px dashed var(--border-subtle);",
-           icon: "clock"
-         };
+        return { texto: 'Aguardando Cotacao', style: 'background:var(--surface-overlay);color:var(--text-muted);border:1px dashed var(--border-subtle);', icon: 'clock' };
       }
 
-      // 1. Vasculha o cofre atrás das CALLs que estão vivas (ATIVAS)
-      const callsAtivas = cofre.detalhamento.filter(op => op.tipoOpcao === 'CALL' && op.status === 'ATIVO');
-      
-      // 2. Soma a quantidade de ações que já estão "trabalhando" nessas CALLs
-      const acoesCobertas = callsAtivas.reduce((acc, op) => {
-         const qtd = Math.abs(parseFloat(String(op.quantidade).replace(/[R$\s,]/g, '').replace(',', '.')) || 0);
-         return acc + qtd;
-      }, 0);
-      
-      // 3. Verifica se os strikes das CALLs vendidas garantem lucro (Strike > Média do Risco)
-      const lucroGarantido = callsAtivas.every(op => parseFloat(op.strike) > mediaRisco);
+      var callsAtivas = (cofre.detalhamento || []).filter(function(op) {
+        return op.tipoOpcao === 'CALL' && op.status === 'ATIVO';
+      });
 
-      // --- ÁRVORE DE DECISÃO ---
+      var acoesCobertas = callsAtivas.reduce(function(acc, op) {
+        var qtd = Math.abs(parseFloat(String(op.quantidade).replace(/[R$\s,]/g, '').replace(',', '.')) || 0);
+        return acc + qtd;
+      }, 0);
+
+      var lucroGarantido = callsAtivas.length > 0 && callsAtivas.every(function(op) {
+        return parseFloat(op.strike) > mediaRisco;
+      });
 
       if (acoesCobertas > 0) {
         if (acoesCobertas < totalAcoes) {
-          // CENÁRIO 1: Lote Parcial (Você esqueceu de vender para algumas ações)
-          const sobras = totalAcoes - acoesCobertas;
-          return {
-            texto: `Alerta: ${sobras.toLocaleString()} un Desprotegidas (Venda CALL)`,
-            style: "background: var(--brand-indigo-light); color: var(--brand-indigo); border: 1px solid var(--brand-indigo-muted);",
-            icon: "unlock"
-          };
-        } else {
-          // 100% do Lote está Coberto
-          if (lucroGarantido) {
-            // CENÁRIO 2: Zona de Conforto (Strike alto, risco baixo)
-            return {
-              texto: "Sinal Verde: Exercício Lucrativo Armado",
-              style: "background: var(--brand-emerald-light); color: var(--brand-emerald); border: 1px solid var(--brand-emerald-muted); box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);",
-              icon: "shield-check"
-            };
-          } else {
-            // CENÁRIO 3: Defesa (O strike da CALL te obriga a sair no prejuízo se exercido)
-            return {
-              texto: "Atenção: Risco de Saída no Prejuízo (Defesa)",
-              style: "background: var(--brand-amber-light); color: var(--brand-amber); border: 1px solid var(--brand-amber-muted);",
-              icon: "alert-triangle"
-            };
-          }
+          var sobras = totalAcoes - acoesCobertas;
+          return { texto: 'Alerta: ' + sobras.toLocaleString() + ' un Desprotegidas (Venda CALL)', style: 'background:var(--brand-indigo-light);color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);', icon: 'unlock' };
         }
-      } else {
-        // CENÁRIO 4: Nenhuma CALL Ativa (Lote 100% Solto)
-        if (spot < mediaRisco) {
-          return { 
-            texto: "Aguardar (Mercado Abaixo do Ponto de Fuga)", 
-            style: "background: var(--surface-overlay); color: var(--text-muted); border: 1px solid var(--border-subtle);",
-            icon: "eye"
-          };
-        } else {
-          return { 
-            texto: "Oportunidade: Venda Forte de CALL", 
-            style: "background: var(--brand-emerald-light); color: var(--brand-emerald); border: 1px solid var(--brand-emerald-muted);",
-            icon: "zap"
-          };
+        if (lucroGarantido) {
+          return { texto: 'Sinal Verde: Exercicio Lucrativo Armado', style: 'background:var(--brand-emerald-light);color:var(--brand-emerald);border:1px solid var(--brand-emerald-muted);box-shadow:0 0 10px rgba(16,185,129,0.15);', icon: 'shield-check' };
         }
+        return { texto: 'Atencao: Risco de Saida no Prejuizo (Defesa)', style: 'background:var(--brand-amber-light);color:var(--brand-amber);border:1px solid var(--brand-amber-muted);', icon: 'alert-triangle' };
       }
-    };
 
-    // Calcula o PM Líquido individual de cada perna (Strike - Prêmio)
-    const calcularPMPerna = (op) => {
-      const strike = parseFloat(op.strike) || 0;
-      const premio = parseFloat(op.premioMedio || op.entryPrice) || 0;
-      
-      // Se for CALL, o prêmio aumenta a receita de venda. 
-      // Se for PUT, o prêmio diminui o custo de compra.
-      if (op.tipoOpcao === 'CALL') {
-        return strike + Math.abs(premio);
-      } else {
-        return strike - Math.abs(premio);
+      if (spot < mediaRisco) {
+        return { texto: 'Aguardar (Mercado Abaixo do Ponto de Fuga)', style: 'background:var(--surface-overlay);color:var(--text-muted);border:1px solid var(--border-subtle);', icon: 'eye' };
       }
-    };
+      return { texto: 'Oportunidade: Venda Forte de CALL', style: 'background:var(--brand-emerald-light);color:var(--brand-emerald);border:1px solid var(--brand-emerald-muted);', icon: 'zap' };
+    }
+  },
 
-    // 🚀 RETURN LIMPO (Sem as variáveis fantasmas)
-    return {
-      resumoExecutivo,
-      formatarMoeda,
-      formatarData,
-      calcularProgresso,
-      avaliarSinal,
-      simuladoresAbertos,
-      premiosProjetados,
-      qtdSimulador,
-      calcularPMPerna,
-      toggleSimulador
-    };
+  mounted: function() {
+    var self = this;
+    self.$nextTick(function() {
+      if (window.refreshIcons) window.refreshIcons();
+      else if (window.lucide) window.lucide.createIcons();
+    });
+  },
+
+  updated: function() {
+    if (window.refreshIcons) window.refreshIcons();
   }
 };
 </script>
-
-<style scoped>
-.custom-scrollbar::-webkit-scrollbar { width: 6px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 10px; }
-@keyframes comp-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-
-.calc-tooltip-wrapper {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  cursor: help;
-}
-.calc-tooltip-wrapper i {
-  color: var(--text-muted);
-  transition: color 0.2s;
-}
-.calc-tooltip-wrapper:hover i {
-  color: var(--brand-indigo);
-}
-.calc-tooltip {
-  visibility: hidden;
-  opacity: 0;
-  position: absolute;
-  bottom: 120%;
-  left: 50%;
-  transform: translateX(-50%) translateY(10px);
-  background: var(--surface-sunken);
-  border: 1px solid var(--border-strong);
-  color: var(--text-secondary);
-  padding: 0.85rem;
-  border-radius: var(--radius-md);
-  font-size: 0.75rem;
-  width: 240px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-  z-index: 100;
-  transition: all 0.2s ease;
-  pointer-events: none;
-  text-align: left;
-  text-transform: none;
-  letter-spacing: normal;
-  line-height: 1.4;
-}
-.calc-tooltip::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  margin-left: -5px;
-  border-width: 5px;
-  border-style: solid;
-  border-color: var(--border-strong) transparent transparent transparent;
-}
-.calc-tooltip-wrapper:hover .calc-tooltip {
-  visibility: visible;
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-.math-highlight {
-  color: var(--brand-emerald);
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 800;
-  display: block;
-  margin-top: 6px;
-  background: var(--surface-overlay);
-  padding: 6px;
-  border-radius: 4px;
-  border: 1px dashed var(--border-subtle);
-  font-size: 0.7rem;
-}
-
-</style>
