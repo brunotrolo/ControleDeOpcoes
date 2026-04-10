@@ -6,7 +6,7 @@
         <!-- DRAWER DE DETALHE -->
     <transition name="radar-drawer">
       <div v-if="drawer.aberto"
-        style="position:fixed;top:0;right:0;bottom:0;width:420px;max-width:95vw;z-index:1000;
+        style="position:fixed;top:0;right:0;bottom:0;width:520px;max-width:95vw;z-index:1000;
                display:flex;flex-direction:column;background:var(--surface-base);
                box-shadow:-8px 0 40px rgba(0,0,0,0.18);border-left:1px solid var(--border-subtle);">
 
@@ -59,98 +59,204 @@
         </div>
 
         <!-- Lista de operações -->
-        <div style="flex:1;overflow-y:auto;padding:1rem;">
+        <div style="flex:1;overflow-y:auto;padding:0.875rem;
+                    scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent;">
           <div v-for="op in drawer.ops" :key="op.tradeId || op.simboloOpcao"
-            style="border-radius:var(--radius-lg);border:1px solid var(--border-subtle);
-                   background:var(--surface-base);margin-bottom:0.75rem;overflow:hidden;">
+            style="border-radius:var(--radius-lg);border:2px solid;margin-bottom:0.875rem;
+                   overflow:hidden;"
+            :style="drawerCardBorder(op)">
 
-            <!-- Barra lateral colorida -->
-            <div style="display:grid;grid-template-columns:4px 1fr;">
+            <!-- Barra lateral + conteudo -->
+            <div style="display:grid;grid-template-columns:5px 1fr;">
               <div :style="getBarColor(op)" style="min-height:100%;"></div>
               <div style="padding:1rem 1.125rem;">
 
-                <!-- Topo: ticker + moneyness + lucro% -->
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.625rem;">
+                <!-- TOPO: ticker | direcao+tipo | simbolo | qtd -->
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.75rem;">
                   <div>
-                    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:3px;">
-                      <span style="font-size:1.25rem;font-weight:800;color:var(--text-primary);
-                                   letter-spacing:-0.03em;">{{ op.tickerAtivo }}</span>
+                    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:4px;">
+                      <span style="font-size:1.4rem;font-weight:800;color:var(--text-primary);
+                                   letter-spacing:-0.03em;line-height:1;">{{ op.tickerAtivo }}</span>
                       <span :style="getMoneynessStyle(op.moneynessCode)"
-                        style="font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:99px;border:1.5px solid;">
+                        style="font-size:0.62rem;font-weight:700;padding:2px 7px;
+                               border-radius:99px;border:1.5px solid;">
                         {{ op.moneynessCode || '—' }}
                       </span>
                       <span :style="getTipoStyle(op.tipoOpcao)"
-                        style="font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:99px;border:1.5px solid;">
-                        {{ op.tipoOpcao || '—' }}
+                        style="font-size:0.62rem;font-weight:700;padding:2px 7px;
+                               border-radius:99px;border:1.5px solid;">
+                        {{ (op.direcaoTrade === 'V' ? 'V' : 'C') }} {{ op.tipoOpcao || '—' }}
                       </span>
                     </div>
-                    <div style="font-size:0.8rem;font-weight:700;color:var(--text-muted);
-                                font-family:'JetBrains Mono',monospace;letter-spacing:0.06em;">
-                      {{ op.simboloOpcao }}
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                      <span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);
+                                   font-family:'JetBrains Mono',monospace;letter-spacing:0.06em;">
+                        {{ op.simboloOpcao }}
+                      </span>
+                      <span style="color:var(--border-default);">|</span>
+                      <span style="font-size:0.7rem;font-weight:600;color:var(--text-muted);">
+                        QTD: {{ op.quantidade ? Number(op.quantidade).toLocaleString('pt-BR') : '—' }}
+                      </span>
                     </div>
                   </div>
-                  <div style="text-align:right;">
-                    <div style="font-size:1.4rem;font-weight:800;font-family:'JetBrains Mono',monospace;
-                                line-height:1;letter-spacing:-0.03em;"
-                      :style="(op.lucroPct||0) >= 0 ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">
-                      {{ op.lucroPct !== null && op.lucroPct !== undefined ? (op.lucroPct).toFixed(1) + '%' : '—' }}
-                    </div>
-                    <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;
-                                letter-spacing:0.08em;margin-top:2px;">lucro garantido</div>
+                  <!-- Status icon + vencimento -->
+                  <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:3px;">
+                    <span style="font-size:1.5rem;line-height:1;">{{ drawerCardIcon(op) }}</span>
+                    <span style="font-size:0.62rem;font-weight:700;color:var(--text-muted);
+                                 text-transform:uppercase;letter-spacing:0.08em;">
+                      Venc. ({{ op.dteCorridos }}d)
+                    </span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;
+                                 font-weight:700;color:var(--text-secondary);">
+                      {{ fmt('dataVencimento', op.dataVencimento) }}
+                    </span>
                   </div>
                 </div>
 
-                <!-- Grade de métricas rápidas -->
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;
-                            padding-top:0.625rem;border-top:1px solid var(--border-subtle);">
-                  <div>
-                    <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
-                                letter-spacing:0.08em;color:var(--text-muted);">Strike</div>
-                    <div style="font-size:0.9rem;font-weight:700;color:var(--text-secondary);
-                                font-family:'JetBrains Mono',monospace;">
+                <!-- BARRA SPOT / DIST / STRIKE -->
+                <div style="display:flex;justify-content:space-around;align-items:center;
+                            padding:0.625rem 0.5rem;margin-bottom:0.875rem;
+                            background:var(--surface-sunken);border-radius:var(--radius-md);
+                            border:1px solid var(--border-subtle);">
+                  <div style="text-align:center;flex:1;">
+                    <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+                                letter-spacing:0.1em;color:var(--text-muted);margin-bottom:3px;">Spot</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;
+                                font-weight:700;color:var(--text-primary);">
+                      {{ fmt('spotPrice', op.spotPrice) }}
+                    </div>
+                  </div>
+                  <div style="width:1px;height:2rem;background:var(--border-default);"></div>
+                  <div style="text-align:center;flex:1;">
+                    <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+                                letter-spacing:0.1em;color:var(--text-muted);margin-bottom:3px;">Dist.</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;font-weight:700;
+                                padding:1px 6px;border-radius:var(--radius-xs);display:inline-block;
+                                background:var(--surface-base);border:1px solid var(--border-subtle);"
+                      :style="(op.distanciaPct||0) >= 0 ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">
+                      {{ fmtDistPct(op.distanciaPct) }}
+                    </div>
+                  </div>
+                  <div style="width:1px;height:2rem;background:var(--border-default);"></div>
+                  <div style="text-align:center;flex:1;">
+                    <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+                                letter-spacing:0.1em;color:var(--text-muted);margin-bottom:3px;">Strike</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;
+                                font-weight:700;color:var(--text-primary);">
                       {{ fmt('strike', op.strike) }}
                     </div>
                   </div>
+                </div>
+
+                <!-- GRADE 3x3 de metricas -->
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;
+                            padding-top:0.75rem;border-top:1px solid var(--border-subtle);
+                            margin-bottom:0.875rem;">
+                  <!-- Premio Medio -->
                   <div>
-                    <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
-                                letter-spacing:0.08em;color:var(--text-muted);">Nocional</div>
-                    <div style="font-size:0.9rem;font-weight:700;color:var(--text-secondary);
-                                font-family:'JetBrains Mono',monospace;">
-                      {{ fmtK(op.nocional) }}
-                    </div>
-                  </div>
-                  <div>
-                    <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
-                                letter-spacing:0.08em;color:var(--text-muted);">P/L Aberto</div>
-                    <div style="font-size:0.9rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
-                      :style="parseFloat(op.plTotalValor||0) >= 0 ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">
-                      {{ fmt('plTotalValor', op.plTotalValor) }}
-                    </div>
-                  </div>
-                  <div>
-                    <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
-                                letter-spacing:0.08em;color:var(--text-muted);">Prêmio Médio</div>
-                    <div style="font-size:0.9rem;font-weight:700;color:var(--text-secondary);
+                    <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+                                letter-spacing:0.08em;color:var(--text-muted);margin-bottom:2px;">Premio Medio</div>
+                    <div style="font-size:0.82rem;font-weight:700;color:var(--text-secondary);
                                 font-family:'JetBrains Mono',monospace;">
                       {{ fmt('premioMedio', op.premioMedio) }}
                     </div>
                   </div>
-                  <div>
-                    <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
-                                letter-spacing:0.08em;color:var(--text-muted);">DTE</div>
-                    <div style="font-size:0.9rem;font-weight:700;color:var(--text-secondary);
-                                font-family:'JetBrains Mono',monospace;">
-                      {{ fmt('dteCorridos', op.dteCorridos) }}
+                  <!-- Premio Atual -->
+                  <div style="text-align:center;border-left:1px solid var(--border-subtle);">
+                    <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+                                letter-spacing:0.08em;color:var(--text-muted);margin-bottom:2px;">Premio Atual</div>
+                    <div style="font-size:0.82rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                      :style="(parseFloat(op.premioAtual)||0) > (parseFloat(op.premioMedio)||0)
+                        ? 'color:var(--brand-rose)' : 'color:var(--brand-emerald)'">
+                      {{ fmt('premioAtual', op.premioAtual) }}
                     </div>
                   </div>
-                  <div>
-                    <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
-                                letter-spacing:0.08em;color:var(--text-muted);">Vencimento</div>
-                    <div style="font-size:0.9rem;font-weight:700;color:var(--text-secondary);
+                  <!-- Break-Even -->
+                  <div style="text-align:right;border-left:1px solid var(--border-subtle);">
+                    <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+                                letter-spacing:0.08em;color:var(--text-muted);margin-bottom:2px;">Break-Even</div>
+                    <div style="font-size:0.82rem;font-weight:700;color:var(--text-secondary);
                                 font-family:'JetBrains Mono',monospace;">
-                      {{ fmt('dataVencimento', op.dataVencimento) }}
+                      {{ drawerBreakEven(op) }}
                     </div>
                   </div>
+                  <!-- Ganho Max -->
+                  <div>
+                    <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+                                letter-spacing:0.08em;color:var(--text-muted);margin-bottom:2px;">Ganho Max.</div>
+                    <div style="font-size:0.82rem;font-weight:700;color:var(--brand-emerald);
+                                font-family:'JetBrains Mono',monospace;">
+                      {{ fmt('ganhoMaximo', op.ganhoMaximo) }}
+                    </div>
+                  </div>
+                  <!-- P/L % -->
+                  <div style="text-align:center;border-left:1px solid var(--border-subtle);">
+                    <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+                                letter-spacing:0.08em;color:var(--text-muted);margin-bottom:2px;">P/L %</div>
+                    <div style="font-size:0.82rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                      :style="(parseFloat(op.plTotalPct)||0) >= 0 ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">
+                      {{ drawerPlPct(op.plTotalPct) }}
+                    </div>
+                  </div>
+                  <!-- Lucro Max -->
+                  <div style="text-align:right;border-left:1px solid var(--border-subtle);">
+                    <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+                                letter-spacing:0.08em;color:var(--text-muted);margin-bottom:2px;">Lucro Max.</div>
+                    <div style="font-size:0.82rem;font-weight:700;color:var(--text-secondary);
+                                font-family:'JetBrains Mono',monospace;">
+                      {{ drawerLucroMax(op.potencialLucroPct) }}
+                    </div>
+                  </div>
+                  <!-- Delta -->
+                  <div>
+                    <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+                                letter-spacing:0.08em;color:var(--text-muted);margin-bottom:2px;">Delta Delta</div>
+                    <div style="font-size:0.82rem;font-weight:700;color:var(--brand-indigo);
+                                font-family:'JetBrains Mono',monospace;">
+                      {{ op.delta != null ? parseFloat(op.delta).toFixed(4) : '—' }}
+                    </div>
+                  </div>
+                  <!-- POE -->
+                  <div style="text-align:center;border-left:1px solid var(--border-subtle);">
+                    <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+                                letter-spacing:0.08em;color:var(--text-muted);margin-bottom:2px;">POE</div>
+                    <div style="font-size:0.82rem;font-weight:700;color:var(--text-secondary);
+                                font-family:'JetBrains Mono',monospace;">
+                      {{ op.poe != null ? parseFloat(op.poe).toFixed(2) + '%' : '—' }}
+                    </div>
+                  </div>
+                  <!-- Nocional -->
+                  <div style="text-align:right;border-left:1px solid var(--border-subtle);">
+                    <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+                                letter-spacing:0.08em;color:var(--text-muted);margin-bottom:2px;">Nocional</div>
+                    <div style="font-size:0.82rem;font-weight:700;color:var(--text-primary);
+                                font-family:'JetBrains Mono',monospace;">
+                      {{ fmtK(op.nocional) }}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- FOOTER: P/L aberto -->
+                <div style="padding:0.75rem 1rem;border-radius:var(--radius-md);border:2px solid;
+                            display:flex;justify-content:space-between;align-items:center;"
+                  :style="drawerFooterStyle(op)">
+                  <div>
+                    <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+                                letter-spacing:0.08em;opacity:0.7;margin-bottom:3px;">
+                      Lucro / Prejuizo (Aberto)
+                    </div>
+                    <div style="display:flex;align-items:baseline;gap:0.5rem;">
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:1.1rem;
+                                   font-weight:800;letter-spacing:-0.02em;white-space:nowrap;">
+                        {{ fmt('plTotalValor', op.plTotalValor) }}
+                      </span>
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;
+                                   font-weight:600;opacity:0.65;white-space:nowrap;">
+                        ({{ drawerPlPct(op.plTotalPct) }})
+                      </span>
+                    </div>
+                  </div>
+                  <span style="font-size:1.75rem;line-height:1;">{{ drawerCardIcon(op) }}</span>
                 </div>
 
               </div>
@@ -162,7 +268,7 @@
             style="text-align:center;padding:3rem;color:var(--text-muted);">
             <div style="font-size:2rem;opacity:0.4;margin-bottom:0.5rem;">📭</div>
             <div style="font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;">
-              Nenhuma operação neste grupo
+              Nenhuma operacao neste grupo
             </div>
           </div>
         </div>
@@ -1062,6 +1168,65 @@ window.CardRadar = {
 
     somaDrawer: function(campo) {
       return this.drawer.ops.reduce(function(s, o) { return s + (parseFloat(o[campo]) || 0); }, 0);
+    },
+
+    // ── Helpers dos cards do drawer enriquecido ──────────────────────────
+    drawerCardIcon: function(op) {
+      var mc  = String(op.moneynessCode || '').toUpperCase();
+      var pl  = parseFloat(op.plTotalPct || 0);
+      if (mc.indexOf('ITM') >= 0 && pl < 0) return '🚨';
+      if (mc.indexOf('ITM') >= 0 || mc.indexOf('ATM') >= 0) return '⚠️';
+      return '✅';
+    },
+
+    drawerCardBorder: function(op) {
+      var mc = String(op.moneynessCode || '').toUpperCase();
+      var pl = parseFloat(op.plTotalPct || 0);
+      if (mc.indexOf('ITM') >= 0 && pl < 0) return 'border-color:var(--brand-rose-muted);background:var(--brand-rose-light);';
+      if (mc.indexOf('ITM') >= 0 || mc.indexOf('ATM') >= 0) return 'border-color:var(--brand-amber-muted);background:var(--brand-amber-light);';
+      return 'border-color:var(--brand-emerald-muted);background:var(--brand-emerald-light);';
+    },
+
+    drawerFooterStyle: function(op) {
+      var mc = String(op.moneynessCode || '').toUpperCase();
+      var pl = parseFloat(op.plTotalPct || 0);
+      if (mc.indexOf('ITM') >= 0 && pl < 0) return 'background:var(--brand-rose-light);border-color:var(--brand-rose-muted);color:var(--brand-rose);';
+      if (mc.indexOf('ITM') >= 0 || mc.indexOf('ATM') >= 0) return 'background:var(--brand-amber-light);border-color:var(--brand-amber-muted);color:var(--brand-amber);';
+      return 'background:var(--brand-emerald-light);border-color:var(--brand-emerald-muted);color:var(--brand-emerald);';
+    },
+
+    drawerBreakEven: function(op) {
+      var F = window.Formatador;
+      if (op.breakEven && parseFloat(op.breakEven) > 0) {
+        return F ? F.moeda(op.breakEven) : 'R$' + parseFloat(op.breakEven).toFixed(2);
+      }
+      var pm = parseFloat(op.premioMedio || 0);
+      var sk = parseFloat(op.strike      || 0);
+      if (sk > 0) {
+        var be = sk - pm;
+        return F ? F.moeda(be) : 'R$' + be.toFixed(2);
+      }
+      return '—';
+    },
+
+    drawerPlPct: function(v) {
+      var n = parseFloat(v || 0);
+      if (isNaN(n)) return '—';
+      return (n * 100).toFixed(2).replace('.', ',') + '%';
+    },
+
+    drawerLucroMax: function(v) {
+      var n = parseFloat(v || 0);
+      if (isNaN(n)) return '—';
+      return (n * 100).toFixed(2).replace('.', ',') + '%';
+    },
+
+    fmtDistPct: function(v) {
+      var F = window.Formatador;
+      if (F && F.distanciaPct) return F.distanciaPct(v);
+      if (v == null) return '—';
+      var n = parseFloat(v);
+      return (n >= 0 ? '+' : '') + n.toFixed(1).replace('.', ',') + '%';
     },
 
     getBarColor: function(op) {
