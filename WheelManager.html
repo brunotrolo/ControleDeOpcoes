@@ -295,7 +295,8 @@
 window.WheelManager = {
   template: '#wheel-manager-template',
   props: {
-    dadosWheel: { type: Array, default: () => [] }
+    dadosWheel: { type: Array,   default: () => [] },
+    isMobile:   { type: Boolean, default: false }
   },
   setup(props) {
     const { computed, onMounted, nextTick, ref } = Vue;

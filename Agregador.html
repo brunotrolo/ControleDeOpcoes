@@ -42,7 +42,26 @@ window.Agregador = {
     if (!todasOperacoes || todasOperacoes.length === 0) return [];
 
     const cofres = {};
-    const getNum = (val) => Math.abs(parseFloat(String(val).replace(/[R$\s,]/g, '').replace(',', '.')) || 0);
+    // Delega ao Tradutor._sanitizarMoeda que tem a trava de milhar BR correta.
+    // Fallback seguro caso o Tradutor nao esteja disponivel.
+    const getNum = (val) => {
+      if (typeof val === 'number') return Math.abs(val);
+      if (window.Tradutor && window.Tradutor._sanitizarMoeda) {
+        return Math.abs(window.Tradutor._sanitizarMoeda(val));
+      }
+      // Fallback: parser BR manual com trava de milhar
+      var s = String(val).trim().replace(/[R$\s]/gi, '');
+      if (s.includes(',') && s.includes('.')) {
+        s = s.lastIndexOf(',') > s.lastIndexOf('.') ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+      } else if (s.includes(',')) {
+        var pts = s.split(',');
+        s = (pts.length > 1 && pts[pts.length - 1].length === 3) ? s.replace(/,/g, '') : s.replace(',', '.');
+      } else if (s.includes('.')) {
+        var partes = s.split('.');
+        if (partes.length > 1 && partes.slice(1).every(function(p) { return p.length === 3; })) s = s.replace(/\./g, '');
+      }
+      return Math.abs(parseFloat(s) || 0);
+    };
     const getStr = (val) => String(val || '').toUpperCase().trim();
     
     const parseData = (d) => {
@@ -128,7 +147,7 @@ window.Agregador = {
         
         // 1. CAIXA REAL
         cofre.premiosRecebidos = cofre.detalhamento.reduce((acc, op) => {
-           const premio = Math.abs(parseFloat(String(op.premioMedio || op.entryPrice).replace(/[R$\s,]/g, '').replace(',', '.')) || 0);
+           const premio = getNum(op.premioMedio || op.entryPrice);
            const qtd = Math.abs(parseFloat(op.quantidade) || 0);
            return acc + (premio * qtd);
         }, 0);
@@ -140,7 +159,7 @@ window.Agregador = {
 
         // 3. PRÊMIO DA CAMPANHA
         cofre.premiosAcumuladosPorAcao = cofre.detalhamento.reduce((acc, op) => {
-           return acc + (Math.abs(parseFloat(String(op.premioMedio || op.entryPrice).replace(/[R$\s,]/g, '').replace(',', '.')) || 0));
+           return acc + getNum(op.premioMedio || op.entryPrice);
         }, 0);
 
         // 4. ROC E TERMÔMETRO
@@ -150,7 +169,7 @@ window.Agregador = {
         // Cotação Atual
         cofre.spotPriceAtivo = 0;
         if (cofre.detalhamento.length > 0) {
-           cofre.spotPriceAtivo = parseFloat(String(cofre.detalhamento[0].spotPrice).replace(/[R$\s,]/g, '').replace(',', '.')) || 0;
+           cofre.spotPriceAtivo = getNum(cofre.detalhamento[0].spotPrice);
         }
 
         resultado.push(cofre);

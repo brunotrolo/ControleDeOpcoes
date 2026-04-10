@@ -456,7 +456,7 @@ window.BancoDeDadosView = {
       this.modalExcluir.mensagem = `Deseja excluir [${valorA}] (Linha ${linhaReal})?`;
       this.modalExcluir.visivel = true;
       this.modalExcluir.callback = () => this.executarExclusaoUnica(rowIndex, linhaReal, valorA);
-      this.$nextTick(() => { if(window.lucide) lucide.createIcons(); });
+      this.$nextTick(() => { if (window.refreshIcons) window.refreshIcons(); });
     },
 
     excluirSelecionados() {
@@ -475,7 +475,7 @@ window.BancoDeDadosView = {
       this.modalExcluir.mensagem = `Excluir ${linhasReais.length} registos selecionados?`;
       this.modalExcluir.visivel = true;
       this.modalExcluir.callback = () => this.executarExclusaoLote(linhasGrelha, linhasReais);
-      this.$nextTick(() => { if(window.lucide) lucide.createIcons(); });
+      this.$nextTick(() => { if (window.refreshIcons) window.refreshIcons(); });
     },
 
     confirmarExclusao() { if (this.modalExcluir.callback) this.modalExcluir.callback(); this.fecharModalExcluir(); },
@@ -524,7 +524,7 @@ window.BancoDeDadosView = {
       colunas.forEach(col => { if (col !== 'AÇÕES') novoForm[col] = ""; });
       this.modalAdd.form = novoForm;
       this.modalAdd.visivel = true;
-      this.$nextTick(() => { if(window.lucide) lucide.createIcons(); });
+      this.$nextTick(() => { if (window.refreshIcons) window.refreshIcons(); });
     },
 
     fecharModalAdd() { this.modalAdd.visivel = false; this.modalAdd.form = {}; },

@@ -173,7 +173,7 @@ window.AutomationView = {
     };
   },
   mounted() {
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    if (window.refreshIcons) window.refreshIcons();
   },
   methods: {
     run(functionName) {

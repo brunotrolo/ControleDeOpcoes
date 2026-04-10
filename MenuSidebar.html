@@ -350,7 +350,7 @@ window.MenuSidebar = {
       atualizandoLocal: false,
 
       // Itens fixos na bottom bar mobile
-      mobileMenuIds: ['cockpit', 'comparador'],
+      mobileMenuIds: ['cockpit', 'wheel-manager', 'comparador', 'calc-bs'],
     };
   },
 
@@ -376,6 +376,7 @@ window.MenuSidebar = {
         'cockpit':       'Home',
         'consultoria':   'Consultor',
         'automacao':     'Automacao',
+        'wheel-manager': 'Wheel',
         'comparador':    'Comparar',
         'dados-ativos':  'Ativos',
         'scanner':       'Scanner',
@@ -397,18 +398,18 @@ window.MenuSidebar = {
     // Reage a mudancas de tema externas (ex: outro componente chamando toggle)
     window.addEventListener('themechange', (e) => {
       this.isDark = e.detail.theme === 'dark';
-      this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+      this.$nextTick(() => { if (window.refreshIcons) window.refreshIcons(); });
     });
 
-    this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+    this.$nextTick(() => { if (window.refreshIcons) window.refreshIcons(); });
   },
 
   watch: {
     isCollapsed() {
-      this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+      this.$nextTick(() => { if (window.refreshIcons) window.refreshIcons(); });
     },
     currentView() {
-      this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+      this.$nextTick(() => { if (window.refreshIcons) window.refreshIcons(); });
     }
   },
 
@@ -417,13 +418,13 @@ window.MenuSidebar = {
       if (window.ThemeManager) {
         window.ThemeManager.toggle();
         this.isDark = window.ThemeManager.getCurrent() === 'dark';
-        this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+        this.$nextTick(() => { if (window.refreshIcons) window.refreshIcons(); });
       }
     },
 
     toggleMobileDrawer() {
       this.drawerAberto = !this.drawerAberto;
-      this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+      this.$nextTick(() => { if (window.refreshIcons) window.refreshIcons(); });
     },
 
     fecharDrawer() {

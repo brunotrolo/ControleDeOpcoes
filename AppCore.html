@@ -1,9 +1,28 @@
 <script>
 // ============================================================================
-// APPCORE - MAESTRO V5 (NUCLEO DE ORQUESTRACAO, ESTADO E UI)
+// APPCORE - MAESTRO V6 (NUCLEO DE ORQUESTRACAO, ESTADO E UI)
+//
+// CHANGELOG V6 — 3 correcoes de performance aplicadas:
+//
+// [C1] cuboOlap vira computed memoizado
+//      Antes: ref manual recalculado 2x (Fase1 + Fase2) e em qualquer
+//             mudanca de db. Agora: computed que so roda quando db.value
+//             muda de fato. Elimina processamento duplicado do Agregador.
+//
+// [C2] ativosDaHome vira computed memoizado
+//      Antes: forEach dentro de getComponentProps, rodava a cada render
+//             cycle (timerVisual--, isLoading, qualquer ref). Agora:
+//             computed separado, memoizado, usando Set para O(1) lookup.
+//
+// [C3] lucide centralizado com debounce de 50ms
+//      Antes: createIcons() chamado em navigate(), toggleSidebar(),
+//             onMounted() e em cada mounted()/updated() dos componentes.
+//             Multiplas varreduras do DOM inteiro por navegacao.
+//      Agora: unico ponto de chamada — refreshIcons() com debounce.
+//             Componentes individuais DEVEM remover suas chamadas diretas.
 // ============================================================================
 
-const { createApp, ref, shallowRef, computed, onMounted, provide } = Vue;
+const { createApp, ref, shallowRef, computed, onMounted, provide, watch } = Vue;
 
 const app = createApp({
   setup() {
@@ -23,7 +42,18 @@ const app = createApp({
       vereditosIA:      []
     });
 
-    const cuboOlap = ref(window.Agregador ? window.Agregador._gerarCuboVazio() : {});
+    // [C1] cuboOlap como computed memoizado.
+    // So recalcula quando db.value muda — nao quando timerVisual,
+    // isLoading ou qualquer outro ref de UI sofre update.
+    // O spread {...} foi removido: o Agregador ja retorna objeto novo.
+    const cuboOlap = computed(() => {
+      if (!db.value.cockpit || !db.value.cockpit.length) {
+        return window.Agregador ? window.Agregador._gerarCuboVazio() : {};
+      }
+      return window.Agregador
+        ? window.Agregador.processarSumario(db.value)
+        : {};
+    });
 
     const isLoading      = ref(true);
     const hasError       = ref(false);
@@ -34,14 +64,15 @@ const app = createApp({
     // ====================================================================
     // 2. ROTEAMENTO E MENU
     // ====================================================================
-    const currentView = ref('cockpit');
-    const isCollapsed    = ref(true);
-    const modalCalcBS   = ref(false);
-
-    const menu = ref(window.APP_MENU || []);
+    const currentView  = ref('cockpit');
+    const isCollapsed  = ref(true);
+    const modalCalcBS  = ref(false);
+    const menu         = ref(window.APP_MENU || []);
 
     const currentMenuLabel = computed(() => {
-      const item = menu.value.find(m => String(m.id).toLowerCase() === String(currentView.value).toLowerCase());
+      const item = menu.value.find(
+        m => String(m.id).toLowerCase() === String(currentView.value).toLowerCase()
+      );
       return item ? item.label : 'Dashboard';
     });
 
@@ -51,34 +82,56 @@ const app = createApp({
       return map[view] || [];
     });
 
+    // [C3] Motor centralizado de refresh de icones com debounce.
+    // Elimina multiplas varreduras do DOM por navegacao.
+    // Todos os setTimeout(() => lucide.createIcons()) do codigo
+    // original foram substituidos por refreshIcons().
+    let _lucideTimer = null;
+    const refreshIcons = () => {
+      clearTimeout(_lucideTimer);
+      _lucideTimer = setTimeout(() => {
+        if (window.lucide) window.lucide.createIcons();
+      }, 50);
+    };
+
+    // Expoe globalmente para que componentes individuais possam
+    // chamar window.refreshIcons() em vez de window.lucide.createIcons().
+    // Componentes devem REMOVER chamadas diretas em mounted()/updated().
+    window.refreshIcons = refreshIcons;
+
     const toggleSidebar = () => {
       isCollapsed.value = !isCollapsed.value;
-      setTimeout(() => { if (window.lucide) window.lucide.createIcons(); }, 310);
+      // [C3] Aguarda transicao de 310ms antes de redesenhar icones.
+      // Tempo mantido do original para nao cortar a animacao da sidebar.
+      setTimeout(refreshIcons, 310);
     };
 
     const navigate = (viewName) => {
-      // Items com modal:true nao navegam -- abrem o modal correspondente
       var itemMenu = (menu.value || []).find(function(m) { return m.id === viewName; });
       if (itemMenu && itemMenu.modal) {
         if (viewName === 'calc-bs') { modalCalcBS.value = true; }
         if (isMobile.value) isCollapsed.value = true;
-        setTimeout(function() { if (window.lucide) window.lucide.createIcons(); }, 100);
+        // [C3] Uma unica chamada debounced no lugar de setTimeout direto.
+        refreshIcons();
         return;
       }
       currentView.value = viewName;
       if (isMobile.value) isCollapsed.value = true;
-      setTimeout(function() { if (window.lucide) window.lucide.createIcons(); }, 100);
+      // [C3] Debounce garante no maximo 1 varredura por navegacao,
+      // independente de quantos watchers/hooks tambem chamem refreshIcons.
+      refreshIcons();
     };
 
     const dynamicSummaryData = computed(() => {
-      const s     = cuboOlap.value?.resumoGlobal || {};
-      const lista = cuboOlap.value?.listaAtivas  || [];
+      // [C1] Agora lemos cuboOlap.value diretamente — e um computed,
+      // entao Vue ja sabe rastrear a dependencia corretamente.
+      const s     = cuboOlap.value.resumoGlobal || {};
+      const lista = cuboOlap.value.listaAtivas  || [];
 
-      // ivAtual nao e somavel -- calculamos a media ponderada pelo nocional
       const ivMedio = (() => {
         const comIV = lista.filter(op => parseFloat(op.ivAtual || 0) > 0);
         if (!comIV.length) return 0;
-        const somaIV  = comIV.reduce((s, op) => s + parseFloat(op.ivAtual || 0), 0);
+        const somaIV = comIV.reduce((acc, op) => acc + parseFloat(op.ivAtual || 0), 0);
         return somaIV / comIV.length;
       })();
 
@@ -97,9 +150,9 @@ const app = createApp({
     const isMobile = ref(false);
 
     const checkMobileStatus = () => {
-      const userAgent      = navigator.userAgent || navigator.vendor || window.opera;
+      const userAgent        = navigator.userAgent || navigator.vendor || window.opera;
       const isMobileHardware = /android|ipad|iphone|ipod/i.test(userAgent.toLowerCase());
-      const isSmallScreen  = window.innerWidth <= 1024;
+      const isSmallScreen    = window.innerWidth <= 1024;
       isMobile.value = isMobileHardware || isSmallScreen;
       if (isMobile.value) isCollapsed.value = true;
     };
@@ -116,7 +169,6 @@ const app = createApp({
       if (!isMobile.value) return currentLayout.value;
       const config = window.MOBILE_ORCHESTRATOR_CONFIG || { sequence: [] };
       const seqIds = config.sequence.map(s => s.id);
-      // Se nao ha carrossel, todos vao pro topGrid em mobile
       if (!seqIds.length) return currentLayout.value;
       const idx = currentLayout.value.findIndex(c => seqIds.includes(c.id));
       return idx === -1 ? currentLayout.value : currentLayout.value.slice(0, idx);
@@ -141,16 +193,18 @@ const app = createApp({
     });
 
     const getMobileLayoutZones = computed(() => {
-      return window.LayoutConfig?.MOBILE_ORCHESTRATOR_CONFIG || { top: [], carousel: [], bottom: [] };
+      return window.LayoutConfig && window.LayoutConfig.MOBILE_ORCHESTRATOR_CONFIG
+        ? window.LayoutConfig.MOBILE_ORCHESTRATOR_CONFIG
+        : { top: [], carousel: [], bottom: [] };
     });
 
     // ====================================================================
     // 4. POLLING E SYNC
     // ====================================================================
-    const timerVisual      = ref(300);
-    const isOrquestrando   = ref(false);
+    const timerVisual       = ref(300);
+    const isOrquestrando    = ref(false);
     const isAutoSyncEnabled = ref(false);
-    let pollingInterval    = null;
+    let pollingInterval     = null;
 
     const toggleAutoSync = () => {
       isAutoSyncEnabled.value = !isAutoSyncEnabled.value;
@@ -160,7 +214,7 @@ const app = createApp({
     const formatCountdown = computed(() => {
       const m = Math.floor(timerVisual.value / 60).toString().padStart(2, '0');
       const s = (timerVisual.value % 60).toString().padStart(2, '0');
-      return (m) + ':' + (s);
+      return m + ':' + s;
     });
 
     const iniciarMotorRelogio = () => {
@@ -177,80 +231,73 @@ const app = createApp({
       }, 1000);
     };
 
-    const dispararErro = (msg) => {
-      console.error("[APP_CORE] " + msg);
-      errorMessage.value = msg;
-      hasError.value     = true;
-      isLoading.value    = false;
-    };
-
     // ====================================================================
     // 5. MOTOR DE SINCRONIZACAO EM ESTAGIOS (LAZY FETCHING)
     // ====================================================================
     const tempoCarga = ref('');
 
     const handleFailure = (err) => {
-      console.error("Erro na Sincronizacao:", err);
+      console.error('[APP_CORE] Erro na Sincronizacao:', err);
       hasError.value     = true;
       errorMessage.value = String(err);
       isLoading.value    = false;
-      status.value       = "Falha na Sincronizacao";
+      status.value       = 'Falha na Sincronizacao';
       const st = document.getElementById('debug-status');
-      if (st) st.innerText = "Erro: " + err;
+      if (st) st.innerText = 'Erro: ' + err;
     };
 
-    // ---  FASE 2: CARGA PESADA (Background) ---
+    // --- FASE 2: CARGA PESADA (Background) ---
     let _abasPesadasEmVoo = false;
     const carregarAbasPesadas = () => {
       if (_abasPesadasEmVoo) return;
       _abasPesadasEmVoo = true;
       const st = document.getElementById('debug-status');
-      if (st) st.innerText = "Baixando dados tecnicos (Background)...";
+      if (st) st.innerText = 'Baixando dados tecnicos (Background)...';
 
       google.script.run
         .withSuccessHandler((response) => {
-          if (!response || !response.success) return;
+          if (!response || !response.success) {
+            _abasPesadasEmVoo = false;
+            return;
+          }
           try {
             const dadosTraduzidos = window.Tradutor.processarBancoCompleto(response.raw);
 
-            //  FIX: chaves alinhadas ao Tradutor (tickerAtivo, spotPrice, status)
-            // O JOIN com dadosTendencia usa tickerAtivo -- chave semantica do Tradutor
-            const cockpitBruto    = db.value.cockpit || [];
-            const dadosTecnicos   = db.value.dadosTendencia || [];
+            const cockpitBruto  = db.value.cockpit       || [];
+            const dadosTecnicos = db.value.dadosTendencia || [];
 
             const cockpitEnriquecido = cockpitBruto.map(op => {
               const ticker = String(op.tickerAtivo || '').trim().toUpperCase();
               const infoTecnica = dadosTecnicos.find(t =>
                 String(t.tickerAtivo || '').trim().toUpperCase() === ticker && ticker !== ''
               ) || {};
-              return { ...op, ...infoTecnica };
+              return Object.assign({}, op, infoTecnica);
             });
 
-            db.value = {
-              ...db.value,
-              dadosAtivos:   dadosTraduzidos.dadosAtivos   || [],
-              logs:          dadosTraduzidos.logs           || [],
-              historico250d: dadosTraduzidos.historico250d  || [],
-              histOpcoes250d: dadosTraduzidos.histOpcoes250d || [],
-              calcGreeks:    dadosTraduzidos.calcGreeks     || [],
-              dadosGreeks:   dadosTraduzidos.dadosGreeks    || [],
-              necton:        dadosTraduzidos.necton         || [],
-              detalhes:      dadosTraduzidos.detalhes       || [],
-              selecaoOpcoes: dadosTraduzidos.selecaoOpcoes  || [],
-              scannerMacro:  dadosTraduzidos.scannerMacro   || [],
-              vereditosIA:   dadosTraduzidos.vereditosIA    || [],
-              cockpit:       cockpitEnriquecido,
-              raw: { ...(db.value.raw || {}), ...(response.raw || {}) }
-            };
-
-            // Recalcula o cubo com os greeks agora disponiveis
-            cuboOlap.value = { ...window.Agregador.processarSumario(db.value) };
+            // [C1] Atribuimos o novo db — o computed cuboOlap recalcula
+            // automaticamente apos essa mudanca, sem necessidade de
+            // chamar Agregador.processarSumario() manualmente aqui.
+            db.value = Object.assign({}, db.value, {
+              dadosAtivos:    dadosTraduzidos.dadosAtivos    || [],
+              logs:           dadosTraduzidos.logs            || [],
+              historico250d:  dadosTraduzidos.historico250d   || [],
+              histOpcoes250d: dadosTraduzidos.histOpcoes250d  || [],
+              calcGreeks:     dadosTraduzidos.calcGreeks      || [],
+              dadosGreeks:    dadosTraduzidos.dadosGreeks     || [],
+              necton:         dadosTraduzidos.necton          || [],
+              detalhes:       dadosTraduzidos.detalhes        || [],
+              selecaoOpcoes:  dadosTraduzidos.selecaoOpcoes   || [],
+              scannerMacro:   dadosTraduzidos.scannerMacro    || [],
+              vereditosIA:    dadosTraduzidos.vereditosIA     || [],
+              cockpit:        cockpitEnriquecido,
+              raw:            Object.assign({}, db.value.raw || {}, response.raw || {})
+            });
 
             lastSync.value = new Date().toLocaleTimeString();
-            if (st) st.innerText = "Sistema Nominal (100% Carregado)";
+            if (st) st.innerText = 'Sistema Nominal (100% Carregado)';
 
           } catch (err) {
-            console.error("Erro no processamento background:", err);
+            console.error('[APP_CORE] Erro no processamento background:', err);
           } finally {
             _abasPesadasEmVoo = false;
           }
@@ -259,63 +306,58 @@ const app = createApp({
         .getAbasPesadas();
     };
 
-    // ---  FASE 1: VOO RAPIDO ---
+    // --- FASE 1: VOO RAPIDO ---
     const sincronizarDashboard = () => {
       isLoading.value = true;
-      status.value    = "Conectando...";
+      status.value    = 'Conectando...';
 
       const tempoInicio = performance.now();
       const st = document.getElementById('debug-status');
-      if (st) st.innerText = "Aguardando Cockpit...";
+      if (st) st.innerText = 'Aguardando Cockpit...';
 
       google.script.run
         .withSuccessHandler((response) => {
           const tempoBackend = performance.now();
           const msBackend    = tempoBackend - tempoInicio;
 
-          if (!response || !response.success) return handleFailure("Falha na API");
+          if (!response || !response.success) return handleFailure('Falha na API');
 
           try {
-            if (st) st.innerText = 'Cockpit Recebido (' + ((msBackend / 1000).toFixed(1)) + 's). Renderizando...';
+            if (st) st.innerText = 'Cockpit Recebido (' + (msBackend / 1000).toFixed(1) + 's). Renderizando...';
 
             const dadosTraduzidos = window.Tradutor.processarBancoCompleto(response.raw);
 
-            //  FIX: O Tradutor ja entrega objetos com chaves semanticas (tickerAtivo, status, spotPrice).
-            //         Nao e mais necessario re-mapear campos brutos do Sheets aqui.
-            //         O map() abaixo apenas garante que o campo tickerAtivo esteja em uppercase.
-            const cockpitExpresso = (dadosTraduzidos.cockpit || []).map(op => ({
-              ...op,
-              tickerAtivo: String(op.tickerAtivo || '').trim().toUpperCase()
-            }));
+            const cockpitExpresso = (dadosTraduzidos.cockpit || []).map(op =>
+              Object.assign({}, op, {
+                tickerAtivo: String(op.tickerAtivo || '').trim().toUpperCase()
+              })
+            );
 
-            //  FIX: CONFIG_GLOBAL agora tem cabecalho na linha 1 (CONFIG_KEY/CONFIG_VAL/NOTE).
-            //         O Tradutor ja pula essa linha em _processarConfigGlobal.
-            //         configGlobalArray usa a mesma matriz raw mas mantem formato para SettingsView.
-            const rawConfig     = response.raw['CONFIG_GLOBAL'] || response.raw['Config_Global'] || [];
-            const configArray   = rawConfig.slice(1)
+            const rawConfig   = response.raw['CONFIG_GLOBAL'] || response.raw['Config_Global'] || [];
+            const configArray = rawConfig.slice(1)
               .filter(row => row[0])
               .map(row => ({ CHAVE: row[0], VALOR: row[1] }));
 
-            db.value = {
-              ...db.value,
-              ...dadosTraduzidos,
-              cockpit:          cockpitExpresso,
-              configGlobal:     dadosTraduzidos.configGlobal     || {},
+            // [C1] Atribuimos db — cuboOlap computed recalcula sozinho.
+            // Nao ha mais chamada manual a Agregador.processarSumario() aqui.
+            db.value = Object.assign({}, db.value, dadosTraduzidos, {
+              cockpit:           cockpitExpresso,
+              configGlobal:      dadosTraduzidos.configGlobal    || {},
               configGlobalArray: configArray,
-              resumoGerencial:  dadosTraduzidos.resumoGerencial  || { timestamp: new Date().toLocaleString() },
-              raw: { ...(db.value.raw || {}), ...(dadosTraduzidos.raw || {}) }
-            };
+              resumoGerencial:   dadosTraduzidos.resumoGerencial || { timestamp: new Date().toLocaleString() },
+              raw:               Object.assign({}, db.value.raw || {}, dadosTraduzidos.raw || {})
+            });
 
-            cuboOlap.value = { ...window.Agregador.processarSumario(db.value) };
+            const tempoFim   = performance.now();
+            const msFrontend = tempoFim - tempoBackend;
+            const msTotal    = tempoFim - tempoInicio;
 
-            const tempoFim    = performance.now();
-            const msFrontend  = tempoFim - tempoBackend;
-            const msTotal     = tempoFim - tempoInicio;
-
-            tempoCarga.value  = ((msTotal / 1000).toFixed(2)) + 's (GAS: ' + ((msBackend / 1000).toFixed(2)) + 's | CPU: ' + ((msFrontend / 1000).toFixed(2)) + 's)';
+            tempoCarga.value = (msTotal / 1000).toFixed(2) + 's (GAS: ' +
+                               (msBackend / 1000).toFixed(2) + 's | CPU: ' +
+                               (msFrontend / 1000).toFixed(2) + 's)';
 
             lastSync.value  = new Date().toLocaleTimeString();
-            status.value    = "Online";
+            status.value    = 'Online';
             isLoading.value = false;
 
             if (st) st.innerText = tempoCarga.value;
@@ -323,7 +365,7 @@ const app = createApp({
             setTimeout(carregarAbasPesadas, 500);
 
           } catch (err) {
-            console.error("Erro no Processamento Expresso:", err);
+            console.error('[APP_CORE] Erro no Processamento Expresso:', err);
             handleFailure(err.message);
           }
         })
@@ -332,28 +374,41 @@ const app = createApp({
     };
 
     // ====================================================================
-    // 6. DISPENSADOR DE PROPS (Dependency Injection V5)
+    // 6. DISPENSADOR DE PROPS (Dependency Injection V6)
     // ====================================================================
+
+    // [C2] ativosDaHome como computed memoizado.
+    // Antes: forEach dentro de getComponentProps rodava em CADA render,
+    // inclusive a cada tick do timerVisual (1x por segundo).
+    // Agora: so recalcula quando db.value.cockpit muda de fato.
+    // Set garante lookup O(1) para deduplicacao de tickers.
+    const ativosDaHome = computed(() => {
+      const vistos = new Set();
+      const lista  = db.value.cockpit || [];
+      const result = [];
+      for (var i = 0; i < lista.length; i++) {
+        var op = lista[i];
+        var t  = String(op.tickerAtivo || '').trim().toUpperCase();
+        if (t && t !== '---' && !vistos.has(t)) {
+          vistos.add(t);
+          result.push({ tickerAtivo: t, spotPrice: op.spotPrice || 0 });
+        }
+      }
+      return result;
+    });
+
+    // getComponentProps agora e uma funcao pura — nao faz mais loops
+    // sobre cockpit. Apenas monta o objeto de props usando computeds
+    // ja calculados (ativosDaHome, cuboOlap).
     const getComponentProps = (compConfig) => {
       const baseProps = {
         isMobile:      isMobile.value,
         isLoading:     isLoading.value,
         lastSync:      lastSync.value,
-        configGlobais: db.value.configGlobal || {},
-        ...compConfig.props
+        configGlobais: db.value.configGlobal || {}
       };
-
-      //  FIX: usa tickerAtivo (chave semantica do Tradutor)
-      const ativosDaHome = [];
-      if (db.value.cockpit) {
-        db.value.cockpit.forEach(op => {
-          if (op.tickerAtivo && op.tickerAtivo !== '---' && !ativosDaHome.find(a => a.tickerAtivo === op.tickerAtivo)) {
-            ativosDaHome.push({
-              tickerAtivo: op.tickerAtivo,
-              spotPrice:   op.spotPrice || 0
-            });
-          }
-        });
+      if (compConfig.props) {
+        Object.assign(baseProps, compConfig.props);
       }
 
       const customProps = {
@@ -372,39 +427,45 @@ const app = createApp({
         // =========================================================
         // 1. HOME & COCKPIT
         // =========================================================
-        //'card-ticker-tape':       { ativos: ativosDaHome },
-        'card-radar':             { statsPreCalculados: cuboOlap.value, isMobile: isMobile.value },
-        'card-notional':          { statsPreCalculados: cuboOlap.value, configGlobais: db.value.configGlobal || {}, isMobile: isMobile.value },
-        //'card-summary':           { statsPreCalculados: cuboOlap.value },
-        'carousel-ativas':        { statsPreCalculados: cuboOlap.value },
-        'cockpit-table':          { statsPreCalculados: cuboOlap.value },
+        // 'card-ticker-tape': { ativos: ativosDaHome.value },
+        'card-radar':    { statsPreCalculados: cuboOlap.value, isMobile: isMobile.value },
+        'card-notional': { statsPreCalculados: cuboOlap.value, configGlobais: db.value.configGlobal || {}, isMobile: isMobile.value },
+        // 'card-summary': { statsPreCalculados: cuboOlap.value },
+        'carousel-ativas': { statsPreCalculados: cuboOlap.value },
+        'cockpit-table':   { statsPreCalculados: cuboOlap.value },
 
         // =========================================================
         // 2. ANALISE & GESTAO
         // =========================================================
-        'comparativo-view':       { db: db.value },
-        'dashboard-hub':          { opcoesBrutas: db.value.selecaoOpcoes || [], statsPreCalculados: cuboOlap.value, histOpcoes: db.value.histOpcoes250d || [] },
+        'comparativo-view': { db: db.value },
+        'dashboard-hub': {
+          opcoesBrutas:       db.value.selecaoOpcoes || [],
+          statsPreCalculados: cuboOlap.value,
+          histOpcoes:         db.value.histOpcoes250d || []
+        },
 
         // =========================================================
-        // 4. OPLAB MARKET DATA HUB
+        // 3. OPLAB MARKET DATA HUB
         // =========================================================
-        'oplab-hub':              { isMobile: isMobile.value },
+        'oplab-hub': { isMobile: isMobile.value },
 
         // =========================================================
-        // CONSULTOR IA
+        // 4. CONSULTOR IA & COCKPIT SUMMARY
         // =========================================================
-        'cockpit-summary':        { cockpit: db.value.cockpit || [] },
-        'consultor-ia':           { statsPreCalculados: cuboOlap.value },
+        'cockpit-summary': { cockpit: db.value.cockpit || [] },
+        'consultor-ia':    { statsPreCalculados: cuboOlap.value },
 
         // =========================================================
-        'necton-import':          { data: db.value.necton || [] },
-        'automation-view':        { logs: db.value.logs || [] },
-        'wheel-manager':          { dadosWheel: cuboOlap.value?.custodiaWheel || [] },
-        'bancodedados-view':      { dbRaw: db.value.raw || {}, isLoading: isLoading.value },
-        'settings-view':          { configItems: db.value.configGlobalArray || [], isMobile: isMobile.value, isLoading: isLoading.value }
+        // 5. FERRAMENTAS
+        // =========================================================
+        'necton-import':   { data:      db.value.necton || [] },
+        'automation-view': { logs:      db.value.logs   || [] },
+        'wheel-manager':   { dadosWheel: cuboOlap.value.custodiaWheel || [] },
+        'bancodedados-view': { dbRaw: db.value.raw || {}, isLoading: isLoading.value },
+        'settings-view':   { configItems: db.value.configGlobalArray || [], isMobile: isMobile.value, isLoading: isLoading.value }
       };
 
-      return { ...baseProps, ...(customProps[compConfig.component] || {}) };
+      return Object.assign({}, baseProps, customProps[compConfig.component] || {});
     };
 
     provide('getComponentProps', getComponentProps);
@@ -415,7 +476,10 @@ const app = createApp({
     onMounted(() => {
       sincronizarDashboard();
       iniciarMotorRelogio();
-      if (window.lucide) window.lucide.createIcons();
+
+      // [C3] Unica chamada a refreshIcons no boot — debounce garante
+      // que nao duplica com o refreshIcons chamado dentro de navigate().
+      refreshIcons();
     });
 
     // ====================================================================
@@ -427,10 +491,7 @@ const app = createApp({
 
       // NAVEGACAO E LAYOUT
       currentView, navigate, isCollapsed, toggleSidebar, isMobile, modalCalcBS,
-      menu, currentMenuLabel, currentLayout, dynamicSummaryData, // disponivel para templates futuros
-      //  INDEX: menu-sidebar precisa receber: :menu="menu" :current-view="currentView"
-      //           :is-collapsed="isCollapsed" :is-mobile="isMobile" :last-sync="lastSync"
-      //           @navigate="navigate" @toggle-sidebar="toggleSidebar"
+      menu, currentMenuLabel, currentLayout, dynamicSummaryData,
 
       // COMPONENTES DE INTERFACE
       topGridComponents,
@@ -455,15 +516,15 @@ const app = createApp({
 // ============================================================================
 // REGISTRO DE MICRO FRONT-ENDS E MONTAGEM
 // ============================================================================
-const COMPONENTES_V5 = [
+const COMPONENTES_V6 = [
   // 0. INFRAESTRUTURA & NAVEGACAO
   ['menu-sidebar',           window.MenuSidebar],
 
   // 1. HOME & COCKPIT
-  //['card-ticker-tape',       window.CardTickerTape],
+  // ['card-ticker-tape',    window.CardTickerTape],
   ['card-radar',             window.CardRadar],
   ['card-notional',          window.CardNotional],
-  //['card-summary',           window.CardSummary],
+  // ['card-summary',        window.CardSummary],
   ['carousel-ativas',        window.CarouselAtivas],
   ['cockpit-table',          window.CockpitTable],
   ['cockpit-summary',        window.CockpitSummary],
@@ -471,9 +532,9 @@ const COMPONENTES_V5 = [
   // 2. ANALISE & GESTAO
   ['comparativo-view',       window.ComparativoView],
   ['dashboard-hub',          window.DashboardHub],
-  ['dash-theta-decay',        window.DashThetaDecay],
-  ['dash-stress-test',        window.DashStressTest],
-  ['dash-vencimentos-gantt',  window.DashVencimentosGantt],
+  ['dash-theta-decay',       window.DashThetaDecay],
+  ['dash-stress-test',       window.DashStressTest],
+  ['dash-vencimentos-gantt', window.DashVencimentosGantt],
   ['dash-liquidity-map',     window.DashLiquidityMap],
   ['dash-volatility-skew',   window.DashVolatilitySkew],
   ['dash-risk-return',       window.DashRiskReturn],
@@ -493,10 +554,11 @@ const COMPONENTES_V5 = [
   // 4. CONSULTOR IA
   ['consultor-ia',           window.ConsultorIA],
 
-  // 5. OPLAB MARKET -- PAGINAS ADICIONAIS
+  // 5. OPLAB MARKET — PAGINAS ADICIONAIS
   ['page-correl-ibov',       window.PageCorrelIbov],
   ['page-fundamentalista',   window.PageFundamentalista],
 
+  // 6. FERRAMENTAS
   ['necton-import',          window.NectonImport],
   ['automation-view',        window.AutomationView],
   ['wheel-manager',          window.WheelManager],
@@ -509,11 +571,16 @@ const COMPONENTES_V5 = [
   ['page-planejador',        window.PagePlanejador]
 ];
 
-COMPONENTES_V5.forEach(([name, comp]) => {
+COMPONENTES_V6.forEach(function(par) {
+  var name = par[0];
+  var comp = par[1];
   if (comp) {
     app.component(name, comp);
   } else {
-    console.error('[CRITICO] Falha ao carregar Micro Front-end: <' + (name) + '>. Verifique se o arquivo HTML esta incluido no Index.');
+    console.error(
+      '[CRITICO] Falha ao carregar Micro Front-end: <' + name + '>. ' +
+      'Verifique se o arquivo HTML esta incluido no Index.'
+    );
   }
 });
 

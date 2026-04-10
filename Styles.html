@@ -53,18 +53,18 @@
     --text-inverted:       #FFFFFF;   /* Texto sobre fundos escuros */
 
     /* --- SOMBRAS --- */
-    --shadow-sm:  0 1px 3px rgba(79, 70, 229, 0.06), 0 1px 2px rgba(0,0,0,0.04);
-    --shadow-md:  0 4px 12px rgba(79, 70, 229, 0.08), 0 2px 6px rgba(0,0,0,0.05);
-    --shadow-lg:  0 8px 24px rgba(79, 70, 229, 0.10), 0 4px 12px rgba(0,0,0,0.06);
-    --shadow-xl:  0 16px 40px rgba(79, 70, 229, 0.12), 0 8px 20px rgba(0,0,0,0.07);
+    --shadow-sm:  0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md:  0 4px 12px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.05);
+    --shadow-lg:  0 8px 24px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.06);
+    --shadow-xl:  0 16px 40px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.07);
 
     /* --- SHAPE SCALE (MD3 completo) --- */
-    --radius-xs:   6px;    /* Badges, chips */
-    --radius-sm:   10px;   /* Inputs, botões compactos */
-    --radius-md:   14px;   /* Botões principais */
-    --radius-lg:   20px;   /* Cards internos, dropdowns */
-    --radius-xl:   28px;   /* Cards premium, modais */
-    --radius-full: 9999px; /* Pills, avatares */
+    --radius-xs:   4px;    /* Badges, chips — quadrado preciso */
+    --radius-sm:   8px;    /* Inputs, botões compactos */
+    --radius-md:   10px;   /* Botões principais */
+    --radius-lg:   12px;   /* Cards internos, dropdowns */
+    --radius-xl:   14px;   /* Cards premium, modais */
+    --radius-full: 9999px; /* Pills, avatares — mantido */
 
     /* --- MOTION --- */
     --ease-standard:  cubic-bezier(0.2, 0, 0, 1);    /* MD3 Standard */
@@ -219,7 +219,7 @@
   /* --- Escala tipográfica de LABELS --- */
   .t-label {                   /* Labels de campo, cabeçalhos de tabela */
     font-size: 0.6875rem;      /* 11px */
-    font-weight: 700;
+    font-weight: 500;          /* medio — nao competir com valores */
     line-height: 1;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -227,7 +227,7 @@
   }
   .t-label-sm {                /* Labels menores, badges */
     font-size: 0.625rem;       /* 10px */
-    font-weight: 700;
+    font-weight: 500;          /* medio */
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--text-muted);
@@ -366,13 +366,13 @@
     box-shadow: 0 0 0 3px var(--brand-indigo-muted);
   }
 
-  /* --- Badges / Status Pills --- */
+  /* --- Badges / Status Chips --- */
   .badge {
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
     padding: 0.2rem 0.625rem;
-    border-radius: var(--radius-full);
+    border-radius: var(--radius-xs);   /* chip, nao pill */
     font-size: 0.625rem;
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -396,26 +396,12 @@
   /* =========================================================
      🎨 STATUS SEMÂNTICO DE OPÇÕES (preservado + refinado)
      ========================================================= */
-  .border-l-itm {
-    border-left: 4px solid var(--brand-rose) !important;
-    background: linear-gradient(to right, var(--brand-rose-muted), transparent);
-  }
-  .border-l-atm {
-    border-left: 4px solid var(--brand-amber) !important;
-    background: linear-gradient(to right, var(--brand-amber-muted), transparent);
-  }
-  .border-l-otm {
-    border-left: 4px solid var(--brand-emerald) !important;
-    background: linear-gradient(to right, var(--brand-emerald-muted), transparent);
-  }
-  .border-l-call {
-    border-left: 4px solid #0EA5E9 !important;
-    background: linear-gradient(to right, rgba(14,165,233,0.06), transparent);
-  }
-  .border-l-put {
-    border-left: 4px solid var(--brand-amber) !important;
-    background: linear-gradient(to right, var(--brand-amber-muted), transparent);
-  }
+  /* Borda esquerda semantica — sem gradiente decorativo */
+  .border-l-itm  { border-left: 3px solid var(--brand-rose)    !important; }
+  .border-l-atm  { border-left: 3px solid var(--brand-amber)   !important; }
+  .border-l-otm  { border-left: 3px solid var(--brand-emerald) !important; }
+  .border-l-call { border-left: 3px solid #0EA5E9              !important; }
+  .border-l-put  { border-left: 3px solid var(--brand-amber)   !important; }
 
 
   /* =========================================================
@@ -514,7 +500,7 @@
   .bg-app-bg      { background-color: var(--surface-bg); }
   .bg-app-surface { background-color: var(--surface-base); }
 
-  @media screen and (max-width: 850px) {
+  @media screen and (max-width: 1024px) {
     /* Sidebar desktop oculta */
     .desktop-sidebar { display: none !important; }
 
@@ -526,7 +512,7 @@
       left: 0;
       width: 100%;
       z-index: 9999;
-      min-height: 120px;
+      min-height: 64px;
       padding-bottom: env(safe-area-inset-bottom, var(--safe-bottom));
       background-color: var(--surface-base);
       border-top: 1px solid var(--border-subtle);
@@ -536,19 +522,59 @@
 
     /* Container principal */
     .main-chassi {
-      padding: 12px 12px 100px 12px !important;
+      padding: 12px 12px 80px 12px !important;
       margin: 0 !important;
       width: 100% !important;
       max-width: 100% !important;
     }
 
+    /* Escala global mobile — S22 Ultra zoom 50% equivale a ~75-80% zoom
+       A estrategia: aumentar o font-size do html escala TUDO que usa rem
+       incluindo KPIs, espacamentos, cards e icones automaticamente.
+       html: 16px base desktop -> 24px mobile = fator 1.5x (zoom 50% vira ~75%) */
+    html { font-size: 24px !important; }
+
+    /* Escala tipografica mobile — em rem relativo ao novo html de 24px */
+    body        { font-size: 0.875rem  !important; }  /* 21px efetivo */
+    .t-display  { font-size: 1.5rem    !important; }  /* 36px efetivo */
+    .t-title    { font-size: 1.125rem  !important; }  /* 27px efetivo */
+    .t-subtitle { font-size: 0.875rem  !important; }  /* 21px efetivo */
+    .t-body     { font-size: 0.875rem  !important; }  /* 21px efetivo */
+    .t-label    { font-size: 0.7rem    !important; }  /* ~17px efetivo */
+    .t-label-sm { font-size: 0.65rem   !important; }  /* ~16px efetivo */
+
+    /* Valores KPI em JetBrains Mono — os mais importantes no mobile */
+    .t-value-xl { font-size: 1.75rem   !important; }  /* 42px efetivo */
+    .t-value-lg { font-size: 1.25rem   !important; }  /* 30px efetivo */
+    .t-value    { font-size: 0.875rem  !important; }  /* 21px efetivo */
+
+    /* Touch targets minimos 44px — WCAG 2.5.5 */
+    .btn-action {
+      min-height: 44px !important;
+      padding: 0.75rem 1.25rem !important;
+    }
+    button, [role="button"], select, input {
+      min-height: 44px;
+    }
+
+    /* Inputs maiores no mobile */
+    .input-base {
+      font-size: 1rem !important;
+      padding: 0.75rem 1rem !important;
+    }
+
+    /* Cards com padding generoso */
+    .premium-card { padding: 1rem !important; }
+
     /* Scrollbars invisíveis no mobile */
     ::-webkit-scrollbar { width: 0; height: 0; display: none; }
     * { scrollbar-width: none; -ms-overflow-style: none; }
+
+    /* CardRadar mobile: layout tratado diretamente no componente via isMobile. */
   }
 
-  @media screen and (min-width: 851px) {
-    .desktop-sidebar  { display: flex !important; }
+  @media screen and (min-width: 1025px) {
+    .desktop-sidebar   { display: flex !important; }
     .mobile-bottom-bar { display: none !important; }
     .main-chassi { padding: 32px !important; }
   }

@@ -95,9 +95,7 @@ window.LogConsole = {
   },
 
   mounted() {
-    if (typeof lucide !== 'undefined') {
-      lucide.createIcons();
-    }
+    if (window.refreshIcons) window.refreshIcons();
     this.carregarLogs();
   },
   
@@ -190,8 +188,8 @@ window.LogConsole = {
             return obj;
           });
           self.carregandoLocal = false;
-          if (typeof lucide !== 'undefined') {
-            self.$nextTick(function() { lucide.createIcons(); });
+          if (window.refreshIcons) {
+            self.$nextTick(function() { window.refreshIcons(); });
           }
         })
         .withFailureHandler(function() {

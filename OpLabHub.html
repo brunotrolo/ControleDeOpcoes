@@ -221,14 +221,14 @@ window.OpLabHub = {
         console.error('[OpLabHub] Erro ao carregar ' + m.aba + ':', e);
       } finally {
         carregandoAbas.value[id] = false;
-        nextTick(() => { if (window.lucide) window.lucide.createIcons(); });
+        nextTick(() => { if (window.refreshIcons) window.refreshIcons(); });
       }
     };
 
     const navegarPara = async (id) => {
       paginaAtiva.value = id;
       await nextTick();
-      if (window.lucide) window.lucide.createIcons();
+      if (window.refreshIcons) window.refreshIcons();
       await carregarAba(id);
     };
 
@@ -253,14 +253,14 @@ window.OpLabHub = {
       } finally {
         carregando.value = false;
         await nextTick();
-        if (window.lucide) window.lucide.createIcons();
+        if (window.refreshIcons) window.refreshIcons();
         carregarAba(paginaAtiva.value);
       }
     };
 
     onMounted(() => {
       carregarTodosDados();
-      nextTick(() => { if (window.lucide) window.lucide.createIcons(); });
+      nextTick(() => { if (window.refreshIcons) window.refreshIcons(); });
     });
 
     return {
