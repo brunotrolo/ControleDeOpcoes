@@ -295,7 +295,8 @@
             <div v-for="(m, i) in buildMetricas(op)" :key="m.label"
               style="background:var(--surface-base);padding:0.5rem 0.625rem;display:flex;flex-direction:column;">
               <span style="font-size:0.52rem;font-weight:700;color:var(--text-muted);
-                           text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">
+                           text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;
+                           white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                 {{ m.label }}
               </span>
               <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;"
