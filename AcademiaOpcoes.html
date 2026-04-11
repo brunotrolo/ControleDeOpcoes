@@ -1,6 +1,6 @@
 <template id="academia-opcoes-template">
-  <div :style="isMobile ? 'padding:0.5rem;' : 'max-width:1100px;margin:0 auto;padding:1.5rem;'"
-       style="display:flex;flex-direction:column;gap:1.25rem;min-height:100vh;">
+  <div :style="isMobile ? 'padding:0.5rem;' : 'padding-top:1.5rem;padding-bottom:4rem;'"
+       style="max-width:95%;margin:0 auto;display:flex;flex-direction:column;gap:1.5rem;">
 
     <!-- ============================================================
          MODAL DE ESTRATEGIA
@@ -166,22 +166,23 @@
     <!-- ============================================================
          HEADER DA ACADEMIA
          ============================================================ -->
-    <div class="premium-card" style="padding:1.5rem 2rem;display:flex;align-items:center;gap:1.25rem;">
-      <div style="padding:0.75rem;background:var(--brand-indigo-light);color:var(--brand-indigo);border-radius:var(--radius-lg);border:1px solid var(--brand-indigo-muted);">
-        <i data-lucide="graduation-cap" style="width:1.5rem;height:1.5rem;display:block;"></i>
+    <div class="premium-card" style="padding:1.5rem 2rem;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1.5rem;">
+      <div style="display:flex;align-items:center;gap:1.25rem;">
+        <div style="padding:0.75rem;background:var(--brand-indigo-light);color:var(--brand-indigo);border-radius:var(--radius-lg);border:1px solid var(--brand-indigo-muted);flex-shrink:0;">
+          <i data-lucide="graduation-cap" style="width:24px;height:24px;display:block;"></i>
+        </div>
+        <div>
+          <h2 class="t-title" style="color:var(--text-primary);">Academia de Opcoes</h2>
+          <p class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.2em;margin-top:0.2rem;">{{ totalEstrategias }} estrategias em {{ totalModulos }} modulos</p>
+        </div>
       </div>
-      <div style="flex:1;">
-        <h2 class="t-title" style="color:var(--text-primary);letter-spacing:-0.02em;">Academia de Opcoes</h2>
-        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem;">
-          {{ totalEstrategias }} estrategias em {{ totalModulos }} modulos -- do basico ao ultra avancado
-        </p>
-      </div>
-      <!-- Busca -->
-      <div style="position:relative;flex-shrink:0;" :style="isMobile ? 'display:none;' : ''">
-        <i data-lucide="search" style="position:absolute;left:0.625rem;top:50%;transform:translateY(-50%);width:0.8rem;height:0.8rem;color:var(--text-muted);display:block;pointer-events:none;"></i>
+      <!-- Busca desktop -->
+      <div style="position:relative;width:18rem;" :style="isMobile ? 'display:none;' : ''">
+        <i data-lucide="search" style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);width:0.8rem;height:0.8rem;color:var(--text-muted);display:block;pointer-events:none;"></i>
         <input v-model="busca" type="text" placeholder="Buscar estrategia..."
-               style="padding:0.4rem 0.75rem 0.4rem 2rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.78rem;width:200px;outline:none;"
-               onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+               style="width:100%;font-size:0.85rem;font-weight:500;background:var(--surface-sunken);border:1px solid var(--border-default);color:var(--text-primary);border-radius:var(--radius-full);padding:0.6rem 1rem 0.6rem 2.25rem;box-sizing:border-box;outline:none;"
+               onfocus="this.style.borderColor='var(--brand-indigo)';this.style.background='var(--surface-base)'"
+               onblur="this.style.borderColor='var(--border-default)';this.style.background='var(--surface-sunken)'">
       </div>
     </div>
 
@@ -189,15 +190,16 @@
     <div v-if="isMobile" style="position:relative;">
       <i data-lucide="search" style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);width:0.8rem;height:0.8rem;color:var(--text-muted);display:block;pointer-events:none;"></i>
       <input v-model="busca" type="text" placeholder="Buscar estrategia..."
-             style="padding:0.5rem 0.75rem 0.5rem 2.25rem;background:var(--surface-base);border:1px solid var(--border-default);border-radius:var(--radius-md);color:var(--text-primary);font-size:0.82rem;width:100%;outline:none;box-sizing:border-box;"
-             onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+             style="width:100%;font-size:0.85rem;font-weight:500;background:var(--surface-sunken);border:1px solid var(--border-default);color:var(--text-primary);border-radius:var(--radius-full);padding:0.6rem 1rem 0.6rem 2.25rem;box-sizing:border-box;outline:none;"
+             onfocus="this.style.borderColor='var(--brand-indigo)';this.style.background='var(--surface-base)'"
+             onblur="this.style.borderColor='var(--border-default)';this.style.background='var(--surface-sunken)'">
     </div>
 
     <!-- ============================================================
          RESULTADOS DE BUSCA
          ============================================================ -->
-    <div v-if="busca.trim().length > 1" style="display:flex;flex-direction:column;gap:0.5rem;">
-      <p style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">
+    <div v-if="busca.trim().length > 1" class="premium-card" style="padding:2rem;display:flex;flex-direction:column;gap:0.75rem;">
+      <p class="t-label-sm" style="font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:var(--text-muted);">
         {{ resultadosBusca.length }} resultado(s) para "{{ busca }}"
       </p>
       <div style="display:grid;gap:0.5rem;" :style="isMobile ? 'grid-template-columns:1fr;' : 'grid-template-columns:repeat(3,1fr);'">
@@ -215,6 +217,7 @@
          MODULOS + CARDS DE ESTRATEGIA
          ============================================================ -->
     <template v-else>
+      <div class="premium-card" style="padding:2rem;display:flex;flex-direction:column;gap:1.5rem;">
       <div v-for="modulo in modulosConfig" :key="modulo.id" style="display:flex;flex-direction:column;gap:0.875rem;">
 
         <!-- Header do modulo -->
@@ -272,6 +275,7 @@
         </div>
 
       </div>
+      </div><!-- /premium-card modulos -->
     </template>
 
   </div>

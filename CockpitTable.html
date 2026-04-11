@@ -76,6 +76,14 @@
                   {{ group.rows.length }} pos
                 </span>
               </div>
+              <!-- Coluna dataVencimento: mostra a data da primeira operacao do grupo -->
+              <div
+                v-else-if="col.key === 'dataVencimento' && group.firstVencimento"
+                style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700;
+                       color: var(--brand-indigo);"
+              >
+                {{ formatCell(group.firstVencimento, 'data') }}
+              </div>
               <!-- Células numéricas: totais do grupo -->
               <div
                 v-else-if="['currency','numero','percentage'].includes(col.type)"
@@ -387,20 +395,31 @@ window.CockpitTable = {
 
     groupedData() {
       if (!this.activeData.length) return {};
-      const groups = this.activeData.reduce((acc, row) => {
-        const g = row.estrategiaId || 'SEM ESTRATÉGIA';
-        if (!acc[g]) acc[g] = { rows: [], totals: {} };
+      var groups = this.activeData.reduce((acc, row) => {
+        var g = row.estrategiaId || 'SEM ESTRATÉGIA';
+        if (!acc[g]) acc[g] = { rows: [], totals: {}, firstVencimento: null };
         acc[g].rows.push(row);
         return acc;
       }, {});
       Object.keys(groups).forEach(gName => {
+        // firstVencimento: dataVencimento da primeira operacao do grupo
+        var primeiraData = groups[gName].rows[0] ? groups[gName].rows[0].dataVencimento : null;
+        groups[gName].firstVencimento = primeiraData || null;
         this.columns.forEach(col => {
           if (['currency','numero','percentage'].includes(col.type)) {
             groups[gName].totals[col.key] = this.getGroupSum(groups[gName].rows, col.key);
           }
         });
       });
-      return groups;
+      // Ordenar grupos por firstVencimento: mais distante primeiro (outubro > maio > abril)
+      var sortedEntries = Object.entries(groups).sort((a, b) => {
+        var da = a[1].firstVencimento ? new Date(a[1].firstVencimento) : new Date(0);
+        var db = b[1].firstVencimento ? new Date(b[1].firstVencimento) : new Date(0);
+        return da - db;
+      });
+      var sortedGroups = {};
+      sortedEntries.forEach(function(entry) { sortedGroups[entry[0]] = entry[1]; });
+      return sortedGroups;
     },
 
     portfolioTotals() {
