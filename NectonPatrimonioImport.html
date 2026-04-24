@@ -1,0 +1,757 @@
+<template id="necton-patrimonio-import-template">
+  <div style="max-width:95%;margin:0 auto;padding-bottom:4rem;padding-top:1.5rem;
+              display:flex;flex-direction:column;gap:1.5rem;
+              font-family:'Plus Jakarta Sans',sans-serif;">
+
+    <!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
+    <div class="premium-card" style="padding:1.5rem 2rem;
+         display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;">
+      <div style="display:flex;align-items:center;gap:1rem;">
+        <div style="padding:0.75rem;background:var(--brand-indigo-light);
+                    border-radius:var(--radius-lg);border:1px solid var(--brand-indigo-muted);">
+          <i data-lucide="wallet" style="width:22px;height:22px;color:var(--brand-indigo);display:block;"></i>
+        </div>
+        <div>
+          <h2 class="t-title" style="color:var(--text-primary);">Snapshot de Patrimônio</h2>
+          <p class="t-label-sm" style="color:var(--text-muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.15em;">
+            Cole os 5 blocos da Necton · salva histórico completo
+          </p>
+        </div>
+      </div>
+      <!-- Tabs -->
+      <div style="display:flex;border:1px solid var(--border-default);
+                  border-radius:var(--radius-full);overflow:hidden;">
+        <button
+          v-for="tab in ['Importar','Histórico']" :key="tab"
+          @click="abaAtiva = tab"
+          style="padding:0.5rem 1.25rem;font-size:0.72rem;font-weight:700;
+                 text-transform:uppercase;letter-spacing:0.12em;border:none;cursor:pointer;
+                 transition:all 0.15s;"
+          :style="abaAtiva === tab
+            ? 'background:var(--brand-indigo);color:#fff;'
+            : 'background:var(--surface-base);color:var(--text-muted);'">
+          {{ tab }}
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ ABA IMPORTAR ════════════════════════════════════════════════════ -->
+    <template v-if="abaAtiva === 'Importar'">
+
+      <!-- Nota do snapshot -->
+      <div class="premium-card" style="padding:1.25rem 1.5rem;">
+        <label style="font-size:0.62rem;font-weight:700;text-transform:uppercase;
+                      letter-spacing:0.15em;color:var(--text-muted);display:block;margin-bottom:8px;">
+          Nota do Snapshot (opcional)
+        </label>
+        <input v-model="nota" type="text"
+          placeholder="Ex: mercado em queda, rolei BRKM5, antes do vencimento..."
+          style="width:100%;padding:0.6rem 1rem;font-size:0.82rem;background:var(--surface-sunken);
+                 border:1px solid var(--border-default);border-radius:var(--radius-md);
+                 color:var(--text-primary);outline:none;box-sizing:border-box;"
+          onfocus="this.style.borderColor='var(--brand-indigo)'"
+          onblur="this.style.borderColor='var(--border-default)'" />
+      </div>
+
+      <!-- Grid de blocos -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;"
+           :style="isMobile ? 'grid-template-columns:1fr;' : ''">
+
+        <!-- Bloco 1 -->
+        <div class="premium-card pat-bloco"
+          :class="blocos.b1 ? 'pat-bloco-ok' : ''"
+          style="padding:1.25rem;">
+          <div style="display:flex;align-items:center;gap:0.625rem;margin-bottom:0.875rem;">
+            <div class="pat-num" :class="blocos.b1 ? 'pat-num-ok' : ''">1</div>
+            <div>
+              <div style="font-size:0.72rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">
+                Investimentos / Patrimônio
+              </div>
+              <div style="font-size:0.6rem;color:var(--text-muted);margin-top:1px;">
+                Patrimônio total · saldo conta · total investido · lançamentos
+              </div>
+            </div>
+            <span v-if="blocos.b1"
+              style="margin-left:auto;font-size:0.58rem;font-weight:700;padding:2px 8px;
+                     border-radius:99px;background:var(--brand-emerald-light);
+                     color:var(--brand-emerald);border:1px solid var(--brand-emerald-muted);">
+              ✓ OK
+            </span>
+          </div>
+          <textarea v-model="blocos.b1"
+            placeholder="Cole aqui o Bloco 1 (Ctrl+V)"
+            class="pat-textarea"></textarea>
+        </div>
+
+        <!-- Bloco 2 -->
+        <div class="premium-card pat-bloco"
+          :class="blocos.b2 ? 'pat-bloco-ok' : ''"
+          style="padding:1.25rem;">
+          <div style="display:flex;align-items:center;gap:0.625rem;margin-bottom:0.875rem;">
+            <div class="pat-num" :class="blocos.b2 ? 'pat-num-ok' : ''">2</div>
+            <div>
+              <div style="font-size:0.72rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">
+                Renda Variável
+              </div>
+              <div style="font-size:0.6rem;color:var(--text-muted);margin-top:1px;">
+                Ações · ETFs · Bloqueios e Garantias
+              </div>
+            </div>
+            <span v-if="blocos.b2"
+              style="margin-left:auto;font-size:0.58rem;font-weight:700;padding:2px 8px;
+                     border-radius:99px;background:var(--brand-emerald-light);
+                     color:var(--brand-emerald);border:1px solid var(--brand-emerald-muted);">
+              ✓ OK
+            </span>
+          </div>
+          <textarea v-model="blocos.b2"
+            placeholder="Cole aqui o Bloco 2 (Ctrl+V)"
+            class="pat-textarea"></textarea>
+        </div>
+
+        <!-- Bloco 3 -->
+        <div class="premium-card pat-bloco"
+          :class="blocos.b3 ? 'pat-bloco-ok' : ''"
+          style="padding:1.25rem;">
+          <div style="display:flex;align-items:center;gap:0.625rem;margin-bottom:0.875rem;">
+            <div class="pat-num" :class="blocos.b3 ? 'pat-num-ok' : ''">3</div>
+            <div>
+              <div style="font-size:0.72rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">
+                Extrato
+              </div>
+              <div style="font-size:0.6rem;color:var(--text-muted);margin-top:1px;">
+                Histórico de movimentações · créditos · débitos
+              </div>
+            </div>
+            <span v-if="blocos.b3"
+              style="margin-left:auto;font-size:0.58rem;font-weight:700;padding:2px 8px;
+                     border-radius:99px;background:var(--brand-emerald-light);
+                     color:var(--brand-emerald);border:1px solid var(--brand-emerald-muted);">
+              ✓ OK
+            </span>
+          </div>
+          <textarea v-model="blocos.b3"
+            placeholder="Cole aqui o Bloco 3 (Ctrl+V)"
+            class="pat-textarea"></textarea>
+        </div>
+
+        <!-- Bloco 4 -->
+        <div class="premium-card pat-bloco"
+          :class="blocos.b4 ? 'pat-bloco-ok' : ''"
+          style="padding:1.25rem;">
+          <div style="display:flex;align-items:center;gap:0.625rem;margin-bottom:0.875rem;">
+            <div class="pat-num" :class="blocos.b4 ? 'pat-num-ok' : ''">4</div>
+            <div>
+              <div style="font-size:0.72rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">
+                Valores em Trânsito
+              </div>
+              <div style="font-size:0.6rem;color:var(--text-muted);margin-top:1px;">
+                Operações programadas · liquidações pendentes
+              </div>
+            </div>
+            <span v-if="blocos.b4"
+              style="margin-left:auto;font-size:0.58rem;font-weight:700;padding:2px 8px;
+                     border-radius:99px;background:var(--brand-emerald-light);
+                     color:var(--brand-emerald);border:1px solid var(--brand-emerald-muted);">
+              ✓ OK
+            </span>
+          </div>
+          <textarea v-model="blocos.b4"
+            placeholder="Cole aqui o Bloco 4 (Ctrl+V)"
+            class="pat-textarea"></textarea>
+        </div>
+
+        <!-- Bloco 5 — ocupa toda a largura -->
+        <div class="premium-card pat-bloco"
+          :class="blocos.b5 ? 'pat-bloco-ok' : ''"
+          style="padding:1.25rem;grid-column:1/-1;">
+          <div style="display:flex;align-items:center;gap:0.625rem;margin-bottom:0.875rem;">
+            <div class="pat-num" :class="blocos.b5 ? 'pat-num-ok' : ''">5</div>
+            <div>
+              <div style="font-size:0.72rem;font-weight:800;color:var(--text-primary);text-transform:uppercase;letter-spacing:0.08em;">
+                Derivativos / Opções
+              </div>
+              <div style="font-size:0.6rem;color:var(--text-muted);margin-top:1px;">
+                Todas as opções · tipo · posição · strike · prêmio · resultado
+              </div>
+            </div>
+            <span v-if="blocos.b5"
+              style="margin-left:auto;font-size:0.58rem;font-weight:700;padding:2px 8px;
+                     border-radius:99px;background:var(--brand-emerald-light);
+                     color:var(--brand-emerald);border:1px solid var(--brand-emerald-muted);">
+              ✓ OK
+            </span>
+          </div>
+          <textarea v-model="blocos.b5"
+            placeholder="Cole aqui o Bloco 5 (Ctrl+V)"
+            class="pat-textarea" style="height:10rem;"></textarea>
+        </div>
+
+      </div>
+
+      <!-- Barra de ação -->
+      <div class="premium-card"
+        style="padding:1.25rem 1.5rem;display:flex;align-items:center;
+               justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+
+        <!-- Progresso dos blocos -->
+        <div style="display:flex;align-items:center;gap:0.625rem;flex-wrap:wrap;">
+          <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
+                       letter-spacing:0.15em;color:var(--text-muted);">Blocos:</span>
+          <div v-for="(key, idx) in ['b1','b2','b3','b4','b5']" :key="key"
+            style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;
+                   justify-content:center;font-size:0.65rem;font-weight:800;transition:all 0.2s;"
+            :style="blocos[key]
+              ? 'background:var(--brand-emerald);color:#fff;'
+              : 'background:var(--border-subtle);color:var(--text-muted);'">
+            {{ idx + 1 }}
+          </div>
+          <span style="font-size:0.65rem;color:var(--text-muted);margin-left:4px;">
+            {{ blocosCols }} / 5 preenchidos
+          </span>
+        </div>
+
+        <div style="display:flex;gap:0.75rem;">
+          <button @click="limparTudo" :disabled="salvando"
+            style="padding:0.5rem 1.25rem;border-radius:var(--radius-full);border:1px solid var(--border-default);
+                   background:var(--surface-base);color:var(--text-muted);font-size:0.72rem;
+                   font-weight:700;text-transform:uppercase;letter-spacing:0.12em;cursor:pointer;">
+            Limpar Tudo
+          </button>
+          <button @click="salvar" :disabled="salvando || blocosCols === 0"
+            style="display:flex;align-items:center;gap:0.5rem;padding:0.6rem 1.75rem;
+                   border-radius:var(--radius-full);border:none;
+                   background:var(--brand-indigo);color:#fff;font-size:0.72rem;
+                   font-weight:700;text-transform:uppercase;letter-spacing:0.12em;cursor:pointer;
+                   transition:opacity 0.15s;"
+            :style="(salvando || blocosCols === 0) ? 'opacity:0.5;cursor:not-allowed;' : ''"
+            onmouseover="if(!this.disabled)this.style.opacity='0.85'"
+            onmouseout="this.style.opacity='1'">
+            <span v-if="salvando"
+              style="width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);
+                     border-top-color:#fff;border-radius:50%;
+                     animation:pat-spin 0.7s linear infinite;display:inline-block;"></span>
+            {{ salvando ? 'Salvando...' : 'Salvar Snapshot' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Resultado do último salvamento -->
+      <div v-if="ultimoResultado"
+        class="premium-card"
+        style="padding:1.25rem 1.5rem;background:var(--brand-emerald-light);
+               border-color:var(--brand-emerald-muted);">
+        <div style="display:flex;align-items:center;gap:0.625rem;margin-bottom:0.75rem;">
+          <i data-lucide="check-circle-2" style="width:18px;height:18px;color:var(--brand-emerald);display:block;"></i>
+          <span style="font-size:0.72rem;font-weight:800;text-transform:uppercase;
+                       letter-spacing:0.12em;color:var(--brand-emerald);">
+            Snapshot salvo com sucesso
+          </span>
+          <span style="font-size:0.62rem;font-family:'JetBrains Mono',monospace;
+                       color:var(--brand-emerald);margin-left:auto;opacity:0.8;">
+            {{ ultimoResultado.snapshotId }}
+          </span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:0.5rem;">
+          <div v-for="kpi in resumoKpis" :key="kpi.label"
+            style="background:rgba(255,255,255,0.6);border-radius:var(--radius-md);
+                   padding:0.625rem 0.875rem;">
+            <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;
+                        letter-spacing:0.12em;color:var(--brand-emerald);opacity:0.8;">
+              {{ kpi.label }}
+            </div>
+            <div style="font-size:0.88rem;font-weight:800;font-family:'JetBrains Mono',monospace;
+                        color:var(--brand-emerald);margin-top:2px;">
+              {{ kpi.valor }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </template>
+
+    <!-- ══ ABA HISTÓRICO ═══════════════════════════════════════════════════ -->
+    <template v-else>
+
+      <!-- Lista de snapshots -->
+      <div class="premium-card" style="padding:0;overflow:hidden;">
+
+        <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border-subtle);
+                    display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;
+                       letter-spacing:0.15em;color:var(--text-secondary);">
+            Histórico de Snapshots
+          </span>
+          <button @click="carregarHistorico"
+            style="padding:0.375rem 0.875rem;border-radius:var(--radius-full);
+                   border:1px solid var(--border-default);background:var(--surface-base);
+                   color:var(--text-muted);font-size:0.65rem;font-weight:700;
+                   text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:0.375rem;">
+            <i data-lucide="refresh-cw" style="width:12px;height:12px;display:block;"></i>
+            Atualizar
+          </button>
+        </div>
+
+        <div v-if="carregandoHistorico"
+          style="padding:3rem;text-align:center;">
+          <div style="width:2rem;height:2rem;border:3px solid var(--brand-indigo-light);
+                      border-top-color:var(--brand-indigo);border-radius:50%;
+                      animation:pat-spin 0.7s linear infinite;margin:0 auto 1rem;"></div>
+          <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;
+                      letter-spacing:0.15em;">Carregando...</div>
+        </div>
+
+        <div v-else-if="historico.length === 0"
+          style="padding:3rem;text-align:center;">
+          <div style="font-size:2.5rem;margin-bottom:0.75rem;opacity:0.3;">📊</div>
+          <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;
+                      letter-spacing:0.12em;color:var(--text-muted);">
+            Nenhum snapshot salvo ainda
+          </div>
+        </div>
+
+        <div v-else style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;white-space:nowrap;">
+            <thead>
+              <tr style="background:var(--surface-overlay);border-bottom:1px solid var(--border-subtle);">
+                <th v-for="h in ['Data','Patrimônio','Saldo Conta','Investido','Lançamentos','Nota','Ações']"
+                  :key="h"
+                  style="padding:0.75rem 1.25rem;font-size:0.58rem;font-weight:700;
+                         text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);
+                         text-align:left;">{{ h }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in historico" :key="row.snapshotId"
+                style="border-bottom:1px solid var(--border-subtle);cursor:pointer;transition:background 0.1s;"
+                onmouseover="this.style.background='var(--surface-overlay)'"
+                onmouseout="this.style.background='transparent'"
+                @click="abrirDetalhe(row)">
+                <td style="padding:0.75rem 1.25rem;font-weight:700;
+                           font-family:'JetBrains Mono',monospace;font-size:0.72rem;
+                           color:var(--text-primary);">{{ row.snapshotDate }}</td>
+                <td style="padding:0.75rem 1.25rem;font-weight:800;
+                           font-family:'JetBrains Mono',monospace;font-size:0.78rem;
+                           color:var(--brand-indigo);">{{ row.patrimonioTotal }}</td>
+                <td style="padding:0.75rem 1.25rem;font-family:'JetBrains Mono',monospace;
+                           font-size:0.72rem;color:var(--text-secondary);">{{ row.saldoConta }}</td>
+                <td style="padding:0.75rem 1.25rem;font-family:'JetBrains Mono',monospace;
+                           font-size:0.72rem;color:var(--text-secondary);">{{ row.totalInvestido }}</td>
+                <td style="padding:0.75rem 1.25rem;font-family:'JetBrains Mono',monospace;
+                           font-size:0.72rem;"
+                  :style="parseFloat(row.lancamentosFuturos) < 0 ? 'color:var(--brand-rose);' : 'color:var(--brand-emerald);'">
+                  {{ row.lancamentosFuturos }}</td>
+                <td style="padding:0.75rem 1.25rem;font-size:0.7rem;color:var(--text-muted);
+                           max-width:200px;overflow:hidden;text-overflow:ellipsis;">
+                  {{ row.nota || '—' }}</td>
+                <td style="padding:0.75rem 1.25rem;text-align:center;">
+                  <span style="font-size:0.62rem;font-weight:700;padding:2px 8px;
+                               border-radius:99px;background:var(--brand-indigo-light);
+                               color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);">
+                    Ver
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Painel de detalhe do snapshot selecionado -->
+      <div v-if="detalheAberto" class="premium-card" style="padding:0;overflow:hidden;">
+        <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border-subtle);
+                    display:flex;align-items:center;gap:0.75rem;">
+          <button @click="detalheAberto = false"
+            style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border-default);
+                   background:var(--surface-base);cursor:pointer;display:flex;align-items:center;
+                   justify-content:center;color:var(--text-muted);">✕</button>
+          <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;
+                       letter-spacing:0.15em;color:var(--text-secondary);">
+            Detalhe — {{ snapshotSelecionado && snapshotSelecionado.snapshotId }}
+          </span>
+        </div>
+
+        <div v-if="carregandoDetalhe"
+          style="padding:2rem;text-align:center;">
+          <div style="width:1.5rem;height:1.5rem;border:2px solid var(--brand-indigo-light);
+                      border-top-color:var(--brand-indigo);border-radius:50%;
+                      animation:pat-spin 0.7s linear infinite;margin:0 auto;"></div>
+        </div>
+
+        <div v-else-if="detalhe" style="padding:1.25rem;display:flex;flex-direction:column;gap:1rem;">
+
+          <!-- Ativos -->
+          <div v-if="detalhe.ativos && detalhe.ativos.length > 0">
+            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
+                        letter-spacing:0.15em;color:var(--text-muted);margin-bottom:0.625rem;">
+              Ativos ({{ detalhe.ativos.length }})
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.5rem;">
+              <div v-for="a in detalhe.ativos" :key="a.TICKER + a.TIPO_ATIVO"
+                style="background:var(--surface-overlay);border-radius:var(--radius-md);
+                       padding:0.75rem;border:1px solid var(--border-subtle);">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">
+                  <span style="font-size:0.82rem;font-weight:800;font-family:'JetBrains Mono',monospace;
+                               color:var(--text-primary);">{{ a.TICKER }}</span>
+                  <span style="font-size:0.55rem;font-weight:700;padding:1px 6px;border-radius:99px;"
+                    :style="a.TIPO_ATIVO === 'ETF'
+                      ? 'background:var(--brand-amber-light);color:var(--brand-amber);'
+                      : 'background:var(--brand-indigo-light);color:var(--brand-indigo);'">
+                    {{ a.TIPO_ATIVO }}
+                  </span>
+                </div>
+                <div style="font-size:0.7rem;font-weight:700;font-family:'JetBrains Mono',monospace;
+                            color:var(--text-primary);">{{ a.SALDO_BRUTO }}</div>
+                <div style="font-size:0.6rem;color:var(--text-muted);margin-top:2px;">
+                  {{ a.QUANTIDADE }} × {{ a.PRECO_MERCADO }}
+                  <span style="margin-left:4px;"
+                    :style="parseFloat(a.RESULTADO_PCT) >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'">
+                    {{ parseFloat(a.RESULTADO_PCT) >= 0 ? '+' : '' }}{{ a.RESULTADO_PCT }}%
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Derivativos -->
+          <div v-if="detalhe.derivativos && detalhe.derivativos.length > 0">
+            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
+                        letter-spacing:0.15em;color:var(--text-muted);margin-bottom:0.625rem;">
+              Opções ({{ detalhe.derivativos.length }})
+            </div>
+            <div style="overflow-x:auto;border-radius:var(--radius-md);border:1px solid var(--border-subtle);">
+              <table style="width:100%;border-collapse:collapse;white-space:nowrap;font-size:0.68rem;">
+                <thead>
+                  <tr style="background:var(--surface-overlay);">
+                    <th v-for="h in ['Código','Qtd','Tipo','Posição','Exercício','Strike','Prêmio','PM','Valor Mkt','Resultado']"
+                      :key="h"
+                      style="padding:0.5rem 0.875rem;text-align:left;font-size:0.55rem;font-weight:700;
+                             text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">
+                      {{ h }}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="d in detalhe.derivativos" :key="d.CODIGO"
+                    style="border-top:1px solid var(--border-subtle);">
+                    <td style="padding:0.5rem 0.875rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--text-primary);">{{ d.CODIGO }}</td>
+                    <td style="padding:0.5rem 0.875rem;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">{{ d.QUANTIDADE }}</td>
+                    <td style="padding:0.5rem 0.875rem;">
+                      <span style="font-size:0.58rem;font-weight:700;padding:1px 6px;border-radius:99px;"
+                        :style="d.TIPO === 'CALL'
+                          ? 'background:var(--brand-amber-light);color:var(--brand-amber);'
+                          : 'background:var(--brand-indigo-light);color:var(--brand-indigo);'">
+                        {{ d.TIPO }}
+                      </span>
+                    </td>
+                    <td style="padding:0.5rem 0.875rem;font-size:0.65rem;color:var(--text-secondary);">{{ d.POSICAO }}</td>
+                    <td style="padding:0.5rem 0.875rem;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">{{ d.DATA_EXERCICIO }}</td>
+                    <td style="padding:0.5rem 0.875rem;font-family:'JetBrains Mono',monospace;color:var(--text-primary);">{{ d.STRIKE }}</td>
+                    <td style="padding:0.5rem 0.875rem;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">{{ d.PREMIO_EXERCICIO }}</td>
+                    <td style="padding:0.5rem 0.875rem;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);">{{ d.PRECO_MEDIO }}</td>
+                    <td style="padding:0.5rem 0.875rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                      :style="parseFloat(d.VALOR_MERCADO) >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'">
+                      {{ d.VALOR_MERCADO }}
+                    </td>
+                    <td style="padding:0.5rem 0.875rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
+                      :style="parseFloat(d.RESULTADO_PCT) >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'">
+                      {{ d.RESULTADO_PCT }}%
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Extrato resumido -->
+          <div v-if="detalhe.extrato && detalhe.extrato.length > 0">
+            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
+                        letter-spacing:0.15em;color:var(--text-muted);margin-bottom:0.625rem;">
+              Extrato ({{ detalhe.extrato.length }} lançamentos)
+            </div>
+            <div style="max-height:200px;overflow-y:auto;border-radius:var(--radius-md);
+                        border:1px solid var(--border-subtle);">
+              <table style="width:100%;border-collapse:collapse;font-size:0.67rem;">
+                <tbody>
+                  <tr v-for="(e, idx) in detalhe.extrato" :key="idx"
+                    style="border-bottom:1px solid var(--border-subtle);">
+                    <td style="padding:0.4rem 0.875rem;color:var(--text-muted);white-space:nowrap;">{{ e.DATA_LANCAMENTO }}</td>
+                    <td style="padding:0.4rem 0.875rem;">
+                      <span style="font-size:0.55rem;font-weight:700;padding:1px 5px;border-radius:3px;"
+                        :style="e.TIPO === 'CREDITO'
+                          ? 'background:var(--brand-emerald-light);color:var(--brand-emerald);'
+                          : 'background:var(--brand-rose-light);color:var(--brand-rose);'">
+                        {{ e.TIPO }}
+                      </span>
+                    </td>
+                    <td style="padding:0.4rem 0.875rem;color:var(--text-secondary);max-width:280px;
+                               overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ e.DESCRICAO }}</td>
+                    <td style="padding:0.4rem 0.875rem;font-family:'JetBrains Mono',monospace;font-weight:700;white-space:nowrap;"
+                      :style="e.TIPO === 'CREDITO' ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'">
+                      {{ e.MOVIMENTACAO }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Trânsito -->
+          <div v-if="detalhe.transito && detalhe.transito.length > 0">
+            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
+                        letter-spacing:0.15em;color:var(--text-muted);margin-bottom:0.5rem;">
+              Valores em Trânsito ({{ detalhe.transito.length }})
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0.375rem;">
+              <div v-for="(t, idx) in detalhe.transito" :key="idx"
+                style="display:flex;justify-content:space-between;align-items:center;
+                       padding:0.5rem 0.875rem;background:var(--surface-overlay);
+                       border-radius:var(--radius-sm);border:1px solid var(--border-subtle);
+                       font-size:0.7rem;">
+                <span style="color:var(--text-secondary);">{{ t.ATIVO }}</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-weight:700;"
+                  :style="parseFloat(t.VALOR) >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'">
+                  {{ t.VALOR }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </template>
+
+    <!-- ══ OVERLAY DE SALVAMENTO ═══════════════════════════════════════════ -->
+    <div v-if="salvando"
+      style="position:fixed;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);
+             z-index:200;display:flex;align-items:center;justify-content:center;">
+      <div class="premium-card"
+        style="padding:2rem 2.5rem;text-align:center;max-width:22rem;width:100%;">
+        <div style="width:3rem;height:3rem;border:3px solid var(--brand-indigo-light);
+                    border-top-color:var(--brand-indigo);border-radius:50%;
+                    animation:pat-spin 0.8s linear infinite;margin:0 auto 1.25rem;"></div>
+        <div style="font-size:0.82rem;font-weight:700;color:var(--text-primary);margin-bottom:0.5rem;">
+          Salvando snapshot...
+        </div>
+        <div style="font-size:0.7rem;color:var(--text-muted);">
+          Processando os 5 blocos e gravando nas 7 abas do histórico
+        </div>
+      </div>
+    </div>
+
+  </div>
+</template>
+
+<style>
+  @keyframes pat-spin { to { transform: rotate(360deg); } }
+
+  .pat-bloco {
+    transition: border-color 0.2s;
+  }
+  .pat-bloco-ok {
+    border-color: var(--brand-emerald-muted) !important;
+    background: var(--brand-emerald-light) !important;
+  }
+  .pat-num {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.72rem; font-weight: 800; flex-shrink: 0;
+    background: var(--surface-sunken);
+    color: var(--text-muted);
+    border: 2px solid var(--border-default);
+    transition: all 0.2s;
+  }
+  .pat-num-ok {
+    background: var(--brand-emerald) !important;
+    color: #fff !important;
+    border-color: var(--brand-emerald) !important;
+  }
+  .pat-textarea {
+    width: 100%;
+    height: 7rem;
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    resize: vertical;
+    outline: none;
+    box-sizing: border-box;
+    line-height: 1.5;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .pat-textarea:focus {
+    border-color: var(--brand-indigo);
+    background: var(--surface-base);
+  }
+</style>
+
+<script>
+window.NectonPatrimonioImport = {
+  name: 'necton-patrimonio-import',
+  template: '#necton-patrimonio-import-template',
+
+  props: {
+    isMobile:   { type: Boolean, default: false },
+    isLoading:  { type: Boolean, default: false }
+  },
+
+  data() {
+    return {
+      abaAtiva: 'Importar',
+      nota: '',
+      blocos: { b1: '', b2: '', b3: '', b4: '', b5: '' },
+      salvando: false,
+      ultimoResultado: null,
+
+      historico: [],
+      carregandoHistorico: false,
+
+      detalheAberto: false,
+      snapshotSelecionado: null,
+      detalhe: null,
+      carregandoDetalhe: false
+    };
+  },
+
+  computed: {
+    blocosCols() {
+      return Object.values(this.blocos).filter(v => v.trim().length > 0).length;
+    },
+
+    resumoKpis() {
+      if (!this.ultimoResultado) return [];
+      const r = this.ultimoResultado.resumo || {};
+      const fmt = (n) => {
+        const num = parseFloat(n) || 0;
+        if (Math.abs(num) >= 1000000) return 'R$' + (num / 1000000).toFixed(1) + 'M';
+        if (Math.abs(num) >= 1000)    return 'R$' + (num / 1000).toFixed(1) + 'k';
+        return 'R$' + num.toFixed(2).replace('.', ',');
+      };
+      return [
+        { label: 'Patrimônio',   valor: fmt(r.patrimonioTotal) },
+        { label: 'Saldo Conta',  valor: fmt(r.saldoConta) },
+        { label: 'Ativos',       valor: (r.totalAtivos || 0) + ' itens' },
+        { label: 'Extrato',      valor: (r.totalExtrato || 0) + ' lanç.' },
+        { label: 'Trânsito',     valor: (r.totalTransito || 0) + ' ops' },
+        { label: 'Derivativos',  valor: (r.totalDerivativos || 0) + ' opções' }
+      ];
+    }
+  },
+
+  watch: {
+    abaAtiva(val) {
+      if (val === 'Histórico' && this.historico.length === 0) {
+        this.carregarHistorico();
+      }
+      if (window.refreshIcons) window.refreshIcons();
+    }
+  },
+
+  mounted() {
+    if (window.refreshIcons) window.refreshIcons();
+  },
+
+  methods: {
+    limparTudo() {
+      this.blocos = { b1: '', b2: '', b3: '', b4: '', b5: '' };
+      this.nota = '';
+      this.ultimoResultado = null;
+    },
+
+    salvar() {
+      if (this.blocosCols === 0 || this.salvando) return;
+      this.salvando = true;
+
+      const payload = {
+        bloco1: this.blocos.b1,
+        bloco2: this.blocos.b2,
+        bloco3: this.blocos.b3,
+        bloco4: this.blocos.b4,
+        bloco5: this.blocos.b5,
+        nota:   this.nota
+      };
+
+      if (typeof google !== 'undefined') {
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.salvando = false;
+            if (res && res.success) {
+              this.ultimoResultado = res;
+              this.limparBlocos();
+              if (window.refreshIcons) window.refreshIcons();
+            } else {
+              alert('Erro ao salvar: ' + (res && res.error ? res.error : 'desconhecido'));
+            }
+          })
+          .withFailureHandler((err) => {
+            this.salvando = false;
+            alert('Falha de conexão: ' + err);
+          })
+          .apiSalvarPatrimonioSnapshot(payload);
+      } else {
+        // Modo dev: simula retorno
+        setTimeout(() => {
+          this.salvando = false;
+          this.ultimoResultado = {
+            snapshotId: 'PAT_' + new Date().toISOString().replace(/[-:T.]/g,'').slice(0,15),
+            resumo: {
+              patrimonioTotal: 114301.48, saldoConta: 16164.81,
+              totalAtivos: 3, totalExtrato: 12, totalTransito: 1, totalDerivativos: 14
+            }
+          };
+          this.limparBlocos();
+        }, 1800);
+      }
+    },
+
+    limparBlocos() {
+      this.blocos = { b1: '', b2: '', b3: '', b4: '', b5: '' };
+      this.nota   = '';
+    },
+
+    carregarHistorico() {
+      this.carregandoHistorico = true;
+      if (typeof google !== 'undefined') {
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.carregandoHistorico = false;
+            if (res && res.success) this.historico = res.data || [];
+          })
+          .withFailureHandler(() => { this.carregandoHistorico = false; })
+          .apiGetPatrimonioSnapshots();
+      } else {
+        setTimeout(() => {
+          this.carregandoHistorico = false;
+          this.historico = [];
+        }, 600);
+      }
+    },
+
+    abrirDetalhe(row) {
+      this.snapshotSelecionado = row;
+      this.detalheAberto = true;
+      this.detalhe = null;
+      this.carregandoDetalhe = true;
+
+      if (typeof google !== 'undefined') {
+        google.script.run
+          .withSuccessHandler((res) => {
+            this.carregandoDetalhe = false;
+            if (res && res.success) this.detalhe = res;
+          })
+          .withFailureHandler(() => { this.carregandoDetalhe = false; })
+          .apiGetPatrimonioSnapshotDetalhe(row.snapshotId);
+      } else {
+        setTimeout(() => {
+          this.carregandoDetalhe = false;
+          this.detalhe = { ativos: [], derivativos: [], extrato: [], transito: [], garantias: [] };
+        }, 600);
+      }
+    }
+  }
+};
+</script>

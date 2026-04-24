@@ -238,25 +238,63 @@
             </div>
           </div>
 
-          <!-- Termometro -->
-          <div style="display:flex;flex-direction:column;gap:4px;min-width:200px;">
-            <div style="display:flex;justify-content:space-between;align-items:baseline;">
-              <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
-                           letter-spacing:0.14em;color:var(--text-muted);">Utilizacao do limite</span>
-              <span style="font-size:0.82rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
-                :style="corUtil">{{ pctUtilizacao }}%</span>
-            </div>
-            <div style="height:7px;border-radius:99px;background:var(--border-subtle);overflow:hidden;">
-              <div style="height:100%;border-radius:99px;transition:width 0.5s cubic-bezier(.4,0,.2,1);"
-                :style="'width:' + Math.min(pctUtilizacao,100) + '%;background:' + corBarraUtil">
+          <!-- Termometros PUT + CALL separados -->
+          <div style="display:flex;flex-direction:column;gap:6px;min-width:260px;">
+
+            <!-- PUT: capital real a controlar -->
+            <div style="display:flex;flex-direction:column;gap:3px;">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                <span style="display:flex;align-items:center;gap:4px;">
+                  <span style="font-size:0.56rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;
+                               padding:1px 5px;border-radius:3px;
+                               background:var(--brand-indigo-light);color:var(--brand-indigo);
+                               border:1px solid var(--brand-indigo-muted);">PUT</span>
+                  <span style="font-size:0.56rem;font-weight:700;text-transform:uppercase;
+                               letter-spacing:0.12em;color:var(--text-muted);">capital disponível</span>
+                </span>
+                <span style="font-size:0.78rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
+                  :style="corUtilPut">{{ pctUtilizacaoPut }}%</span>
+              </div>
+              <div style="height:6px;border-radius:99px;background:var(--border-subtle);overflow:hidden;">
+                <div style="height:100%;border-radius:99px;transition:width 0.5s cubic-bezier(.4,0,.2,1);"
+                  :style="'width:' + Math.min(pctUtilizacaoPut,100) + '%;background:' + corBarraPut">
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <span style="font-size:0.56rem;color:var(--text-muted);">Liq: <strong style="color:var(--brand-indigo);">{{ fmtK(totalNocionalPut) }}</strong><span v-if="totalNocionalPutDesmontagem > 0" style="color:var(--brand-amber);margin-left:3px;">(&minus;{{ fmtK(totalNocionalPutDesmontagem) }} desmont.)</span></span>
+                <span style="font-size:0.56rem;font-weight:700;color:var(--brand-emerald);">
+                  Livre: {{ fmtK(Math.max(0, limiteNumerico - totalNocionalPut)) }}
+                </span>
               </div>
             </div>
-            <div style="display:flex;justify-content:space-between;">
-              <span style="font-size:0.58rem;color:var(--text-muted);">Alocado: {{ fmtK(totalNocional) }}</span>
-              <span style="font-size:0.58rem;font-weight:700;color:var(--brand-emerald);">
-                Livre: {{ fmtK(Math.max(0, limiteNumerico - totalNocional)) }}
-              </span>
+
+            <!-- CALL: coberto pelas acoes na carteira -->
+            <div style="display:flex;flex-direction:column;gap:3px;padding-top:4px;
+                        border-top:1px solid var(--border-subtle);">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                <span style="display:flex;align-items:center;gap:4px;">
+                  <span style="font-size:0.56rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;
+                               padding:1px 5px;border-radius:3px;
+                               background:var(--brand-amber-light);color:var(--brand-amber);
+                               border:1px solid var(--brand-amber-muted);">CALL</span>
+                  <span style="font-size:0.56rem;font-weight:700;text-transform:uppercase;
+                               letter-spacing:0.12em;color:var(--text-muted);">coberto por ações</span>
+                </span>
+                <span style="font-size:0.78rem;font-weight:800;font-family:'JetBrains Mono',monospace;
+                             color:var(--brand-amber);">{{ fmtK(totalNocionalCall) }}</span>
+              </div>
+              <div style="height:6px;border-radius:99px;background:var(--border-subtle);overflow:hidden;">
+                <div style="height:100%;border-radius:99px;background:var(--brand-amber);
+                            transition:width 0.5s cubic-bezier(.4,0,.2,1);"
+                  :style="'width:' + Math.min(pctNocionalCallDoTotal,100) + '%;opacity:0.75'">
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <span style="font-size:0.56rem;color:var(--text-muted);">{{ totalNocionalCallCount }} pos. &middot; garantidas por carteira</span>
+                <span style="font-size:0.56rem;font-weight:700;color:var(--brand-amber);">{{ pctNocionalCallDoTotal }}% do total</span>
+              </div>
             </div>
+
           </div>
         </div>
       </div>
@@ -682,7 +720,7 @@
               <i data-lucide="layers" style="width:14px;height:14px;color:var(--brand-amber);"></i>
               <span style="font-size:0.65rem;font-weight:700;text-transform:uppercase;
                            letter-spacing:0.15em;color:var(--text-secondary);">Alavancagem Implicita</span>
-              <span style="margin-left:auto;font-size:0.58rem;color:var(--text-muted);">nocional / limite</span>
+              <span style="margin-left:auto;font-size:0.58rem;color:var(--text-muted);">nocional PUT / limite</span>
             </div>
 
             <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:1rem;">
@@ -721,6 +759,28 @@
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:center;
                             padding:0.5rem 0;border-bottom:1px solid var(--border-subtle);">
+                  <span style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:var(--text-muted);">
+                    <span style="font-size:0.56rem;font-weight:800;padding:1px 4px;border-radius:3px;
+                                 background:var(--brand-indigo-light);color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);">PUT</span>
+                    Nocional (capital exigido)
+                  </span>
+                  <div style="display:flex;flex-direction:column;gap:1px;">
+                    <span style="font-size:0.78rem;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);">{{ fmtK(totalNocionalPut) }}</span>
+                    <span v-if="totalNocionalPutDesmontagem > 0" style="font-size:0.6rem;color:var(--brand-amber);">bruto {{ fmtK(totalNocionalPutBruto) }} &minus; desmont. {{ fmtK(totalNocionalPutDesmontagem) }}</span>
+                  </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;
+                            padding:0.5rem 0;border-bottom:1px solid var(--border-subtle);">
+                  <span style="display:flex;align-items:center;gap:4px;font-size:0.7rem;color:var(--text-muted);">
+                    <span style="font-size:0.56rem;font-weight:800;padding:1px 4px;border-radius:3px;
+                                 background:var(--brand-amber-light);color:var(--brand-amber);border:1px solid var(--brand-amber-muted);">CALL</span>
+                    Nocional (coberto por ações)
+                  </span>
+                  <span style="font-size:0.78rem;font-weight:700;font-family:'JetBrains Mono',monospace;
+                               color:var(--brand-amber);">{{ fmtK(totalNocionalCall) }}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;
+                            padding:0.5rem 0;border-bottom:1px solid var(--border-subtle);">
                   <span style="font-size:0.7rem;color:var(--text-muted);">Limite Configurado</span>
                   <span style="font-size:0.78rem;font-weight:700;font-family:'JetBrains Mono',monospace;
                                color:var(--text-secondary);">{{ fmtK(limiteNumerico) }}</span>
@@ -732,10 +792,10 @@
                                color:var(--brand-rose);">{{ fmtK(riscoCapital.itmNocional) }}</span>
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;">
-                  <span style="font-size:0.7rem;color:var(--text-muted);">Capital livre para novas ops</span>
+                  <span style="font-size:0.7rem;color:var(--text-muted);">Capital livre para novas PUT</span>
                   <span style="font-size:0.78rem;font-weight:700;font-family:'JetBrains Mono',monospace;
                                color:var(--brand-emerald);">
-                    {{ fmtK(Math.max(0, limiteNumerico - totalNocional)) }}
+                    {{ fmtK(Math.max(0, limiteNumerico - totalNocionalPut)) }}
                   </span>
                 </div>
               </div>
@@ -834,9 +894,59 @@ window.CardNotional = {
       return this.trades.reduce(function(acc, t) { return acc + (parseFloat(t.nocional) || 0); }, 0);
     },
 
+    putNetting: function() {
+      var grupos = {}; var ordem = [];
+      this.trades.forEach(function(t) {
+        var tipo = String(t.tipoOpcao || '').toUpperCase();
+        if (tipo.indexOf('PUT') < 0) return;
+        var dir = String(t.direcaoTrade || '').toUpperCase();
+        var venda = dir.indexOf('VENDA') >= 0;
+        var dStr = t.dataVencimento ? String(t.dataVencimento).split('T')[0] : '';
+        var key = (t.tickerAtivo||'')+'|'+(t.strike||'')+'|'+dStr;
+        if (!grupos[key]) { grupos[key] = {ticker:t.tickerAtivo,strike:t.strike,venc:t.dataVencimento,vendaNoc:0,compraNoc:0,vendaOps:[],compraOps:[]}; ordem.push(key); }
+        var noc = parseFloat(t.nocional)||0;
+        if (venda) { grupos[key].vendaNoc+=noc; grupos[key].vendaOps.push(t); }
+        else       { grupos[key].compraNoc+=noc; grupos[key].compraOps.push(t); }
+      });
+      return ordem.map(function(k){ var g=grupos[k]; return Object.assign({},g,{key:k,liquidoNoc:Math.max(0,g.vendaNoc-g.compraNoc)}); });
+    },
+
+    totalNocionalPut: function() { return this.putNetting.reduce(function(a,g){return a+g.liquidoNoc;},0); },
+    totalNocionalPutBruto: function() { return this.putNetting.reduce(function(a,g){return a+g.vendaNoc;},0); },
+    totalNocionalPutDesmontagem: function() { return this.putNetting.reduce(function(a,g){return a+g.compraNoc;},0); },
+
+    totalNocionalCall: function() {
+      return this.trades.filter(function(t){ return String(t.tipoOpcao||'').toUpperCase().indexOf('CALL')>=0 && String(t.direcaoTrade||'').toUpperCase().indexOf('VENDA')>=0; }).reduce(function(a,t){return a+(parseFloat(t.nocional)||0);},0);
+    },
+    totalNocionalCallCount: function() {
+      return this.trades.filter(function(t){ return String(t.tipoOpcao||'').toUpperCase().indexOf('CALL')>=0 && String(t.direcaoTrade||'').toUpperCase().indexOf('VENDA')>=0; }).length;
+    },
+
     pctUtilizacao: function() {
       if (!this.limiteNumerico) return 0;
       return Math.round((this.totalNocional / this.limiteNumerico) * 100);
+    },
+
+    // PUT: usa o limite configurado (capital disponível real)
+    pctUtilizacaoPut: function() {
+      if (!this.limiteNumerico) return 0;
+      return Math.round((this.totalNocionalPut / this.limiteNumerico) * 100);
+    },
+
+    corUtilPut: function() {
+      var p = this.pctUtilizacaoPut;
+      return p >= 90 ? 'color:var(--brand-rose)' : p >= 75 ? 'color:var(--brand-amber)' : 'color:var(--brand-indigo)';
+    },
+
+    corBarraPut: function() {
+      var p = this.pctUtilizacaoPut;
+      return p >= 90 ? 'var(--brand-rose)' : p >= 75 ? 'var(--brand-amber)' : 'var(--brand-indigo)';
+    },
+
+    // CALL: percentual do nocional call em relação ao total (informativo)
+    pctNocionalCallDoTotal: function() {
+      if (!this.totalNocional) return 0;
+      return Math.round((this.totalNocionalCall / this.totalNocional) * 100);
     },
 
     corUtil: function() {
@@ -887,14 +997,15 @@ window.CardNotional = {
     },
 
     riscoCapital: function() {
-      var total = this.totalNocional || 1;
+      var total = this.totalNocionalPut || 1;
       var r = { itmNocional: 0, atmNocional: 0, otmNocional: 0, itmOps: [], atmOps: [], otmOps: [] };
-      this.trades.forEach(function(t) {
-        var mc  = String(t.moneynessCode || '').toUpperCase();
-        var noc = parseFloat(t.nocional) || 0;
-        if      (mc.includes('ITM')) { r.itmNocional += noc; r.itmOps.push(t); }
-        else if (mc.includes('ATM')) { r.atmNocional += noc; r.atmOps.push(t); }
-        else                         { r.otmNocional += noc; r.otmOps.push(t); }
+      this.putNetting.forEach(function(g) {
+        if (g.liquidoNoc <= 0) return;
+        var mc = g.vendaOps.length > 0 ? String(g.vendaOps[0].moneynessCode||'').toUpperCase() : '';
+        var noc = g.liquidoNoc;
+        if      (mc.indexOf('ITM')>=0) { r.itmNocional+=noc; g.vendaOps.forEach(function(op){r.itmOps.push(op);}); }
+        else if (mc.indexOf('ATM')>=0) { r.atmNocional+=noc; g.vendaOps.forEach(function(op){r.atmOps.push(op);}); }
+        else                           { r.otmNocional+=noc; g.vendaOps.forEach(function(op){r.otmOps.push(op);}); }
       });
       return {
         itmNocional: r.itmNocional, itmOps: r.itmOps, itmPct: Math.round(r.itmNocional / total * 100),
@@ -904,20 +1015,21 @@ window.CardNotional = {
     },
 
     liberacaoCapital: function() {
-      var total = this.totalNocional || 1;
+      var total = this.totalNocionalPut || 1;
       var janelas = [
         { label: 'Ate 15d',   min: 0,  max: 15,   cor: 'var(--brand-rose)',   nocional: 0, ops: [] },
         { label: 'Ate 30d',   min: 16, max: 30,   cor: 'var(--brand-amber)',  nocional: 0, ops: [] },
         { label: 'Ate 45d',   min: 31, max: 45,   cor: 'var(--brand-indigo)', nocional: 0, ops: [] },
         { label: 'Acima 45d', min: 46, max: 9999, cor: 'var(--text-muted)',   nocional: 0, ops: [] }
       ];
-      this.trades.forEach(function(t) {
-        var dte = parseInt(t.dteCorridos, 10);
+      this.putNetting.forEach(function(g) {
+        if (g.liquidoNoc <= 0 || g.vendaOps.length === 0) return;
+        var dte = parseInt(g.vendaOps[0].dteCorridos, 10);
         if (isNaN(dte)) return;
         for (var i = 0; i < janelas.length; i++) {
           if (dte >= janelas[i].min && dte <= janelas[i].max) {
-            janelas[i].nocional += (parseFloat(t.nocional) || 0);
-            janelas[i].ops.push(t);
+            janelas[i].nocional += g.liquidoNoc;
+            g.vendaOps.forEach(function(op){janelas[i].ops.push(op);});
             break;
           }
         }
@@ -933,17 +1045,18 @@ window.CardNotional = {
       if (!this.limiteNumerico) {
         return { fator: '—', nivel: 'INDEFINIDO', descricao: 'Configure o limite de capital para calcular a alavancagem implicita da carteira.' };
       }
-      var fator = this.totalNocional / this.limiteNumerico;
+      // Alavancagem calculada sobre PUT (capital real exigido), pois CALL e coberta pelas acoes
+      var fator = this.totalNocionalPut / this.limiteNumerico;
       var nivel, descricao;
       if (fator >= 1.5) {
         nivel     = 'CRITICA';
-        descricao = 'Nocional supera o limite em mais de 50%. Risco de chamada de margem elevado. Reducao de posicoes recomendada.';
+        descricao = 'Nocional de PUT supera o limite em mais de 50%. Risco de chamada de margem elevado. Reducao de posicoes recomendada.';
       } else if (fator >= 1.0) {
         nivel     = 'ATENCAO';
-        descricao = 'Nocional igual ou superior ao limite configurado. Evite novas entradas pesadas e monitore de perto.';
+        descricao = 'Nocional de PUT igual ou superior ao limite configurado. Evite novas vendas de PUT e monitore de perto.';
       } else {
         nivel     = 'SEGURO';
-        descricao = 'Nocional dentro do limite de capital. Ha espaco disponivel para novas operacoes conforme o plano.';
+        descricao = 'Nocional de PUT dentro do limite de capital disponivel. Ha espaco para novas operacoes conforme o plano.';
       }
       return { fator: fator.toFixed(2), nivel: nivel, descricao: descricao };
     },
@@ -988,11 +1101,13 @@ window.CardNotional = {
       var self = this;
       return [
         { label: 'Nocional Total',        valor: self.fmtK(self.totalNocional),                                     cor: 'var(--brand-indigo)'  },
+        { label: 'PUT Liquido',  valor: self.fmtK(self.totalNocionalPut) + (self.totalNocionalPutDesmontagem > 0 ? ' (-' + self.fmtK(self.totalNocionalPutDesmontagem) + ' desm.)' : ''), cor: 'var(--brand-indigo)'  },
+        { label: 'CALL (coberta cart.)',   valor: self.fmtK(self.totalNocionalCall),                                 cor: 'var(--brand-amber)'   },
         { label: 'Yield Medio',           valor: self.yieldMedioCarteira + '%',                                     cor: 'var(--brand-emerald)' },
         { label: 'ITM (Risco Real)',       valor: self.fmtK(self.riscoCapital.itmNocional),                          cor: 'var(--brand-rose)'    },
         { label: 'Libera em 15d',         valor: self.fmtK((self.liberacaoCapital[0] || {}).nocional || 0),         cor: 'var(--brand-amber)'   },
-        { label: 'Alavancagem',           valor: self.alavancagem.fator + 'x',                                     cor: 'var(--text-secondary)'},
-        { label: 'Capital Livre',         valor: self.fmtK(Math.max(0, self.limiteNumerico - self.totalNocional)), cor: 'var(--brand-emerald)' }
+        { label: 'Alavancagem PUT',       valor: self.limiteNumerico ? (self.totalNocionalPut / self.limiteNumerico).toFixed(2) + 'x' : '—', cor: 'var(--text-secondary)'},
+        { label: 'Capital Livre (PUT)',   valor: self.fmtK(Math.max(0, self.limiteNumerico - self.totalNocionalPut)), cor: 'var(--brand-emerald)' }
       ];
     }
   },

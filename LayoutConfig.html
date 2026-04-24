@@ -14,6 +14,7 @@ window.APP_MENU = [
   { id: 'academia',      label: 'Academia de Opcoes',     icon: 'graduation-cap' },
   { separator: true },           // <- linha divisoria
   { id: 'necton-import', label: 'Importacao Necton',      icon: 'file-down' },
+  { id: 'patrimonio-import', label: 'Snapshot Patrimônio', icon: 'wallet' },
   { id: 'automacao',     label: 'Automacao',              icon: 'zap' },
   { id: 'bancodedados',  label: 'Base de Dados',          icon: 'database' },
   { separator: true },           // <- linha divisoria
@@ -91,6 +92,7 @@ window.LAYOUT_MAP = {
   'wheel':          [{ id: 'painel-wheel',          component: 'wheel-manager',       cols: 'col-span-12', props: {} }],
   'scanner':        [{ id: 'painel-scanner',        component: 'scanner-view',        cols: 'col-span-12', props: {} }],
   'necton-import':  [{ id: 'painel-importacao',     component: 'necton-import',       cols: 'col-span-12', props: {} }],
+  'patrimonio-import': [{ id: 'patrimonio-import',  component: 'necton-patrimonio-import', cols: 'col-span-12' }],
   'dados-ativos':   [{ id: 'painel-gestao-ativos',  component: 'gestao-ativos',       cols: 'col-span-12', props: {} }],
   'comparador':     [{ id: 'painel-comparador',     component: 'comparativo-view',    cols: 'col-span-12', props: {} }],
   'oplab-market':   [{ id: 'oplab-hub',             component: 'oplab-hub',           cols: 'col-span-12', props: {} }],

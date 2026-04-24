@@ -233,13 +233,42 @@
             {{ operacoes.length }} ativas
           </span>
         </div>
-        <!-- Nocional total em destaque no header -->
-        <div v-if="!isLoading" style="text-align:right;">
-          <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
-                      letter-spacing:0.1em;color:var(--text-muted);">Nocional Total</div>
-          <div style="font-size:1.1rem;font-weight:800;color:var(--brand-indigo);
-                      font-family:'JetBrains Mono',monospace;letter-spacing:-0.02em;">
-            {{ fmtK(totalNocional) }}
+        <!-- Nocional total + split PUT/CALL no header -->
+        <div v-if="!isLoading" style="display:flex;align-items:center;gap:1.25rem;">
+          <div style="text-align:right;">
+            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
+                        letter-spacing:0.1em;color:var(--text-muted);">Nocional Total</div>
+            <div style="font-size:1.1rem;font-weight:800;color:var(--brand-indigo);
+                        font-family:'JetBrains Mono',monospace;letter-spacing:-0.02em;">
+              {{ fmtK(totalNocional) }}
+            </div>
+          </div>
+          <div style="width:1px;height:2rem;background:var(--border-default);"></div>
+          <div style="text-align:right;">
+            <div style="display:flex;align-items:center;gap:4px;justify-content:flex-end;margin-bottom:2px;">
+              <span style="font-size:0.52rem;font-weight:800;padding:1px 4px;border-radius:3px;
+                           background:var(--brand-indigo-light);color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);">PUT</span>
+              <span style="font-size:0.56rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">capital</span>
+            </div>
+            <div style="font-size:0.9rem;font-weight:800;color:var(--brand-indigo);
+                        font-family:'JetBrains Mono',monospace;letter-spacing:-0.02em;">
+              {{ fmtK(totalNocionalPut) }}
+            </div>
+            <div v-if="totalNocionalPutDesmontagem > 0"
+              style="font-size:0.52rem;font-weight:700;color:var(--brand-amber);white-space:nowrap;">
+              &minus;{{ fmtK(totalNocionalPutDesmontagem) }} desmont.
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="display:flex;align-items:center;gap:4px;justify-content:flex-end;margin-bottom:2px;">
+              <span style="font-size:0.52rem;font-weight:800;padding:1px 4px;border-radius:3px;
+                           background:var(--brand-amber-light);color:var(--brand-amber);border:1px solid var(--brand-amber-muted);">CALL</span>
+              <span style="font-size:0.56rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">coberto</span>
+            </div>
+            <div style="font-size:0.9rem;font-weight:800;color:var(--brand-amber);
+                        font-family:'JetBrains Mono',monospace;letter-spacing:-0.02em;">
+              {{ fmtK(totalNocionalCall) }}
+            </div>
           </div>
         </div>
       </div>
@@ -309,6 +338,7 @@
                   <div style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">
                     {{ fmtK(cv.nocional) }} <span style="color:var(--text-muted);font-size:0.62rem;">{{ cv.count }}p</span>
                   </div>
+                  <div v-if="cv.nocionalDesmont > 0" style="font-size:0.58rem;color:var(--brand-amber);">&minus;{{ fmtK(cv.nocionalDesmont) }} desmont.</div>
                 </div>
                 <div @click="cv.OTM && cv.OTM.count > 0 && abrirDrawer('cicloMoney', cv.chave + '|OTM', cv.label + ' OTM')"
                   style="border-radius:var(--radius-xs);padding:4px 2px;text-align:center;transition:all 0.15s;"
@@ -373,6 +403,7 @@
                   <div style="font-size:0.65rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;white-space:nowrap;">
                     {{ fmtK(cv.nocional) }} <span style="color:var(--text-muted);font-size:0.58rem;">{{ cv.count }}p</span>
                   </div>
+                  <div v-if="cv.nocionalDesmont > 0" style="font-size:0.55rem;color:var(--brand-amber);">&minus;{{ fmtK(cv.nocionalDesmont) }} desmont.</div>
                 </div>
                 <div @click="cv.OTM && cv.OTM.count > 0 && abrirDrawer('cicloMoney', cv.chave + '|OTM', cv.label + ' OTM')"
                   style="border-radius:var(--radius-xs);padding:3px 1px;text-align:center;transition:all 0.15s;"
@@ -419,6 +450,7 @@
               <div style="text-align:right;">
                 <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.7);">Nocional</div>
                 <div style="font-size:1rem;font-weight:800;color:#fff;font-family:'JetBrains Mono',monospace;">{{ fmtK(cicloCorrente.nocional) }}</div>
+                <div v-if="cicloCorrente.nocionalDesmont > 0" style="font-size:0.6rem;color:rgba(255,200,100,0.9);">&minus;{{ fmtK(cicloCorrente.nocionalDesmont) }} desmont.</div>
               </div>
               <div style="text-align:right;">
                 <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.7);">P/L</div>
@@ -460,21 +492,33 @@
                 </div>
               </div>
 
-              <!-- CALL / PUT -->
+              <!-- PUT / CALL com contexto de gestão -->
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;margin-top:0.25rem;padding-top:0.75rem;border-top:1px solid var(--border-subtle);">
-                <div v-for="tp in tipoVisoes" :key="tp.tipo"
-                  @click="abrirDrawer('tipo', tp.tipo, tp.label)"
-                  style="border-radius:var(--radius-md);padding:0.6rem 0.5rem;cursor:pointer;text-align:center;transition:box-shadow 0.15s;"
-                  :style="tp.tipo === 'CALL' ? 'background:var(--brand-indigo-light);border:1.5px solid var(--brand-indigo-muted);' : 'background:var(--brand-rose-light);border:1.5px solid var(--brand-rose-muted);'"
+
+                <!-- PUT: capital real -->
+                <div @click="abrirDrawer('tipo', 'PUT', 'Venda PUT')"
+                  style="border-radius:var(--radius-md);padding:0.6rem 0.5rem;cursor:pointer;text-align:center;transition:box-shadow 0.15s;
+                         background:var(--brand-indigo-light);border:1.5px solid var(--brand-indigo-muted);"
                   onmouseover="this.style.boxShadow='var(--shadow-md)'"
                   onmouseout="this.style.boxShadow='none'">
-                  <div style="font-size:0.6rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px;"
-                    :style="tp.tipo === 'CALL' ? 'color:var(--brand-indigo);' : 'color:var(--brand-rose);'">{{ tp.label }}</div>
-                  <div style="font-size:1.4rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
-                    :style="tp.tipo === 'CALL' ? 'color:var(--brand-indigo);' : 'color:var(--brand-rose);'">{{ tp.count }}</div>
-                  <div style="font-size:0.75rem;font-weight:700;font-family:'JetBrains Mono',monospace;"
-                    :style="tp.tipo === 'CALL' ? 'color:var(--brand-indigo);' : 'color:var(--brand-rose);'">{{ fmtK(tp.nocional) }}</div>
+                  <div style="font-size:0.58rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1px;color:var(--brand-indigo);">Venda PUT</div>
+                  <div style="font-size:0.5rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;opacity:0.7;margin-bottom:4px;color:var(--brand-indigo);">capital próprio</div>
+                  <div style="font-size:1.4rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);line-height:1.1;">{{ tipoVisoes[1] && tipoVisoes[1].count || 0 }}</div>
+                  <div style="font-size:0.75rem;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);">{{ fmtK(totalNocionalPut) }}</div>
                 </div>
+
+                <!-- CALL: coberto -->
+                <div @click="abrirDrawer('tipo', 'CALL', 'Venda CALL')"
+                  style="border-radius:var(--radius-md);padding:0.6rem 0.5rem;cursor:pointer;text-align:center;transition:box-shadow 0.15s;
+                         background:var(--brand-amber-light);border:1.5px solid var(--brand-amber-muted);"
+                  onmouseover="this.style.boxShadow='var(--shadow-md)'"
+                  onmouseout="this.style.boxShadow='none'">
+                  <div style="font-size:0.58rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1px;color:var(--brand-amber);">Venda CALL</div>
+                  <div style="font-size:0.5rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;opacity:0.7;margin-bottom:4px;color:var(--brand-amber);">coberto por ações</div>
+                  <div style="font-size:1.4rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-amber);line-height:1.1;">{{ tipoVisoes[0] && tipoVisoes[0].count || 0 }}</div>
+                  <div style="font-size:0.75rem;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--brand-amber);">{{ fmtK(totalNocionalCall) }}</div>
+                </div>
+
               </div>
             </div>
 
@@ -859,6 +903,31 @@ window.CardRadar = {
       return this.operacoes.reduce(function(s, o) { return s + (parseFloat(o.nocional) || 0); }, 0);
     },
 
+    putNetting: function() {
+      var grupos = {}; var ordem = [];
+      this.operacoes.forEach(function(o) {
+        var tipo = String(o.tipoOpcao||'').toUpperCase();
+        if (tipo.indexOf('PUT') < 0) return;
+        var dir = String(o.direcaoTrade||'').toUpperCase();
+        var venda = dir.indexOf('VENDA') >= 0;
+        var dStr = o.dataVencimento ? String(o.dataVencimento).split('T')[0] : '';
+        var key = (o.tickerAtivo||'')+'|'+(o.strike||'')+'|'+dStr;
+        if (!grupos[key]) { grupos[key]={ticker:o.tickerAtivo,vendaNoc:0,compraNoc:0,vendaOps:[],compraOps:[]}; ordem.push(key); }
+        var noc = parseFloat(o.nocional)||0;
+        if (venda) { grupos[key].vendaNoc+=noc; grupos[key].vendaOps.push(o); }
+        else       { grupos[key].compraNoc+=noc; grupos[key].compraOps.push(o); }
+      });
+      return ordem.map(function(k){ var g=grupos[k]; return Object.assign({},g,{key:k,liquidoNoc:Math.max(0,g.vendaNoc-g.compraNoc)}); });
+    },
+
+    totalNocionalPut: function() { return this.putNetting.reduce(function(a,g){return a+g.liquidoNoc;},0); },
+    totalNocionalPutBruto: function() { return this.putNetting.reduce(function(a,g){return a+g.vendaNoc;},0); },
+    totalNocionalPutDesmontagem: function() { return this.putNetting.reduce(function(a,g){return a+g.compraNoc;},0); },
+
+    totalNocionalCall: function() {
+      return this.operacoes.filter(function(o){ return String(o.tipoOpcao||'').toUpperCase().indexOf('CALL')>=0 && String(o.direcaoTrade||'').toUpperCase().indexOf('VENDA')>=0; }).reduce(function(a,o){return a+(parseFloat(o.nocional)||0);},0);
+    },
+
     totalPL: function() {
       return this.operacoes.reduce(function(s, o) { return s + (parseFloat(o.plTotalValor) || 0); }, 0);
     },
@@ -972,14 +1041,17 @@ window.CardRadar = {
       var mapa = {};
       var ordem = [];
 
-      ops.forEach(function(o) {
-        var d = o.dataVencimento instanceof Date ? o.dataVencimento : new Date(o.dataVencimento);
+      // Ciclo: nocional principal = V PUT liquida. Saves desmont for display.
+      this.putNetting.forEach(function(g) {
+        if (g.liquidoNoc <= 0 || g.vendaOps.length === 0) return;
+        var rep = g.vendaOps[0]; // op representativa
+        var d = rep.dataVencimento instanceof Date ? rep.dataVencimento : new Date(rep.dataVencimento);
         if (isNaN(d.getTime())) return;
         var chave = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
         var label = meses[d.getMonth()] + '/' + String(d.getFullYear()).slice(2);
         if (!mapa[chave]) {
           mapa[chave] = {
-            chave: chave, label: label, count: 0, nocional: 0, pl: 0,
+            chave: chave, label: label, count: 0, nocional: 0, nocionalDesmont: 0, pl: 0,
             mes: d.getMonth(), ano: d.getFullYear(),
             OTM: { count: 0, nocional: 0 },
             ATM: { count: 0, nocional: 0 },
@@ -987,15 +1059,23 @@ window.CardRadar = {
           };
           ordem.push(chave);
         }
-        var mon = String(o.moneynessCode || '').toUpperCase();
+        var mon = String(rep.moneynessCode || '').toUpperCase();
         var col = mon.indexOf('OTM') >= 0 ? 'OTM' : mon.indexOf('ATM') >= 0 ? 'ATM' : mon.indexOf('ITM') >= 0 ? 'ITM' : null;
-        mapa[chave].count++;
-        mapa[chave].nocional += parseFloat(o.nocional)     || 0;
-        mapa[chave].pl       += parseFloat(o.plTotalValor) || 0;
-        if (col) {
-          mapa[chave][col].count++;
-          mapa[chave][col].nocional += parseFloat(o.nocional) || 0;
-        }
+        mapa[chave].count += g.vendaOps.length;
+        mapa[chave].nocional += g.liquidoNoc;
+        mapa[chave].nocionalDesmont += g.compraNoc;
+        g.vendaOps.forEach(function(op){ mapa[chave].pl += parseFloat(op.plTotalValor)||0; });
+        if (col) { mapa[chave][col].count += g.vendaOps.length; mapa[chave][col].nocional += g.liquidoNoc; }
+      });
+      // P/L das compras de desmontagem tb entram no P/L do ciclo
+      ops.forEach(function(o) {
+        var tipo = String(o.tipoOpcao||'').toUpperCase();
+        var dir  = String(o.direcaoTrade||'').toUpperCase();
+        if (tipo.indexOf('PUT') < 0 || dir.indexOf('COMPRA') < 0) return;
+        var d = o.dataVencimento instanceof Date ? o.dataVencimento : new Date(o.dataVencimento);
+        if (isNaN(d.getTime())) return;
+        var chave = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        if (mapa[chave]) mapa[chave].pl += parseFloat(o.plTotalValor)||0;
       });
 
       var maxNoc = 1;
@@ -1009,18 +1089,19 @@ window.CardRadar = {
           ? 'background:var(--brand-indigo-light);color:var(--brand-indigo);border:1.5px solid var(--brand-indigo-muted);'
           : 'background:var(--surface-sunken);color:var(--text-secondary);border:1.5px solid var(--border-default);';
         return {
-          chave:      v.chave,
-          label:      v.label,
-          count:      v.count,
-          nocional:   v.nocional,
-          pl:         v.pl,
-          pctNoc:     Math.round((v.nocional / maxNoc) * 100),
-          badgeStyle: badgeStyle,
-          barClass:   'radar-bar-indigo',
-          plStyle:    v.pl >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);',
-          OTM:        v.OTM,
-          ATM:        v.ATM,
-          ITM:        v.ITM
+          chave:          v.chave,
+          label:          v.label,
+          count:          v.count,
+          nocional:       v.nocional,
+          nocionalDesmont:v.nocionalDesmont || 0,
+          pl:             v.pl,
+          pctNoc:         Math.round((v.nocional / maxNoc) * 100),
+          badgeStyle:     badgeStyle,
+          barClass:       'radar-bar-indigo',
+          plStyle:        v.pl >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);',
+          OTM:            v.OTM,
+          ATM:            v.ATM,
+          ITM:            v.ITM
         };
       });
     },
