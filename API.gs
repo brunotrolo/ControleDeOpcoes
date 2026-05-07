@@ -220,6 +220,46 @@ function lerAbaComoJSON(nomeAba) {
 }
 
 // ==========================================
+// 1c. EXPORTAR COCKPIT (CSV Download)
+// ==========================================
+
+/**
+ * Lê a aba COCKPIT a partir da linha 10 (cabeçalho real) até a última linha
+ * preenchida e devolve o array 2D de display values para o frontend gerar o CSV.
+ *
+ * Uso no frontend:
+ *   google.script.run
+ *     .withSuccessHandler(handler)
+ *     .exportarCockpitCSV();
+ */
+function exportarCockpitCSV() {
+  try {
+    const ss    = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.COCKPIT);
+
+    if (!sheet) return { success: false, error: "Aba COCKPIT não encontrada." };
+
+    const LINHA_CABECALHO = 10;
+    const lastRow  = sheet.getLastRow();
+    const lastCol  = sheet.getLastColumn();
+
+    if (lastRow < LINHA_CABECALHO || lastCol === 0) {
+      return { success: true, rows: [] };
+    }
+
+    const numLinhas = lastRow - LINHA_CABECALHO + 1;
+    const rows = sheet
+      .getRange(LINHA_CABECALHO, 1, numLinhas, lastCol)
+      .getDisplayValues();
+
+    return { success: true, rows: rows };
+
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+// ==========================================
 // 2. CREATE (Inserção em Lote)
 // ==========================================
 
