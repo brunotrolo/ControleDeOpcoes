@@ -132,6 +132,40 @@
         </transition>
       </button>
 
+      <!-- Exportar Cockpit CSV -->
+      <button
+        @click="exportarCockpit"
+        :disabled="exportandoCSV"
+        :title="isCollapsed ? 'Exportar Cockpit (CSV)' : ''"
+        :class="[
+          'w-full flex items-center gap-3 rounded-[var(--radius-md)] px-3 py-2.5 transition-all duration-[150ms] group relative',
+          isCollapsed ? 'justify-center px-0' : ''
+        ]"
+        style="color: var(--text-muted);"
+        onmouseover="this.style.background='var(--surface-overlay)'; this.style.color='var(--text-secondary)'"
+        onmouseout="this.style.background='transparent'; this.style.color='var(--text-muted)'"
+      >
+        <i
+          :data-lucide="exportandoCSV ? 'loader-2' : 'download'"
+          class="w-[18px] h-[18px] shrink-0"
+          :style="exportandoCSV ? 'animation: sidebar-spin 0.8s linear infinite;' : ''"
+        ></i>
+        <transition name="sidebar-label">
+          <span v-show="!isCollapsed" class="text-[13px] font-semibold tracking-[-0.01em] whitespace-nowrap">
+            {{ exportandoCSV ? 'Exportando...' : 'Exportar CSV' }}
+          </span>
+        </transition>
+        <!-- Tooltip quando collapsed -->
+        <div
+          v-if="isCollapsed"
+          class="absolute left-full ml-3 px-2.5 py-1.5 rounded-[var(--radius-sm)] text-xs font-semibold whitespace-nowrap pointer-events-none
+                 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-md"
+          style="background: var(--text-primary); color: var(--surface-base);"
+        >
+          Exportar CSV
+        </div>
+      </button>
+
       <!-- Ultima sincronizacao -->
       <transition name="sidebar-label">
         <div v-show="!isCollapsed && lastSync" class="px-3 py-1.5">
