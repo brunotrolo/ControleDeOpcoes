@@ -3,10 +3,8 @@
  * RESPONSABILIDADE: Gerenciar a ponte de execucao mantendo o silencio total na interface.
  * PADRAO: Zero Toasts e Zero Modais. Tudo flui em background (Console e SysLogger).
  *
- * v4.1 - Correcoes:
- *   - Removidos template literals (backticks) -- incompativeis com GAS document.write()
- *   - Adicionadas bridges ausentes: SyncCorrelIbovRanking_Menu, SyncCompaniesRanking_Menu
- *   - ConsultorIA_AbrirTela REMOVIDA deste arquivo -- pertence ao 024_ConsultorIAClaudeSonnet45.gs
+ * v4.2 - Bridges ativas: AtualizarNecton, AtualizarDadosAtivos, AtualizarDetalhes,
+ *         AtualizarGregasAPI, CalcularGregasNativo, AtualizarScanner.
  */
 
 const UIHandler = {

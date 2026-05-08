@@ -265,7 +265,7 @@ function executarFluxoSequencial() {
 // ============================================================================
 // ORQUESTRADOR OPLab Market Data
 // Chave Config_Global: Orquestrador_Sequencia_OPLab
-// Valor exemplo: AtualizarScanner_Menu;SyncSeriesInstrumento_Menu;SyncBestCoveredOptionsRates_Menu;SyncHighestOptionsVolume_Menu;SyncHighestOptionsVariation_Menu;SyncM9M21Ranking_Menu;SyncOplabScore_Menu;SyncHistoricalOptions_Menu;SyncCorrelIbovRanking_Menu;SyncCompaniesRanking_Menu
+// Valor exemplo: AtualizarScanner_Menu
 // ============================================================================
 
 function executarFluxoOPLab() {
