@@ -36,8 +36,7 @@ const app = createApp({
       dadosAtivos:      [],
       dadosTendencia:   [],
       necton:           [],
-      calcGreeks:       [],
-      historico250d:    []
+      calcGreeks:       []
     });
 
     // [C1] cuboOlap como computed memoizado.
@@ -278,7 +277,6 @@ const app = createApp({
             db.value = Object.assign({}, db.value, {
               dadosAtivos:    dadosTraduzidos.dadosAtivos    || [],
               logs:           dadosTraduzidos.logs            || [],
-              historico250d:  dadosTraduzidos.historico250d   || [],
               histOpcoes250d: dadosTraduzidos.histOpcoes250d  || [],
               calcGreeks:     dadosTraduzidos.calcGreeks      || [],
               dadosGreeks:    dadosTraduzidos.dadosGreeks     || [],
