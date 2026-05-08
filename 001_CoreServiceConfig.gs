@@ -95,9 +95,8 @@ const ConfigManager = {
         const key = String(data[i][0]).trim();
         let val = data[i][1];
         if (key && !key.startsWith("//")) {
-          // Limpeza de números via DataUtils
-          configs[key] = (typeof val === 'string' && val.includes(',')) ? 
-                          DataUtils.safeFloat(val) : val;
+          configs[key] = (typeof val === 'string' && val.includes(',')) ?
+                          parseFloat(String(val).replace(/\./g, '').replace(',', '.')) : val;
         }
       }
 
