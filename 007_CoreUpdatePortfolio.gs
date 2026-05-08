@@ -81,6 +81,7 @@ const PortfolioUpdater = {
             this._normalizarDadosImportados(aba, item.linha, col);
 
             tickersSucesso.push(item.optionTicker);
+            if (linhasParaProcessar.length > 5) Utilities.sleep(600);
             SysLogger.log(this._serviceName, "SUCESSO", `Linha ${item.linha}: ${item.optionTicker} normalizada.`, JSON.stringify(dadosNovos));
           } else {
             aba.getRange(item.linha, col["TICKER"], 1, 1).setValue("ERRO_API");
@@ -91,8 +92,6 @@ const PortfolioUpdater = {
           contagemErro++;
           SysLogger.log(this._serviceName, "ERRO_CRITICO", `Falha fatal na linha ${item.linha}`, erroLinha.message);
         }
-        
-        if (linhasParaProcessar.length > 5) Utilities.sleep(600); 
       });
 
       const duracao = ((Date.now() - inicio) / 1000).toFixed(1);
@@ -146,32 +145,33 @@ const PortfolioUpdater = {
         { nome: "STRIKE",       tipo: "numero", mascara: '"R$ "#,##0.00' },
         { nome: "QUANTITY",     tipo: "numero", mascara: '#,##0' },
         { nome: "ORDER_DATE",   tipo: "data",   mascara: 'dd/MM/yyyy HH:mm:ss' },
-        { nome: "EXPIRY",       tipo: "data",   mascara: 'dd/MM/yyyy' } 
+        { nome: "EXPIRY",       tipo: "data",   mascara: 'dd/MM/yyyy' }
       ];
 
-      colunasAlvo.forEach(alvo => {
-        const colIndex = colMap[alvo.nome];
-        if (colIndex) {
-          const range = aba.getRange(linha, colIndex);
-          
-          if (range.getFormula() !== "") return;
+      const alvosAtivos = colunasAlvo.filter(a => colMap[a.nome]);
+      if (alvosAtivos.length === 0) return;
 
-          const valorBruto = range.getValue();
-          
-          if (valorBruto !== "" && valorBruto !== null) {
-            
-            // 🚀 CORREÇÃO AQUI: Agora ele obedece ao 'tipo' definido no array
-            const valorNormalizado = (alvo.tipo === "data") 
-                                ? Sanitizador.dataPura(valorBruto) 
-                                : Sanitizador.numeroPuro(valorBruto);
-            
-            range.setValue(valorNormalizado);       
-            
-            try {
-              range.setNumberFormat(alvo.mascara);  
-            } catch (eVisual) { }
-          }
-        }
+      // Batch read: single call covers all target columns
+      const colNums = alvosAtivos.map(a => colMap[a.nome]);
+      const minCol = Math.min(...colNums);
+      const maxCol = Math.max(...colNums);
+      const span = aba.getRange(linha, minCol, 1, maxCol - minCol + 1);
+      const formulas = span.getFormulas()[0];
+      const valores  = span.getValues()[0];
+
+      alvosAtivos.forEach(alvo => {
+        const offset = colMap[alvo.nome] - minCol;
+        if (formulas[offset] !== "") return;
+        const valorBruto = valores[offset];
+        if (valorBruto === "" || valorBruto === null) return;
+
+        const valorNormalizado = (alvo.tipo === "data")
+          ? Sanitizador.dataPura(valorBruto)
+          : Sanitizador.numeroPuro(valorBruto);
+
+        const cell = aba.getRange(linha, colMap[alvo.nome]);
+        cell.setValue(valorNormalizado);
+        try { cell.setNumberFormat(alvo.mascara); } catch(e) {}
       });
     }
 };
