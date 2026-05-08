@@ -277,12 +277,10 @@ const app = createApp({
             db.value = Object.assign({}, db.value, {
               dadosAtivos:    dadosTraduzidos.dadosAtivos    || [],
               logs:           dadosTraduzidos.logs            || [],
-              histOpcoes250d: dadosTraduzidos.histOpcoes250d  || [],
               calcGreeks:     dadosTraduzidos.calcGreeks      || [],
               dadosGreeks:    dadosTraduzidos.dadosGreeks     || [],
               necton:         dadosTraduzidos.necton          || [],
               detalhes:       dadosTraduzidos.detalhes        || [],
-              selecaoOpcoes:  dadosTraduzidos.selecaoOpcoes   || [],
               cockpit:        cockpitEnriquecido,
               raw:            Object.assign({}, db.value.raw || {}, response.raw || {})
             });
@@ -432,22 +430,11 @@ const app = createApp({
         // 2. ANALISE & GESTAO
         // =========================================================
         'comparativo-view': { db: db.value },
-        'dashboard-hub': {
-          opcoesBrutas:       db.value.selecaoOpcoes || [],
-          statsPreCalculados: cuboOlap.value,
-          histOpcoes:         db.value.histOpcoes250d || []
-        },
 
         // =========================================================
-        // 3. OPLAB MARKET DATA HUB
-        // =========================================================
-        'oplab-hub': { isMobile: isMobile.value },
-
-        // =========================================================
-        // 4. CONSULTOR IA & COCKPIT SUMMARY
+        // 3. COCKPIT SUMMARY
         // =========================================================
         'cockpit-summary': { cockpit: db.value.cockpit || [] },
-        'consultor-ia':    { statsPreCalculados: cuboOlap.value },
 
         // =========================================================
         // 5. FERRAMENTAS
@@ -523,32 +510,12 @@ const COMPONENTES_V6 = [
 
   // 2. ANALISE & GESTAO
   ['comparativo-view',       window.ComparativoView],
-  ['dashboard-hub',          window.DashboardHub],
   ['dash-theta-decay',       window.DashThetaDecay],
   ['dash-stress-test',       window.DashStressTest],
   ['dash-vencimentos-gantt', window.DashVencimentosGantt],
-  ['dash-liquidity-map',     window.DashLiquidityMap],
-  ['dash-volatility-skew',   window.DashVolatilitySkew],
-  ['dash-risk-return',       window.DashRiskReturn],
-  ['dash-gamma-theta',       window.DashGammaTheta],
-  ['dash-historico-opcoes',  window.DashHistoricoOpcoes],
 
-  // 3. OPLAB MARKET DATA HUB
-  ['oplab-hub',              window.OpLabHub],
-  ['page-series-opcoes',     window.PageSeriesOpcoes],
-  ['page-melhores-taxas',    window.PageMelhoresTaxas],
-  ['page-volumes',           window.PageVolumes],
-  ['page-variacoes',         window.PageVariacoes],
-  ['page-ranking-m9m21',     window.PageRankingM9M21],
-  ['page-oplab-score',       window.PageOplabScore],
+  // 3. PAGES
   ['page-historico',         window.PageHistorico],
-
-  // 4. CONSULTOR IA
-  ['consultor-ia',           window.ConsultorIA],
-
-  // 5. OPLAB MARKET — PAGINAS ADICIONAIS
-  ['page-correl-ibov',       window.PageCorrelIbov],
-  ['page-fundamentalista',   window.PageFundamentalista],
 
   // 6. FERRAMENTAS
   ['necton-import',          window.NectonImport],

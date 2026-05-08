@@ -68,27 +68,9 @@ function getAbasPesadas() {
       SYS_CONFIG.SHEETS.ASSETS,
       SYS_CONFIG.SHEETS.DETAILS,
 
-      // 3. Motor Matemático & Filtros
+      // 3. Motor Matemático
       SYS_CONFIG.SHEETS.GREEKS_CALC,
-      SYS_CONFIG.SHEETS.GREEKS_API,
-      SYS_CONFIG.SHEETS.SELECTION_OPT,
-
-      // 4. OPLab Market Data (motores 014-020)
-      SYS_CONFIG.SHEETS.SERIES_INSTR,
-      SYS_CONFIG.SHEETS.BEST_RATES,
-      SYS_CONFIG.SHEETS.VOL_OPCOES,
-      SYS_CONFIG.SHEETS.VAR_OPCOES,
-      SYS_CONFIG.SHEETS.RANK_M9M21,
-      SYS_CONFIG.SHEETS.RANK_SCORE,
-      SYS_CONFIG.SHEETS.HIST_OPCOES,
-      SYS_CONFIG.SHEETS.RANK_CORREL,
-      SYS_CONFIG.SHEETS.RANK_FUND,
-
-      // 5. Consultor IA (024_ConsultorIAClaudeSonnet45)
-      SYS_CONFIG.SHEETS.CONSULTOR_HIST,
-
-      // 6. Historico de Cotacoes de Opcoes 250D (013_CoreSyncStockOptionsDataHistory)
-      SYS_CONFIG.SHEETS.HIST_OPCOES_250D
+      SYS_CONFIG.SHEETS.GREEKS_API
     ];
 
     const data = { success: true, timestamp: new Date().toLocaleString('pt-BR'), raw: {} };
@@ -184,7 +166,7 @@ function testarAPI_Leitura() {
  * Uso no frontend:
  *   google.script.run
  *     .withSuccessHandler(resolve)
- *     .lerAbaComoJSON('SERIES_OPCOES_INSTRUMENTO');
+ *     .lerAbaComoJSON('DADOS_ATIVOS');
  */
 function lerAbaComoJSON(nomeAba) {
   try {

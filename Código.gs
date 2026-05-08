@@ -22,26 +22,12 @@ function onOpen(e) {
         .addSeparator()
         .addItem('📥 1. Atualizar Necton (Portfólio)', 'AtualizarNecton_Menu')
         .addItem('📈 2. Atualizar Dados Ativos (Ações)', 'AtualizarDadosAtivos_Menu')
-        .addItem('🕰️ 3. Atualizar Histórico Ativos (250d)', 'AtualizarHistorico_Menu')
-        .addItem('🔍 4. Atualizar Detalhes (Opções)', 'AtualizarDetalhes_Menu')
-        .addItem('📂 5. Atualizar Histórico Opções (250d)', 'SyncHistoricoOpcoes250D_Menu')
+        .addItem('🔍 3. Atualizar Detalhes (Opções)', 'AtualizarDetalhes_Menu')
         .addSeparator()
-        .addItem('🧮 6a. Calcular Gregas (API OPLab)', 'AtualizarGregasAPI_Menu')
-        .addItem('🔬 6b. Calcular Gregas (Nativo BS)', 'CalcularGregasNativo_Menu')
+        .addItem('🧮 4a. Calcular Gregas (API OPLab)', 'AtualizarGregasAPI_Menu')
+        .addItem('🔬 4b. Calcular Gregas (Nativo BS)', 'CalcularGregasNativo_Menu')
         .addSeparator()
-        .addItem('📡 7. Escaner Opções Oportunidades (API OPLab)', 'AtualizarScanner_Menu')
-        .addSeparator()
-        .addItem('📊 8. Séries de Opções (API OPLab)', 'SyncSeriesInstrumento_Menu')
-        .addItem('💰 9. Melhores Taxas de Lucro (API OPLab)', 'SyncBestCoveredOptionsRates_Menu')
-        .addItem('📈 10. Maiores Volumes em Opções (API OPLab)', 'SyncHighestOptionsVolume_Menu')
-        .addItem('⚡ 11. Maiores Variações em Opções (API OPLab)', 'SyncHighestOptionsVariation_Menu')
-        .addItem('📉 12. Ranking Tendência M9M21 (API OPLab)', 'SyncM9M21Ranking_Menu')
-        .addItem('🏆 13. Ranking OPLab Score (API OPLab)', 'SyncOplabScore_Menu')
-        .addItem('🕰️ 14. Histórico de Opções (API OPLab)', 'SyncHistoricalOptions_Menu')
-        .addItem('🏦 15. Correlação IBOV (API OPLab)', 'SyncCorrelIbovRanking_Menu')
-        .addItem('📊 16. Ranking Fundamentalista (API OPLab)', 'SyncCompaniesRanking_Menu')
-        .addSeparator()
-        .addItem('🤖 17. Consultor IA (Claude)', 'ConsultorIA_AbrirTela')
+        .addItem('📡 5. Escaner Opções Oportunidades (API OPLab)', 'AtualizarScanner_Menu')
         .addToUi();
   } catch (err) {
     console.warn("[onOpen] Interface indisponível.");
@@ -86,7 +72,7 @@ function testeFinalIntegridade() {
   
   try {
     // 1. Testa Base de Configuração (001)
-    console.log(`🔍 Configuração (001): Aba SERIES_INSTR definida como '${SYS_CONFIG.SHEETS.SERIES_INSTR}'`);
+    console.log(`🔍 Configuração (001): Aba COCKPIT definida como '${SYS_CONFIG.SHEETS.COCKPIT}'`);
     
     // 2. Testa Logger (003)
     SysLogger.log("SISTEMA", "INFO", "Teste de integridade do Menu", "Sucesso");
