@@ -8,7 +8,8 @@
     <transition name="acad-fade">
       <div v-if="estrategiaAberta"
            style="position:fixed;inset:0;z-index:9998;display:flex;align-items:center;justify-content:center;"
-           @click.self="fecharEstrategia">
+           @click.self="fecharEstrategia"
+           @keydown.escape.window="fecharEstrategia">
         <div style="position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(3px);"></div>
         <div style="position:relative;z-index:1;display:flex;flex-direction:column;overflow:hidden;border-radius:var(--radius-xl);background:var(--surface-base);border:1px solid var(--border-subtle);box-shadow:0 24px 64px rgba(0,0,0,0.4);"
              :style="isMobile ? 'width:100%;height:100%;border-radius:0;' : 'width:760px;max-height:90vh;'">

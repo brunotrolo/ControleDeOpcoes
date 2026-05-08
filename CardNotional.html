@@ -303,8 +303,8 @@
            SKELETON (enquanto isLoading = true)
            ══════════════════════════════════════ -->
       <div v-if="isLoading"
-        style="padding:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1px;
-               background:var(--border-subtle);">
+        style="padding:1.25rem;display:grid;gap:1px;background:var(--border-subtle);"
+        :style="isMobile ? 'grid-template-columns:1fr;' : 'grid-template-columns:1fr 1fr;'">
         <!-- 4 blocos skeleton simulando os 4 paineis -->
         <div v-for="n in 4" :key="n"
           style="background:var(--surface-base);padding:1.25rem;
@@ -1244,7 +1244,13 @@ window.CardNotional = {
     salvarLimite: function() {
       var self = this;
       self.focuLimite = false;
-      var n = parseFloat(String(self.limiteEditavel).replace(/[R$\s.]/g, '').replace(',', '.')) || 0;
+      var limpo = String(self.limiteEditavel).replace(/[R$\s.]/g, '').replace(',', '.');
+      var n = parseFloat(limpo);
+      if (isNaN(n) || n < 0) {
+        self.limiteEditavel = String(Math.round(self.limiteNumerico));
+        return;
+      }
+      n = n || 0;
       if (n === self.limiteNumerico) return;
       self.limiteNumerico = n;
       self.limiteEditavel = String(Math.round(n));

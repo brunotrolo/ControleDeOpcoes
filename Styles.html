@@ -338,10 +338,12 @@
     background-color: var(--brand-indigo-light);
   }
 
-  /* Área de toque mobile mínima (44px) */
-  @media (max-width: 850px) {
+  /* Área de toque mobile mínima (44px) — alinhado com breakpoint Vue (1024px) */
+  @media (max-width: 1024px) {
     .btn-action { min-height: 44px; padding: 0.625rem 1.25rem; }
   }
+
+  .btn-action:disabled { opacity: 0.55; cursor: not-allowed; }
 
   /* --- Inputs --- */
   .input-base {
