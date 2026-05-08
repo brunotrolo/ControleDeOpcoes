@@ -69,23 +69,10 @@ function _menuBridge(servicoNome, callback) {
 
 function AtualizarNecton_Menu()             { _menuBridge("Necton", atualizarNecton); }
 function AtualizarDadosAtivos_Menu()        { _menuBridge("Ativos", atualizarDadosAtivos); }
-function AtualizarHistorico_Menu()          { _menuBridge("Historico", atualizarDadosHistoricos); }
 function AtualizarDetalhes_Menu()           { _menuBridge("Detalhes", atualizarDetalhesOpcoes); }
 function AtualizarGregasAPI_Menu()          { _menuBridge("Gregas (API)", atualizarGregas); }
 function CalcularGregasNativo_Menu()        { _menuBridge("Gregas (Nativo)", calcularGregasNativo); }
 function AtualizarScanner_Menu()            { _menuBridge("Scanner Oportunidades", atualizarScannerOpcoes); }
-function SyncSeriesInstrumento_Menu()       { _menuBridge("Series de Opcoes (OPLab)", orquestrarSyncSeriesInstrumento); }
-function SyncBestCoveredOptionsRates_Menu() { _menuBridge("Melhores Taxas de Lucro (OPLab)", orquestrarSyncBestRates); }
-function SyncHighestOptionsVolume_Menu()    { _menuBridge("Maiores Volumes em Opcoes (OPLab)", orquestrarSyncHighestVolume); }
-function SyncHighestOptionsVariation_Menu() { _menuBridge("Maiores Variacoes em Opcoes (OPLab)", orquestrarSyncHighestVariation); }
-function SyncM9M21Ranking_Menu()            { _menuBridge("Ranking Tendencia M9M21 (OPLab)", orquestrarSyncM9M21); }
-function SyncOplabScore_Menu()              { _menuBridge("Ranking OPLab Score (OPLab)", orquestrarSyncOplabScore); }
-function SyncHistoricalOptions_Menu()       { _menuBridge("Historico de Opcoes (OPLab)", orquestrarSyncHistoricalOptions); }
-function SyncHistoricoOpcoes250D_Menu()     { _menuBridge("Historico Incremental Opcoes 250D", sincronizarHistoricoOpcoes); }
-function SyncCorrelIbovRanking_Menu()       { _menuBridge("Ranking Correlacao IBOV (OPLab)", orquestrarSyncCorrelIbov); }
-function SyncCompaniesRanking_Menu()        { _menuBridge("Ranking Fundamentalista (OPLab)", orquestrarSyncCompaniesRanking); }
-
-
 // ================================================================
 // TESTE DE HOMOLOGACAO
 // ================================================================
