@@ -93,14 +93,6 @@ const GeminiService = {
 };
 
 // ============================================================================
-// PONTO DE COMPATIBILIDADE RETRÔ 
-// ============================================================================
-
-function callGeminiAI(promptText, systemInstruction = "", isJsonResponse = false) {
-  return GeminiService.generate(promptText, systemInstruction, isJsonResponse);
-}
-
-// ============================================================================
 // SUÍTE DE HOMOLOGAÇÃO E TESTES UNITÁRIOS (012)
 // ============================================================================
 
