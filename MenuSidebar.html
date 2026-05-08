@@ -402,17 +402,15 @@ window.MenuSidebar = {
       drawerAberto: false,
       atualizandoLocal: false,
 
-      // Itens fixos na bottom bar mobile
-      mobileMenuIds: ['cockpit', 'wheel-manager', 'comparador', 'calc-bs'],
       exportandoCSV: false,
     };
   },
 
   computed: {
-    // Menu principal da bottom bar (4 itens fixos)
+    // Menu principal da bottom bar — derivado do flag mobile: true no APP_MENU
     mobileMenu() {
       return this.menu
-        .filter(item => !item.separator && this.mobileMenuIds.includes(item.id))
+        .filter(item => !item.separator && item.mobile)
         .map(item => ({
           ...item,
           shortLabel: this.shortLabels[item.id] || item.label
@@ -421,7 +419,7 @@ window.MenuSidebar = {
 
     // Itens restantes vao para o drawer
     drawerMenu() {
-      return this.menu.filter(item => !item.separator && !this.mobileMenuIds.includes(item.id));
+      return this.menu.filter(item => !item.separator && !item.mobile);
     },
 
     // Labels curtos para a bottom bar

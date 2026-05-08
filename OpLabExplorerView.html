@@ -715,7 +715,12 @@ window.OpLabExplorerView = {
       }
       
       const json = JSON.stringify(data, null, 2);
-      
+
+      // Respostas grandes (> 50KB) não recebem highlight — regex em string enorme trava a UI
+      if (json.length > 50000) {
+        return json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+
       // Escapa HTML para segurança e aplica as classes de cor do CSS (Parte 2)
       return json
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -763,9 +768,17 @@ window.OpLabExplorerView = {
       this.isLoadingRequest = true;
       this.lastResponse = null;
 
+      const self = this;
+      const _reqTimeout = setTimeout(() => {
+        if (self.isLoadingRequest) {
+          self.isLoadingRequest = false;
+          self.lastResponse = { status: 'ERR', data: 'Timeout: sem resposta após 30s.' };
+        }
+      }, 30000);
+
       let path = this.selectedEp.path;
       const queryParams = {};
-      
+
       this.selectedEp.parameters.forEach(p => {
         const v = this.paramValues[p.name];
         if (p.in === 'path' && v) path = path.replace('{' + p.name + '}', v);
@@ -775,9 +788,10 @@ window.OpLabExplorerView = {
       // Chama a função callOpLabAPI do arquivo OpLabExplorer_API.gs
       google.script.run
         .withSuccessHandler((res) => {
+          clearTimeout(_reqTimeout);
           this.lastResponse = res;
           this.isLoadingRequest = false;
-          
+
           // Adiciona ao histórico de navegação
           this.history.unshift({
             path: this.selectedEp.path,
@@ -786,10 +800,11 @@ window.OpLabExplorerView = {
             time: new Date().toLocaleTimeString('pt-BR')
           });
           if (this.history.length > 15) this.history.pop();
-          
+
           this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
         })
         .withFailureHandler((err) => {
+          clearTimeout(_reqTimeout);
           this.lastResponse = { status: 'ERR', data: "Falha na comunicação com o Google Script: " + String(err) };
           this.isLoadingRequest = false;
         })

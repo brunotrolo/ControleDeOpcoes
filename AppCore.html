@@ -251,8 +251,11 @@ const app = createApp({
       const st = document.getElementById('debug-status');
       if (st) st.innerText = 'Baixando dados tecnicos (Background)...';
 
+      const _timeoutFase2 = setTimeout(() => { _abasPesadasEmVoo = false; }, 60000);
+
       google.script.run
         .withSuccessHandler((response) => {
+          clearTimeout(_timeoutFase2);
           if (!response || !response.success) {
             _abasPesadasEmVoo = false;
             return;
@@ -294,7 +297,7 @@ const app = createApp({
             _abasPesadasEmVoo = false;
           }
         })
-        .withFailureHandler(() => { _abasPesadasEmVoo = false; })
+        .withFailureHandler(() => { clearTimeout(_timeoutFase2); _abasPesadasEmVoo = false; })
         .getAbasPesadas();
     };
 
@@ -307,8 +310,11 @@ const app = createApp({
       const st = document.getElementById('debug-status');
       if (st) st.innerText = 'Aguardando Cockpit...';
 
+      const _timeoutFase1 = setTimeout(() => handleFailure('Timeout: GAS não respondeu em 30s'), 30000);
+
       google.script.run
         .withSuccessHandler((response) => {
+          clearTimeout(_timeoutFase1);
           const tempoBackend = performance.now();
           const msBackend    = tempoBackend - tempoInicio;
 
@@ -361,7 +367,7 @@ const app = createApp({
             handleFailure(err.message);
           }
         })
-        .withFailureHandler((err) => handleFailure(err))
+        .withFailureHandler((err) => { clearTimeout(_timeoutFase1); handleFailure(err); })
         .getDadosLight();
     };
 
