@@ -3,10 +3,10 @@
  * APP_MENU: Define a estrutura de navegacao da Sidebar.
  */
 window.APP_MENU = [
-  { id: 'cockpit',       label: 'Cockpit',                icon: 'layout-dashboard' },
+  { id: 'cockpit',       label: 'Cockpit',                icon: 'layout-dashboard', mobile: true },
   { separator: true },           // <- linha divisoria
-  { id: 'wheel',         label: 'Estrategia Wheel',       icon: 'rotate-cw' },
-  { id: 'comparador',    label: 'Comparador de PUT',      icon: 'crosshair' },
+  { id: 'wheel',         label: 'Estrategia Wheel',       icon: 'rotate-cw',        mobile: true },
+  { id: 'comparador',    label: 'Comparador de PUT',      icon: 'crosshair',        mobile: true },
   { separator: true },           // <- linha divisoria
   { id: 'academia',      label: 'Academia de Opcoes',     icon: 'graduation-cap' },
   { separator: true },           // <- linha divisoria
@@ -16,7 +16,7 @@ window.APP_MENU = [
   { separator: true },           // <- linha divisoria
   { id: 'oplab-explorer',label: 'OpLab API Explorer',     icon: 'terminal' },
   { id: 'config',        label: 'Configuracoes',          icon: 'settings' },
-  { id: 'calc-bs',       label: 'Calculadora BS',         icon: 'calculator',  modal: true }
+  { id: 'calc-bs',       label: 'Calculadora BS',         icon: 'calculator',  modal: true, mobile: true }
 ];
 
 /**
