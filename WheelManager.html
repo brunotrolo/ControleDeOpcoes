@@ -79,7 +79,8 @@
 
       <h3 class="t-label" style="color:var(--text-secondary);margin-top:0.5rem;">Mesas de Operacao (Ativos)</h3>
 
-      <div style="display:grid;gap:1.25rem;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));">
+      <div style="display:grid;gap:1.25rem;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));"
+        :style="isMobile ? 'grid-template-columns:1fr;' : ''">
         <div v-for="cofre in dadosWheel" :key="cofre.ticker" class="premium-card"
           style="display:flex;flex-direction:column;overflow:hidden;position:relative;">
 
