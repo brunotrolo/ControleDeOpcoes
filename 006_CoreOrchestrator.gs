@@ -165,92 +165,6 @@ const CoreOrchestrator = {
     UIHandler.alert("Fluxo Concluído", "Sincronização global concluída!\nPassos executados: " + (sequencia.join(", ")));
   },
 
-  // --------------------------------------------------------------------------
-  // Fluxo OPLab Market Data
-  // Chave Config_Global: Orquestrador_Sequencia_OPLab
-  // --------------------------------------------------------------------------
-  runFluxoOPLab() {
-    const CHAVE = "Orquestrador_Sequencia_OPLab";
-    const tInicio = Date.now();
-
-    const sequencia = this._lerSequencia(CHAVE);
-
-    if (sequencia.length === 0) {
-      UIHandler.alert("Orquestrador OPLab",
-        "Nenhuma sequencia definida. Preencha a chave '" + CHAVE + "' na aba Config_Global."
-      );
-      return;
-    }
-
-    SysLogger.log(this._serviceName, "START",
-      ">>> INICIANDO FLUXO OPLAB MARKET DATA <<<",
-      JSON.stringify({ chave: CHAVE, sequencia: sequencia })
-    );
-    SysLogger.flush();
-
-    const contextoGlobal = (function() { return this; })();
-
-    for (let i = 0; i < sequencia.length; i++) {
-      const nomeFuncao = sequencia[i];
-      UIHandler.notify(
-        "OPLab " + (i + 1) + "/" + sequencia.length + ": " + nomeFuncao + "...",
-        "Orquestrador OPLab"
-      );
-      SysLogger.log(this._serviceName, "INFO", "Invocando: " + nomeFuncao, "");
-
-      try {
-        if (typeof contextoGlobal[nomeFuncao] !== "function") {
-          throw new Error("Funcao nao encontrada: " + nomeFuncao);
-        }
-        contextoGlobal[nomeFuncao]();
-        SysLogger.log(this._serviceName, "SUCESSO", nomeFuncao + " concluido.", "");
-      } catch (e) {
-        SysLogger.log(this._serviceName, "ERRO", "Falha em " + nomeFuncao, String(e.message));
-        SysLogger.flush();
-        UIHandler.alert("Erro no Fluxo OPLab",
-          "Falha em: " + nomeFuncao + "\n\n" + e.message +
-          "\n\nFluxo interrompido no passo " + (i + 1) + "/" + sequencia.length + "."
-        );
-        return;
-      }
-    }
-
-    const duracao = ((Date.now() - tInicio) / 1000).toFixed(1);
-    SysLogger.log(this._serviceName, "FINISH",
-      ">>> FLUXO OPLAB CONCLUIDO: " + sequencia.length + " passos | " + duracao + "s <<<",
-      JSON.stringify({ total_passos: sequencia.length, duracao_s: duracao })
-    );
-    SysLogger.flush();
-
-    UIHandler.alert("Fluxo OPLab Concluido",
-      "OPLab Market Data sincronizado!\nPassos: " + sequencia.length +
-      " | Duracao: " + duracao + "s"
-    );
-  },
-
-  // --------------------------------------------------------------------------
-  // Helper: le qualquer chave de sequencia da Config_Global
-  // --------------------------------------------------------------------------
-  _lerSequencia(chave) {
-    try {
-      const ss = SpreadsheetApp.getActiveSpreadsheet();
-      const abaConfig = ss.getSheetByName("Config_Global");
-      if (!abaConfig) throw new Error("Aba Config_Global nao encontrada.");
-      const data = abaConfig.getDataRange().getValues();
-      for (let i = 0; i < data.length; i++) {
-        if (String(data[i][0]).trim() === chave) {
-          const raw = String(data[i][1]).trim();
-          if (!raw) return [];
-          return raw.split(";").map(f => f.trim()).filter(f => f.length > 0);
-        }
-      }
-      return [];
-    } catch (e) {
-      SysLogger.log(this._serviceName, "ERRO", "Falha ao ler chave: " + chave, String(e.message));
-      return [];
-    }
-  }
-
 };
 
 // ============================================================================
@@ -260,16 +174,6 @@ const CoreOrchestrator = {
 /** Função acionada pelo menu para rodar tudo na sequência correta */
 function executarFluxoSequencial() { 
   CoreOrchestrator.runFluxoMestre(); 
-}
-
-// ============================================================================
-// ORQUESTRADOR OPLab Market Data
-// Chave Config_Global: Orquestrador_Sequencia_OPLab
-// Valor exemplo: AtualizarScanner_Menu
-// ============================================================================
-
-function executarFluxoOPLab() {
-  CoreOrchestrator.runFluxoOPLab();
 }
 
 // ============================================================================

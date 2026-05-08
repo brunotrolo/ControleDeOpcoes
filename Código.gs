@@ -18,7 +18,6 @@ function onOpen(e) {
     const ui = SpreadsheetApp.getUi();
     ui.createMenu('⚙️ Automação')
         .addItem('🚀 Rodar Fluxo Mestre (Planilha)', 'executarFluxoSequencial')
-        .addItem('🔌 Rodar Fluxo OPLab Market Data', 'executarFluxoOPLab')
         .addSeparator()
         .addItem('📥 1. Atualizar Necton (Portfólio)', 'AtualizarNecton_Menu')
         .addItem('📈 2. Atualizar Dados Ativos (Ações)', 'AtualizarDadosAtivos_Menu')
@@ -26,8 +25,6 @@ function onOpen(e) {
         .addSeparator()
         .addItem('🧮 4a. Calcular Gregas (API OPLab)', 'AtualizarGregasAPI_Menu')
         .addItem('🔬 4b. Calcular Gregas (Nativo BS)', 'CalcularGregasNativo_Menu')
-        .addSeparator()
-        .addItem('📡 5. Escaner Opções Oportunidades (API OPLab)', 'AtualizarScanner_Menu')
         .addToUi();
   } catch (err) {
     console.warn("[onOpen] Interface indisponível.");
