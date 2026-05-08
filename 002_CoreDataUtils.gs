@@ -5,20 +5,6 @@
 
 const DataUtils = {
   
-  /** Converte BRL/String para Float Puro */
-  // DEPOIS (002_CoreDataUtils.gs)
-  /** 
-   * @deprecated Use Sanitizador.numeroPuro() para dados de corretora/API.
-   * Mantido apenas para compatibilidade com ConfigManager (001).
-   */
-  safeFloat(val) {
-      if (val === undefined || val === null || val === "") return 0;
-      if (typeof val === 'number') return val;
-      let clean = val.toString().replace("R$", "").replace(/\s/g, "").replace(/\./g, "").replace(",", ".");
-      let num = parseFloat(clean);
-      return isNaN(num) ? 0 : num;
-  },
-
   /** Padroniza Datas para o formato brasileiro DD/MM/YYYY */
   formatDateBR(raw) {
     if (!raw || raw === "N/A") return "N/A";
@@ -104,10 +90,6 @@ const DataUtils = {
 
 function testSuiteDataUtilsV2() {
   console.log("=== TESTANDO UNIFICAÇÃO DATA UTILS v2.0 ===");
-  
-  // Teste Moeda
-  const m = DataUtils.safeFloat("R$ 1.500,50");
-  console.log(`[TEST] safeFloat: ${m === 1500.5 ? "✅" : "❌ ("+m+")"}`);
 
   // Teste Data (Vários formatos)
   const d1 = DataUtils.formatDateBR("2026-03-08");
