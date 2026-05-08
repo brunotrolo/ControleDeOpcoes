@@ -79,13 +79,3 @@ function callOpLabAPI(path, queryParams) {
     };
   }
 }
-
-/**
- * Utilitário de Teste Rápido
- * Pode ser executado manualmente pelo editor do Apps Script
- */
-function debug_testExplorerAPI() {
-  const result = callOpLabAPI("/market/status", {});
-  console.log("Status:", result.status);
-  console.log("Resposta:", JSON.stringify(result.data).substring(0, 100) + "...");
-}
