@@ -260,32 +260,6 @@ window.Tradutor = {
       }
     },
 
-    // =========================================================================
-    // SCANNER_MACRO e DB_VEREDITOS_IA — abas de IA (estrutura mantida)
-    // =========================================================================
-    'SCANNER_MACRO': {
-      headerRowIndex: 0,
-      map: {
-        'Indicador':        { key: 'nomeIndicador',   type: 'texto' },
-        'Valor_Atual':      { key: 'valorAtual',      type: 'numero' },
-        'Tendencia':        { key: 'tendencia',       type: 'texto' },
-        'Status_Seguranca': { key: 'statusSeguranca', type: 'texto' }
-      }
-    },
-
-    'DB_VEREDITOS_IA': {
-      headerRowIndex: 0,
-      map: {
-        'Ticker':          { key: 'tickerAtivo',    type: 'texto' },
-        'Strike_Sugerido': { key: 'strikeSugerido', type: 'moeda' },
-        'Premio_Estimado': { key: 'premioEstimado', type: 'moeda' },
-        'DTE':             { key: 'dte',            type: 'numero' },
-        'Nexo_Score':      { key: 'nexoScore',      type: 'numero' },
-        'Comando_Acao':    { key: 'comandoAcao',    type: 'texto' },
-        'Racional_IA':     { key: 'racionalIA',     type: 'texto' },
-        'Alerta_Evento':   { key: 'alertaEvento',   type: 'texto' }
-      }
-    }
   },
 
   // =========================================================================
@@ -516,10 +490,6 @@ window.Tradutor = {
 
       // 2. HISTORICO DE COTACOES DE OPCOES 250D (Motor 013)
       histOpcoes250d: this.processar(getAba('DADOS_DETALHES_HISTORICO250D'), 'DADOS_DETALHES_HISTORICO250D'),
-
-      // 3. INTELIGÊNCIA ARTIFICIAL (Nexo 2026)
-      scannerMacro: this.processar(getAba('SCANNER_MACRO'),   'SCANNER_MACRO'),
-      vereditosIA:  this.processar(getAba('DB_VEREDITOS_IA'), 'DB_VEREDITOS_IA'),
 
       // 3. BASE (Não-reativa)
       raw: rawMatrix,

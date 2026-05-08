@@ -218,40 +218,6 @@ const ConfigManager = {
   }
 };
 
-function obliterarCacheConfig() {
-  // 1. Limpa a RAM temporária
-  const cache = CacheService.getScriptCache();
-  cache.removeAll(["CONFIG_GLOBAL_CACHE", "CONFIG_CACHE", "SYS_CONFIG"]);
-  
-  // 2. Limpa o Cofre Profundo
-  const props = PropertiesService.getScriptProperties();
-  props.deleteProperty("CONFIG_GLOBAL_CACHE");
-  props.deleteProperty("CONFIG_CACHE");
-  
-  console.log("💥 Nuke disparado! Todos os caches foram obliterados.");
-}
-
-function CSI_PlanilhaConfig() {
-  console.log("=== 🕵️‍♂️ CSI: LENDO PLANILHA CRUA ===");
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Config_Global");
-  const data = sheet.getDataRange().getValues();
-  
-  let encontradas = 0;
-  
-  for(let i=0; i < data.length; i++) {
-    const chave = String(data[i][0]).trim();
-    if(chave === "Regra_Qtd_Max_PUT" || chave === "Regra_Qtd_Max_CALL") {
-      console.log("🚨 FLAGRANTE na Linha " + (i + 1) + ": Chave = [" + (chave) + "] | Valor = [" + (data[i][1]) + "]");
-      encontradas++;
-    }
-  }
-  
-  if(encontradas === 0) {
-    console.error("❌ Nenhuma chave encontrada! Tem espaço em branco no nome?");
-  }
-  console.log("=== FIM DA INVESTIGAÇÃO ===");
-}
-
 // ============================================================================
 // TESTES DE INTEGRAÇÃO (001)
 // ============================================================================

@@ -79,13 +79,6 @@ function include(filename) {
 // ============================================================================
 
 /**
- * Força o Google a pedir permissão do Gmail na primeira execução do script.
- */
-function FORCAR_AUTORIZACAO_GMAIL() {
-  GmailApp.sendEmail(Session.getEffectiveUser().getEmail(), "Autorização de Sistema", "Esta é uma mensagem de verificação do sistema Stock Options.");
-}
-
-/**
  * Verifica se a fundação (000 a 005) está conectada e se comunicando.
  */
 function testeFinalIntegridade() {

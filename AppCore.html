@@ -37,9 +37,7 @@ const app = createApp({
       dadosTendencia:   [],
       necton:           [],
       calcGreeks:       [],
-      historico250d:    [],
-      scannerMacro:     [],
-      vereditosIA:      []
+      historico250d:    []
     });
 
     // [C1] cuboOlap como computed memoizado.
@@ -287,8 +285,6 @@ const app = createApp({
               necton:         dadosTraduzidos.necton          || [],
               detalhes:       dadosTraduzidos.detalhes        || [],
               selecaoOpcoes:  dadosTraduzidos.selecaoOpcoes   || [],
-              scannerMacro:   dadosTraduzidos.scannerMacro    || [],
-              vereditosIA:    dadosTraduzidos.vereditosIA     || [],
               cockpit:        cockpitEnriquecido,
               raw:            Object.assign({}, db.value.raw || {}, response.raw || {})
             });
@@ -521,10 +517,8 @@ const COMPONENTES_V6 = [
   ['menu-sidebar',           window.MenuSidebar],
 
   // 1. HOME & COCKPIT
-  // ['card-ticker-tape',    window.CardTickerTape],
   ['card-radar',             window.CardRadar],
   ['card-notional',          window.CardNotional],
-  // ['card-summary',        window.CardSummary],
   ['carousel-ativas',        window.CarouselAtivas],
   ['cockpit-table',          window.CockpitTable],
   ['cockpit-summary',        window.CockpitSummary],
@@ -560,7 +554,6 @@ const COMPONENTES_V6 = [
 
   // 6. FERRAMENTAS
   ['necton-import',          window.NectonImport],
-  //['necton-patrimonio-import', window.NectonPatrimonioImport],
   ['automation-view',        window.AutomationView],
   ['wheel-manager',          window.WheelManager],
   ['log-console',            window.LogConsole],
