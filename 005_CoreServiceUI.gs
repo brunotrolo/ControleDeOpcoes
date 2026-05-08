@@ -3,8 +3,8 @@
  * RESPONSABILIDADE: Gerenciar a ponte de execucao mantendo o silencio total na interface.
  * PADRAO: Zero Toasts e Zero Modais. Tudo flui em background (Console e SysLogger).
  *
- * v4.2 - Bridges ativas: AtualizarNecton, AtualizarDadosAtivos, AtualizarDetalhes,
- *         AtualizarGregasAPI, CalcularGregasNativo, AtualizarScanner.
+ * v4.3 - Bridges ativas: AtualizarNecton, AtualizarDadosAtivos, AtualizarDetalhes,
+ *         AtualizarGregasAPI, CalcularGregasNativo.
  */
 
 const UIHandler = {
@@ -70,7 +70,6 @@ function AtualizarDadosAtivos_Menu()        { _menuBridge("Ativos", atualizarDad
 function AtualizarDetalhes_Menu()           { _menuBridge("Detalhes", atualizarDetalhesOpcoes); }
 function AtualizarGregasAPI_Menu()          { _menuBridge("Gregas (API)", atualizarGregas); }
 function CalcularGregasNativo_Menu()        { _menuBridge("Gregas (Nativo)", calcularGregasNativo); }
-function AtualizarScanner_Menu()            { _menuBridge("Scanner Oportunidades", atualizarScannerOpcoes); }
 // ================================================================
 // TESTE DE HOMOLOGACAO
 // ================================================================

@@ -263,16 +263,6 @@ function executarFluxoSequencial() {
 }
 
 // ============================================================================
-// ORQUESTRADOR OPLab Market Data
-// Chave Config_Global: Orquestrador_Sequencia_OPLab
-// Valor exemplo: AtualizarScanner_Menu
-// ============================================================================
-
-function executarFluxoOPLab() {
-  CoreOrchestrator.runFluxoOPLab();
-}
-
-// ============================================================================
 // TESTES UNITÁRIOS DINÂMICOS (005)
 // ============================================================================
 
