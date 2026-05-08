@@ -22,7 +22,7 @@
 //             Componentes individuais DEVEM remover suas chamadas diretas.
 // ============================================================================
 
-const { createApp, ref, shallowRef, computed, onMounted, provide, watch } = Vue;
+const { createApp, ref, shallowRef, computed, onMounted, onBeforeUnmount, provide, watch } = Vue;
 
 const app = createApp({
   setup() {
@@ -461,6 +461,10 @@ const app = createApp({
       // [C3] Unica chamada a refreshIcons no boot — debounce garante
       // que nao duplica com o refreshIcons chamado dentro de navigate().
       refreshIcons();
+    });
+
+    onBeforeUnmount(() => {
+      if (pollingInterval) clearInterval(pollingInterval);
     });
 
     // ====================================================================

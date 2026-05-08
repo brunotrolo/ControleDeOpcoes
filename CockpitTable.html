@@ -151,9 +151,101 @@
     </div>
 
     <!-- ================================================================
-         MOBILE — Oculto (componente disponivel apenas no desktop)
+         MOBILE — Cards colapsáveis por grupo
          ================================================================ -->
-    <div v-else style="display:none;"></div>
+    <div v-else style="display:flex;flex-direction:column;gap:0;overflow-y:auto;">
+
+      <!-- Empty state -->
+      <div v-if="Object.keys(groupedData).length === 0"
+        style="padding:3rem 1.5rem;text-align:center;">
+        <p style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);">
+          Sem posições ativas
+        </p>
+      </div>
+
+      <!-- Grupo -->
+      <div v-for="(group, groupName) in groupedData" :key="groupName"
+        style="border-bottom:1px solid var(--border-subtle);">
+
+        <!-- Header do grupo -->
+        <div @click="toggleGroup(groupName)"
+          style="display:flex;align-items:center;gap:0.625rem;padding:0.75rem 1rem;background:var(--surface-overlay);cursor:pointer;user-select:none;">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--brand-indigo);flex-shrink:0;"></div>
+          <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:var(--text-primary);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            {{ groupName }}
+          </span>
+          <span style="font-size:0.65rem;font-weight:700;background:var(--brand-indigo-light);color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);padding:0.1rem 0.45rem;border-radius:99px;flex-shrink:0;">
+            {{ group.rows.length }}
+          </span>
+          <span :style="getPlStyle(group.totals.plTotalValor)"
+            style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;flex-shrink:0;">
+            {{ formatGroupSum(group.totals.plTotalValor, 'currency', 'plTotalValor') }}
+          </span>
+          <span :style="isExpanded(groupName) ? 'transform:rotate(0deg)' : 'transform:rotate(-90deg)'"
+            style="color:var(--text-muted);font-size:0.65rem;transition:transform 0.2s;flex-shrink:0;">▼</span>
+        </div>
+
+        <!-- Posições -->
+        <div v-if="isExpanded(groupName)">
+          <div v-for="(pos, idx) in group.rows" :key="idx"
+            style="padding:0.875rem 1rem;border-top:1px solid var(--border-subtle);background:var(--surface-base);">
+
+            <!-- Identificação -->
+            <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.625rem;">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;font-weight:700;color:var(--text-primary);">
+                {{ pos.simboloOpcao }}
+              </span>
+              <span style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:0.1rem 0.4rem;border-radius:99px;border:1px solid var(--border-default);background:var(--surface-overlay);color:var(--text-secondary);">
+                {{ pos.tipoOpcao }}
+              </span>
+              <span style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:0.1rem 0.4rem;border-radius:99px;border:1px solid var(--border-default);background:var(--surface-overlay);color:var(--text-secondary);">
+                {{ pos.direcaoTrade }}
+              </span>
+              <span :style="getMoneynessStyle(pos.moneynessCode)"
+                style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:0.1rem 0.4rem;border-radius:99px;border:1px solid;">
+                {{ pos.moneynessCode }}
+              </span>
+            </div>
+
+            <!-- Grid 3×2 de métricas -->
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem 0.75rem;">
+
+              <div style="display:flex;flex-direction:column;gap:0.15rem;">
+                <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Strike</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:700;color:var(--text-primary);">{{ formatCell(pos.strike, 'currency') }}</span>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:0.15rem;">
+                <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Spot</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:700;color:var(--text-primary);">{{ formatCell(pos.spotPrice, 'currency') }}</span>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:0.15rem;">
+                <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">DTE</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:700;color:var(--text-primary);">{{ formatCell(pos.dteCorridos, 'numero') }}d</span>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:0.15rem;">
+                <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">P/L R$</span>
+                <span :style="getPlStyle(pos.plTotalValor)" style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:700;">{{ formatCell(pos.plTotalValor, 'currency') }}</span>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:0.15rem;">
+                <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">P/L %</span>
+                <span :style="getPlStyle(pos.plTotalPct)" style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:700;">{{ formatCell(pos.plTotalPct, 'percentage') }}</span>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:0.15rem;">
+                <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Nocional</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:700;color:var(--text-primary);">{{ formatCell(pos.nocional, 'currency') }}</span>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
 
     <!-- ================================================================
          RODAPÉ INFORMATIVO
