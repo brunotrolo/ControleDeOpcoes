@@ -152,14 +152,11 @@ function testarAPI_Leitura() {
 
 
 // ==========================================
-// 1b. LEITURA DIRETA DE ABA (OpLab Hub)
+// 1b. LEITURA DIRETA DE ABA
 // ==========================================
 
 /**
  * Lê qualquer aba do Sheets e retorna como array de objetos JSON.
- * Usado pelo OpLabHub para carregar as abas OPLab sob demanda,
- * sem passar pelo pipeline getDadosLight/getAbasPesadas.
- *
  * Linha 1 = cabeçalho. Linhas vazias são ignoradas.
  * Retorna [] se a aba não existir ou estiver vazia.
  *
