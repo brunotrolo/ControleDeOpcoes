@@ -249,7 +249,7 @@
                       <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;color:var(--text-muted);">Novo PM Real Projetado</div>
                       <div style="font-size:1.25rem;font-weight:900;color:var(--text-primary);font-family:'JetBrains Mono',monospace;letter-spacing:-0.03em;display:flex;align-items:center;gap:4px;">
                         <i data-lucide="arrow-down-right" style="width:16px;height:16px;color:var(--brand-emerald);"></i>
-                        {{ formatarMoeda((cofre.custoTotalAlocado - cofre.premiosRecebidos - ((premiosProjetados[cofre.ticker] || 0) * (qtdSimulador[cofre.ticker] || 0))) / cofre.quantidadeAcoesAtuais) }}
+                        {{ formatarMoeda(calcularNovoPmReal(cofre)) }}
                       </div>
                     </div>
                     <div style="text-align:right;">
@@ -360,6 +360,14 @@ window.WheelManager = {
       var premio = parseFloat(op.premioMedio || op.entryPrice) || 0;
       if (op.tipoOpcao === 'CALL') return strike + Math.abs(premio);
       return strike - Math.abs(premio);
+    },
+
+    calcularNovoPmReal: function(cofre) {
+      var premioProj = parseFloat(this.premiosProjetados[cofre.ticker]) || 0;
+      var qtd        = parseFloat(this.qtdSimulador[cofre.ticker])      || 0;
+      var novoCaixa  = premioProj * qtd;
+      if (!cofre.quantidadeAcoesAtuais) return 0;
+      return (cofre.custoTotalAlocado - cofre.premiosRecebidos - novoCaixa) / cofre.quantidadeAcoesAtuais;
     },
 
     calcularNovoRoc: function(cofre) {
