@@ -66,7 +66,6 @@ function getAbasPesadas() {
 
       // 2. Base de Dados & Histórico
       SYS_CONFIG.SHEETS.ASSETS,
-      SYS_CONFIG.SHEETS.HIST_250D,
       SYS_CONFIG.SHEETS.DETAILS,
 
       // 3. Motor Matemático & Filtros
