@@ -88,10 +88,13 @@
           <!-- Grid de itens -->
           <div style="padding:1.5rem 2rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1.5rem;">
             <div v-for="item in items" :key="item.key"
-              :style="isEditing
-                ? 'border:1px solid var(--brand-indigo-muted);background:var(--brand-indigo-light);'
-                : 'border:1px solid transparent;background:transparent;'"
-              style="position:relative;display:flex;flex-direction:column;justify-content:center;min-height:5.5rem;padding:1.25rem;border-radius:var(--radius-md);transition:background var(--duration-fast),border-color var(--duration-fast);"
+              :style="[
+                isEditing
+                  ? 'border:1px solid var(--brand-indigo-muted);background:var(--brand-indigo-light);'
+                  : 'border:1px solid transparent;background:transparent;',
+                item.type === 'longText' ? 'grid-column:1/-1;min-height:auto;' : 'min-height:5.5rem;'
+              ]"
+              style="position:relative;display:flex;flex-direction:column;justify-content:flex-start;padding:1.25rem;border-radius:var(--radius-md);transition:background var(--duration-fast),border-color var(--duration-fast);"
               onmouseover="if(!this.classList.contains('editing'))this.style.background='var(--surface-overlay)'"
               onmouseout="if(!this.classList.contains('editing'))this.style.background='transparent'">
 
@@ -119,13 +122,25 @@
                 </span>
               </div>
 
-              <!-- Input editável -->
+              <!-- Textarea editável (prompts longos) -->
+              <textarea v-else-if="item.type === 'longText' && isEditing" v-model="item.value"
+                style="font-size:0.8rem;font-family:'JetBrains Mono',monospace;font-weight:500;background:var(--surface-base);border:1px solid var(--border-default);color:var(--text-primary);padding:0.75rem 1rem;border-radius:var(--radius-md);width:100%;box-sizing:border-box;outline:none;min-height:9rem;resize:vertical;line-height:1.6;"
+                onfocus="this.style.borderColor='var(--brand-indigo)'"
+                onblur="this.style.borderColor='var(--border-default)'"></textarea>
+
+              <!-- Texto longo estático -->
+              <div v-else-if="item.type === 'longText'"
+                style="font-size:0.8rem;color:var(--text-primary);line-height:1.6;white-space:pre-wrap;max-height:8rem;overflow-y:auto;padding-right:0.25rem;">
+                {{ item.value === '' ? '---' : item.value }}
+              </div>
+
+              <!-- Input editável (campos curtos) -->
               <input v-else-if="isEditing" v-model="item.value" type="text"
                 style="font-size:0.8rem;font-family:'JetBrains Mono',monospace;font-weight:700;background:var(--surface-base);border:1px solid var(--border-default);color:var(--text-primary);padding:0.6rem 1rem;border-radius:var(--radius-md);width:100%;box-sizing:border-box;outline:none;"
                 onfocus="this.style.borderColor='var(--brand-indigo)'"
                 onblur="this.style.borderColor='var(--border-default)'">
 
-              <!-- Valor estático -->
+              <!-- Valor estático (campos curtos) -->
               <span v-else
                 class="t-value font-mono-data"
                 style="height:2.625rem;display:flex;align-items:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-primary);"
@@ -221,6 +236,8 @@ window.SettingsView = {
         if (String(valor).toUpperCase() === 'TRUE' || String(valor).toUpperCase() === 'FALSE') {
           tipo = 'boolean';
           valor = String(valor).toUpperCase() === 'TRUE';
+        } else if (chave.startsWith('PROMPT_') || String(valor).length > 80) {
+          tipo = 'longText';
         }
 
         if (!newGroupedItems[currentGroup]) {
