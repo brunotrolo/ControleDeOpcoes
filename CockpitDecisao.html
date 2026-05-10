@@ -61,6 +61,11 @@
               <span style="font-size:0.6rem;color:var(--text-muted);font-weight:600;">{{ item.trade.tickerAtivo }}</span>
             </div>
             <div style="font-size:0.62rem;color:var(--brand-rose);line-height:1.35;">{{ item.razao }}</div>
+            <div v-if="item.guia"
+              style="font-size:0.6rem;line-height:1.45;margin-top:0.375rem;padding-top:0.375rem;border-top:1px dashed var(--brand-rose-muted);display:flex;gap:3px;align-items:flex-start;color:var(--brand-rose);opacity:0.82;">
+              <span style="flex-shrink:0;font-weight:800;">→</span>
+              <span>{{ item.guia }}</span>
+            </div>
           </div>
         </div>
 
@@ -84,6 +89,11 @@
               <span style="font-size:0.6rem;color:var(--text-muted);font-weight:600;">{{ item.trade.tickerAtivo }}</span>
             </div>
             <div style="font-size:0.62rem;color:var(--brand-amber);line-height:1.35;">{{ item.razao }}</div>
+            <div v-if="item.guia"
+              style="font-size:0.6rem;line-height:1.45;margin-top:0.375rem;padding-top:0.375rem;border-top:1px dashed var(--brand-amber-muted);display:flex;gap:3px;align-items:flex-start;color:var(--brand-amber);opacity:0.82;">
+              <span style="flex-shrink:0;font-weight:800;">→</span>
+              <span>{{ item.guia }}</span>
+            </div>
           </div>
         </div>
 
@@ -107,6 +117,11 @@
               <span style="font-size:0.6rem;color:var(--text-muted);font-weight:600;">{{ item.trade.tickerAtivo }}</span>
             </div>
             <div style="font-size:0.62rem;color:var(--brand-emerald);line-height:1.35;">{{ item.razao }}</div>
+            <div v-if="item.guia"
+              style="font-size:0.6rem;line-height:1.45;margin-top:0.375rem;padding-top:0.375rem;border-top:1px dashed var(--brand-emerald-muted);display:flex;gap:3px;align-items:flex-start;color:var(--brand-emerald);opacity:0.82;">
+              <span style="flex-shrink:0;font-weight:800;">→</span>
+              <span>{{ item.guia }}</span>
+            </div>
           </div>
         </div>
 
@@ -130,6 +145,11 @@
               <span style="font-size:0.6rem;color:var(--text-muted);font-weight:600;">{{ item.trade.tickerAtivo }}</span>
             </div>
             <div style="font-size:0.62rem;color:var(--brand-indigo);line-height:1.35;">{{ item.razao }}</div>
+            <div v-if="item.guia"
+              style="font-size:0.6rem;line-height:1.45;margin-top:0.375rem;padding-top:0.375rem;border-top:1px dashed var(--brand-indigo-muted);display:flex;gap:3px;align-items:flex-start;color:var(--brand-indigo);opacity:0.82;">
+              <span style="flex-shrink:0;font-weight:800;">→</span>
+              <span>{{ item.guia }}</span>
+            </div>
           </div>
         </div>
 
@@ -164,7 +184,7 @@ window.CockpitDecisao = {
       var self = this;
       self.listaAtivas.forEach(function(trade) {
         var c = self.classificarPosicao(trade);
-        resultado[c.acao].push({ trade: trade, razao: c.razao });
+        resultado[c.acao].push({ trade: trade, razao: c.razao, guia: c.guia });
       });
       return resultado;
     }
@@ -184,38 +204,93 @@ window.CockpitDecisao = {
 
       // 1. FECHAR / COLETAR
       if (isVenda && lucroPct >= 75)
-        return { acao: 'fechar', razao: lucroPct.toFixed(0) + '% capturado — fechar e reposicionar' };
+        return {
+          acao: 'fechar',
+          razao: lucroPct.toFixed(0) + '% capturado — fechar e reposicionar',
+          guia: 'Recompre a opcao no mercado agora. Premio residual e baixo — o risco de reversao nao compensa manter.'
+        };
       if (!isVenda && plPct >= 50)
-        return { acao: 'fechar', razao: 'P/L +' + plPct.toFixed(1) + '% — realizar lucro' };
+        return {
+          acao: 'fechar',
+          razao: 'P/L +' + plPct.toFixed(1) + '% — realizar lucro',
+          guia: 'Venda a opcao no mercado e realize o ganho. Nao espere o vencimento.'
+        };
       if (dte <= 5 && plPct > 0)
-        return { acao: 'fechar', razao: dte + 'd — fechar antes do risco de gamma' };
+        return {
+          acao: 'fechar',
+          razao: dte + 'd — fechar antes do risco de gamma',
+          guia: 'Com ' + dte + 'd o risco de reversao brusca (gamma) supera o premio restante. Feche agora.'
+        };
 
       // 2. ROLAR
       if (dte <= 7)
-        return { acao: 'rolar', razao: dte + 'd — vencimento iminente, rolar urgente' };
+        return {
+          acao: 'rolar',
+          razao: dte + 'd — vencimento iminente, rolar urgente',
+          guia: 'URGENTE: recompre esta opcao hoje e venda uma nova no proximo vencimento (+30-45d), mesmo strike ou melhor. Meta: credito liquido >= 0 (nova venda deve cobrir o custo de recompra).'
+        };
       if (moneyness === 'ITM' && dte <= 21) {
-        var dir = tipo === 'PUT' ? 'rolar para baixo/fora' : 'rolar para cima/fora';
-        return { acao: 'rolar', razao: 'ITM + ' + dte + 'd — risco de exercicio, ' + dir };
+        var dirLabel = tipo === 'PUT' ? 'rolar para baixo/fora' : 'rolar para cima/fora';
+        var guiaITM  = tipo === 'PUT'
+          ? 'Recompre esta PUT e venda nova PUT com strike MENOR (mais OTM) e vencimento +30-45d. Objetivo: credito liquido. Se impossivel emparar, aceite a atribuicao e inicie a Wheel vendendo CALLs sobre as acoes.'
+          : 'Recompre esta CALL e venda nova CALL com strike MAIOR (mais OTM) e vencimento +30-45d. Objetivo: credito liquido — nova venda deve pagar mais do que custa fechar esta.';
+        return {
+          acao: 'rolar',
+          razao: 'ITM + ' + dte + 'd — risco de exercicio, ' + dirLabel,
+          guia: guiaITM
+        };
       }
       if (moneyness === 'ATM' && dte <= 10)
-        return { acao: 'rolar', razao: 'ATM + ' + dte + 'd — zona de perigo, rolar' };
+        return {
+          acao: 'rolar',
+          razao: 'ATM + ' + dte + 'd — zona de perigo, rolar',
+          guia: 'Risco de gamma alto — qualquer movimento pode piorar. Recompre e venda mesma opcao no vencimento seguinte (+30d). Priorize credito liquido.'
+        };
 
       // 3. MANEJAR
       if (isVenda && lucroPct >= 50)
-        return { acao: 'manejar', razao: lucroPct.toFixed(0) + '% capturado — avaliar fechamento antecipado' };
+        return {
+          acao: 'manejar',
+          razao: lucroPct.toFixed(0) + '% capturado — avaliar fechamento antecipado',
+          guia: 'Regra dos 50%: voce captou metade do premio com muito risco ainda pela frente. Recompre e reinvista em nova venda no mesmo ativo — melhor relacao risco/retorno.'
+        };
       if (moneyness === 'ITM' && dte > 21)
-        return { acao: 'manejar', razao: 'ITM + ' + dte + 'd — considerar defesa ou rolagem' };
+        return {
+          acao: 'manejar',
+          razao: 'ITM + ' + dte + 'd — considerar defesa ou rolagem',
+          guia: 'Ainda ha tempo (' + dte + 'd). Opcoes: (1) Aguardar recuperacao se o ativo tiver fundamentos. (2) Comprar opcao de mesmo vencimento com strike abaixo (PUT) ou acima (CALL) para criar spread e limitar a perda maxima sem fechar.'
+        };
       if (moneyness === 'ATM')
-        return { acao: 'manejar', razao: 'ATM — zona de atencao, monitorar de perto' };
+        return {
+          acao: 'manejar',
+          razao: 'ATM — zona de atencao, monitorar de perto',
+          guia: 'Zona de maxima incerteza — qualquer movimento define o resultado. Considere reduzir 50% da posicao ou adicionar protecao: compre opcao com mesmo vencimento e strike mais OTM para limitar a perda.'
+        };
       if (isVenda && delta >= 0.60)
-        return { acao: 'manejar', razao: 'Delta ' + (trade.delta || 0).toFixed(2) + ' — alta direcionalidade' };
+        return {
+          acao: 'manejar',
+          razao: 'Delta ' + (trade.delta || 0).toFixed(2) + ' — alta direcionalidade',
+          guia: 'A opcao se comporta como o proprio ativo. Compre opcao de mesmo vencimento com strike mais OTM (cria spread vertical) para limitar a perda maxima sem precisar fechar toda a posicao.'
+        };
       if (isVenda && poe > 0 && poe < 30)
-        return { acao: 'manejar', razao: 'POE ' + poe.toFixed(0) + '% — alta prob. de exercicio' };
+        return {
+          acao: 'manejar',
+          razao: 'POE ' + poe.toFixed(0) + '% — alta prob. de exercicio',
+          guia: 'Alta probabilidade de exercicio. Decida agora: (1) OK com atribuicao? Mantenha — se for PUT, prepare-se para receber as acoes e iniciar a Wheel. (2) Nao quer atribuicao? Role para o proximo vencimento com credito liquido.'
+        };
       if (dte <= 21)
-        return { acao: 'manejar', razao: dte + 'd — janela de gestao ativa' };
+        return {
+          acao: 'manejar',
+          razao: dte + 'd — janela de gestao ativa',
+          guia: 'Janela de gestao: monitore diariamente. Se lucro > 40%: feche e realize. Se neutro ou pequeno lucro: role para o proximo vencimento — garante mais tempo e coleta premio adicional.'
+        };
 
       // 4. MONITORAR
-      return { acao: 'monitorar', razao: 'OTM + ' + dte + 'd — posicao saudavel, manter curso' };
+      return {
+        acao: 'monitorar',
+        razao: 'OTM + ' + dte + 'd — posicao saudavel, manter curso',
+        guia: 'Nenhuma acao necessaria. Revise quando DTE chegar a 21 dias.'
+      };
     }
   },
 
