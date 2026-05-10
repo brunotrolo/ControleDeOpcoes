@@ -429,6 +429,7 @@ const app = createApp({
         'card-radar':    { statsPreCalculados: cuboOlap.value, isMobile: isMobile.value },
         'card-notional': { statsPreCalculados: cuboOlap.value, configGlobais: db.value.configGlobal || {}, isMobile: isMobile.value },
         // 'card-summary': { statsPreCalculados: cuboOlap.value },
+        'cockpit-decisao':  { statsPreCalculados: cuboOlap.value },
         'carousel-ativas': { statsPreCalculados: cuboOlap.value },
         'cockpit-table':   { statsPreCalculados: cuboOlap.value },
 
@@ -514,6 +515,7 @@ const COMPONENTES_V6 = [
   // 1. HOME & COCKPIT
   ['card-radar',             window.CardRadar],
   ['card-notional',          window.CardNotional],
+  ['cockpit-decisao',        window.CockpitDecisao],
   ['carousel-ativas',        window.CarouselAtivas],
   ['cockpit-table',          window.CockpitTable],
   ['cockpit-summary',        window.CockpitSummary],
