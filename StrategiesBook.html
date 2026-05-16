@@ -319,12 +319,24 @@ window.StrategiesBook = {
       }
 
       if (n === 2 && vendas.length === 2) {
-        var s0 = pernas[0].strike || 0, s1 = pernas[1].strike || 0;
-        return s0 === s1 ? 'Venda de Straddle' : 'Venda de Strangle';
+        var sA = pernas[0].strike || 0, sB = pernas[1].strike || 0;
+        var mesmoStrikeV = Math.abs(sA - sB) < 0.01;
+        // Straddle/Strangle real requer um PUT + um CALL
+        if (puts.length === 1 && calls.length === 1) {
+          return mesmoStrikeV ? 'Venda de Straddle' : 'Venda de Strangle';
+        }
+        // Dois do mesmo tipo — nomeia pelo tipo
+        var tipoV = puts.length === 2 ? 'PUT' : 'CALL';
+        return mesmoStrikeV ? ('Venda de ' + tipoV + ' (Strike Duplo)') : ('Venda de ' + tipoV + ' Dupla');
       }
       if (n === 2 && compras.length === 2) {
-        var s0 = pernas[0].strike || 0, s1 = pernas[1].strike || 0;
-        return s0 === s1 ? 'Compra de Straddle' : 'Compra de Strangle';
+        var sC = pernas[0].strike || 0, sD = pernas[1].strike || 0;
+        var mesmoStrikeC = Math.abs(sC - sD) < 0.01;
+        if (puts.length === 1 && calls.length === 1) {
+          return mesmoStrikeC ? 'Compra de Straddle' : 'Compra de Strangle';
+        }
+        var tipoC = puts.length === 2 ? 'PUT' : 'CALL';
+        return mesmoStrikeC ? ('Compra de ' + tipoC + ' (Strike Duplo)') : ('Compra de ' + tipoC + ' Dupla');
       }
 
       return 'Estrutura Composta (' + n + ' pernas)';
