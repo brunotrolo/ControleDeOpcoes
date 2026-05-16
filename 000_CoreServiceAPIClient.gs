@@ -1,5 +1,5 @@
 /**
- * @fileoverview API Client (Oplab & Brapi) - v3.0 (Turbo RAM Cache)
+ * @fileoverview API Client (OPLab) - v3.0 (Turbo RAM Cache)
  * Foco: Extrair dados brutos com latência reduzida e resiliência de cota.
  */
 
@@ -113,54 +113,6 @@ const OplabService = {
 };
 
 // ============================================================================
-// SERVIÇO: BRAPI API (Com RAM Cache)
-// ============================================================================
-
-const BrapiService = {
-  _baseUrl: "https://brapi.dev/api/quote",
-  _tokenCache: null, // <--- CACHE EM RAM
-  
-  _getToken() {
-    if (this._tokenCache) return this._tokenCache;
-
-    const token = PropertiesService.getScriptProperties().getProperty("BRAPI_ACCESS_TOKEN");
-    if (!token) throw new Error("Token BRAPI_ACCESS_TOKEN ausente.");
-    
-    this._tokenCache = token.trim();
-    return this._tokenCache;
-  },
-
-  getFundamentalData(ticker) {
-    if (!ticker) return null;
-    const url = `${this._baseUrl}/${ticker.toUpperCase()}?modules=defaultKeyStatistics,financialData`;
-    const res = ApiClient._fetchData(url, {
-      headers: { "Authorization": `Bearer ${this._getToken()}` }
-    });
-    
-    if (!res || !res.results || res.results.length === 0) return null;
-    
-    const data = res.results[0];
-    const stats = data.defaultKeyStatistics || {};
-    const finData = data.financialData || {};
-
-    const extractRaw = (obj, key) => {
-      if (!obj || obj[key] === undefined) return 0;
-      return (typeof obj[key] === 'object' && obj[key] !== null) ? Number(obj[key].raw) : Number(obj[key]);
-    };
-
-    return {
-      lpa: extractRaw(stats, 'trailingEps') || Number(data.earningsPerShare) || 0,
-      vpa: extractRaw(stats, 'bookValue'),
-      pl: Number(data.priceEarnings) || 0,
-      pvp: extractRaw(stats, 'priceToBook'),
-      dy: (Number(data.dividendsYield) || 0) / 100, 
-      roe: extractRaw(finData, 'returnOnEquity'), 
-      divida: 0 
-    };
-  }
-};
-
-// ============================================================================
 // SUÍTE DE TESTES E HOMOLOGAÇÃO
 // ============================================================================
 
@@ -185,15 +137,6 @@ function testSuiteApiClient() {
     console.log(`✅ [OpLab] OK: Preço ${stock.symbol} = R$ ${stock.close}`);
   } else {
     console.error("❌ [OpLab] Falha na resposta.");
-  }
-
-  // Teste 3: Conectividade Real Brapi (Fundamentos)
-  console.log("--- Testando Conectividade Brapi (VALE3) ---");
-  const fundamental = BrapiService.getFundamentalData("VALE3");
-  if (fundamental && fundamental.lpa !== undefined) {
-    console.log(`✅ [Brapi] OK: LPA = ${fundamental.lpa}`);
-  } else {
-    console.error("❌ [Brapi] Falha na resposta.");
   }
 
   console.log("=== FIM DA HOMOLOGAÇÃO ===");

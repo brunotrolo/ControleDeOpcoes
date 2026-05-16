@@ -38,7 +38,6 @@ Each `.gs` module has a dedicated integration test function. Run them from the G
 | `004_CoreServiceLogger.gs` | `testSuiteLoggerV3()` |
 | `005_CoreServiceUI.gs` | `testSuiteUIHandler()` |
 | `006_CoreOrchestrator.gs` | `testSuiteOrchestrator()` |
-| `024_CoreServiceIAGeminiEngine.gs` | `testSuiteGeminiService012()` |
 
 To validate the full infrastructure stack at once, run `testeFinalIntegridade()` in `Código.gs`.
 
@@ -47,21 +46,19 @@ To validate the full infrastructure stack at once, run `testeFinalIntegridade()`
 Set these in **GAS Project Settings > Script Properties**:
 
 - `OPLAB_ACCESS_TOKEN` — OPLab API authentication token
-- `BRAPI_ACCESS_TOKEN` — Brapi API token (Brazilian stock fundamentals)
-- `GEMINI_API_KEY` — Google Gemini AI API key
 - Claude API key — configured via `025_ConsultorIAClaudeSonnet45.gs`
 
 ## Architecture
 
 ### Backend Layer (`.gs` files — numbered by load order)
 
-Files are numbered `000`–`026`; GAS loads them in alphabetical order, so numbering enforces dependency order.
+Files are numbered `000`–`025`; GAS loads them in alphabetical order, so numbering enforces dependency order.
 
 **Infrastructure (000–005) — must be loaded before any engine:**
 
 | File | Singleton | Responsibility |
 |---|---|---|
-| `000_CoreServiceAPIClient.gs` | `ApiClient`, `OplabService`, `BrapiService` | HTTP fetch with retry/backoff; API adapters |
+| `000_CoreServiceAPIClient.gs` | `ApiClient`, `OplabService` | HTTP fetch with retry/backoff; OPLab API adapter |
 | `001_CoreServiceConfig.gs` | `SYS_CONFIG`, `ConfigManager` | Sheet name map, Universal Data Dictionary (DUD), 3-layer config cache |
 | `002_CoreDataUtils.gs` | `DataUtils` | Header maps, row maps, merge helpers, date/float parsing |
 | `003_CoreSanitizador.gs` | `Sanitizador` | Input sanitization (BRL currency, pt-BR dates, tickers) |
@@ -81,11 +78,9 @@ Files are numbered `000`–`026`; GAS loads them in alphabetical order, so numbe
 - `012–013` — Greeks (via OPLab API and native Black-Scholes)
 - `014–022` — OPLab market data (series, best rates, volumes, variations, rankings, correlations, fundamentals)
 
-**AI Modules (024–026):**
+**AI Module (025):**
 
-- `024_CoreServiceIAGeminiEngine.gs` — `GeminiService` singleton: wraps Gemini Flash 2.5, handles JSON sanitization
 - `025_ConsultorIAClaudeSonnet45.gs` — Claude Sonnet 4.5 portfolio advisor; writes history to `CONSULTOR_IA_HISTORICO`
-- `026_ConsultoriaIADUDEditionMiddleman.gs` — `ConsultoriaIA` middleware: formats portfolio data and constructs prompts for Gemini
 
 **Other backends:**
 
@@ -112,7 +107,7 @@ Files are numbered `000`–`026`; GAS loads them in alphabetical order, so numbe
 ### Data Flow
 
 ```
-OPLab/Brapi APIs → .gs sync engines → Google Sheets
+OPLab API → .gs sync engines → Google Sheets
 Google Sheets → API.gs (getDadosLight / getAbasPesadas)
   → google.script.run → AppCore.html
   → Tradutor.html (type-safe mapping)
@@ -166,7 +161,6 @@ SysLogger.flush();
 
 ### AI Integration
 
-- **Gemini** (`GeminiService.generate(prompt, systemInstruction, isJsonResponse)`): Set `isJsonResponse=true` to force JSON mode and get automatic markdown stripping and fallback regex parsing.
 - **Claude** (`025_ConsultorIAClaudeSonnet45.gs`): Model is `claude-sonnet-4-5`, max tokens `2000`. Analysis results are persisted to `CONSULTOR_IA_HISTORICO` sheet.
 - AI personas and prompt templates are configurable per-user via the `Config_Global` sheet (keys: `IA_PERFIL_CONSULTOR`, `PROMPT_REGRAS_GERAIS`, `PROMPT_SISTEMA_*`).
 
