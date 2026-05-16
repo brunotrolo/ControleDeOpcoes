@@ -46,9 +46,7 @@ const CoreScannerOptions = {
 
     try {
       const abaAtivos = ss.getSheetByName(SYS_CONFIG.SHEETS.ASSETS);
-      const abaSaida  = ss.getSheetByName(SYS_CONFIG.SHEETS.SELECTION_OPT);
-
-      if (!abaAtivos || !abaSaida) throw new Error("Abas críticas não encontradas.");
+      if (!abaAtivos) throw new Error("Aba DADOS_ATIVOS não encontrada.");
 
       const tickers = this._getTickersAlvo(abaAtivos);
       if (tickers.length === 0) return;
@@ -67,29 +65,27 @@ const CoreScannerOptions = {
         }
       }
 
-      // 3. AUTO-CRIAÇÃO DE COLUNAS (inicializa a aba se vazia, ou acrescenta gregas se faltarem)
-      const lastColSaida = abaSaida.getLastColumn();
-      let headersOut = lastColSaida > 0
-        ? abaSaida.getRange(1, 1, 1, lastColSaida).getValues()[0]
-        : [...this._defaultHeaders];
-      let headersMudaram = lastColSaida === 0;
+      // 3. RECRIA A ABA DE SAÍDA (garante sem restrições de tipo de coluna)
+      // A aba de saída é sempre um snapshot fresco — recriar é o comportamento correto.
+      let abaSaida = ss.getSheetByName(SYS_CONFIG.SHEETS.SELECTION_OPT);
+      const posicaoAba = abaSaida ? abaSaida.getIndex() : ss.getSheets().length + 1;
+      if (abaSaida) ss.deleteSheet(abaSaida);
+      abaSaida = ss.insertSheet(SYS_CONFIG.SHEETS.SELECTION_OPT, posicaoAba - 1);
 
-      this._novasColunas.forEach(col => {
-        if (!headersOut.includes(col)) {
-          headersOut.push(col);
-          headersMudaram = true;
-        }
+      const headersOut = [...this._defaultHeaders];
+      abaSaida.getRange(1, 1, 1, headersOut.length).setValues([headersOut]);
+
+      // Formata CNPJ como texto para preservar zeros à esquerda
+      const cnpjCol = headersOut.indexOf('CNPJ');
+      if (cnpjCol >= 0) {
+        abaSaida.getRange(1, cnpjCol + 1, abaSaida.getMaxRows(), 1).setNumberFormat('@');
+      }
+
+      // Formata BID/ASK com 4 decimais para não perder valores menores que 0.01
+      ['BID', 'ASK'].forEach(colName => {
+        const ci = headersOut.indexOf(colName);
+        if (ci >= 0) abaSaida.getRange(1, ci + 1, abaSaida.getMaxRows(), 1).setNumberFormat('0.0000');
       });
-
-      if (headersMudaram) {
-        abaSaida.getRange(1, 1, 1, headersOut.length).setValues([headersOut]);
-      }
-
-      // 4. LIMPEZA SEGURA DOS DADOS ANTERIORES
-      const lastRowSaida = abaSaida.getLastRow();
-      if (lastRowSaida > 1) {
-        abaSaida.getRange(2, 1, lastRowSaida - 1, headersOut.length).clearContent();
-      }
 
       let bufferFinal = [];
       const stats = { ativos: 0, puts: 0, calls: 0, erros: 0 };
@@ -133,21 +129,6 @@ const CoreScannerOptions = {
 
       // 6. GRAVAÇÃO EM LOTE GLOBAL ÚNICO
       if (bufferFinal.length > 0) {
-        // Tenta aplicar formatos especiais — falha silenciosa se coluna tiver tipo fixo
-        try {
-          const cnpjCol = headersOut.indexOf('CNPJ');
-          if (cnpjCol >= 0) {
-            abaSaida.getRange(2, cnpjCol + 1, bufferFinal.length, 1).setNumberFormat('@');
-          }
-        } catch(eFmt) { /* coluna com tipo definido — ignora */ }
-
-        try {
-          ['BID', 'ASK'].forEach(colName => {
-            const ci = headersOut.indexOf(colName);
-            if (ci >= 0) abaSaida.getRange(2, ci + 1, bufferFinal.length, 1).setNumberFormat('0.0000');
-          });
-        } catch(eFmt) { /* coluna com tipo definido — ignora */ }
-
         abaSaida.getRange(2, 1, bufferFinal.length, headersOut.length).setValues(bufferFinal);
       }
 
