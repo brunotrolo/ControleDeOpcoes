@@ -133,17 +133,21 @@ const CoreScannerOptions = {
 
       // 6. GRAVAÇÃO EM LOTE GLOBAL ÚNICO
       if (bufferFinal.length > 0) {
-        // Força formato texto em CNPJ para preservar zeros à esquerda (ex: "08902291000115")
-        // Deve ser feito ANTES do setValues para evitar auto-conversão numérica do Google Sheets
-        const cnpjCol = headersOut.indexOf('CNPJ');
-        if (cnpjCol >= 0) {
-          abaSaida.getRange(2, cnpjCol + 1, bufferFinal.length, 1).setNumberFormat('@');
-        }
-        // Mesmo tratamento para BID/ASK: formato decimal fixo evita exibição como inteiro
-        ['BID', 'ASK'].forEach(colName => {
-          const ci = headersOut.indexOf(colName);
-          if (ci >= 0) abaSaida.getRange(2, ci + 1, bufferFinal.length, 1).setNumberFormat('0.0000');
-        });
+        // Tenta aplicar formatos especiais — falha silenciosa se coluna tiver tipo fixo
+        try {
+          const cnpjCol = headersOut.indexOf('CNPJ');
+          if (cnpjCol >= 0) {
+            abaSaida.getRange(2, cnpjCol + 1, bufferFinal.length, 1).setNumberFormat('@');
+          }
+        } catch(eFmt) { /* coluna com tipo definido — ignora */ }
+
+        try {
+          ['BID', 'ASK'].forEach(colName => {
+            const ci = headersOut.indexOf(colName);
+            if (ci >= 0) abaSaida.getRange(2, ci + 1, bufferFinal.length, 1).setNumberFormat('0.0000');
+          });
+        } catch(eFmt) { /* coluna com tipo definido — ignora */ }
+
         abaSaida.getRange(2, 1, bufferFinal.length, headersOut.length).setValues(bufferFinal);
       }
 
