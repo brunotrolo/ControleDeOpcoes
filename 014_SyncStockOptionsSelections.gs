@@ -46,7 +46,9 @@ const CoreScannerOptions = {
 
     try {
       const abaAtivos = ss.getSheetByName(SYS_CONFIG.SHEETS.ASSETS);
-      if (!abaAtivos) throw new Error("Aba DADOS_ATIVOS não encontrada.");
+      const abaSaida  = ss.getSheetByName(SYS_CONFIG.SHEETS.SELECTION_OPT);
+
+      if (!abaAtivos || !abaSaida) throw new Error("Abas críticas não encontradas.");
 
       const tickers = this._getTickersAlvo(abaAtivos);
       if (tickers.length === 0) return;
@@ -65,27 +67,29 @@ const CoreScannerOptions = {
         }
       }
 
-      // 3. RECRIA A ABA DE SAÍDA (garante sem restrições de tipo de coluna)
-      // A aba de saída é sempre um snapshot fresco — recriar é o comportamento correto.
-      let abaSaida = ss.getSheetByName(SYS_CONFIG.SHEETS.SELECTION_OPT);
-      const posicaoAba = abaSaida ? abaSaida.getIndex() : ss.getSheets().length + 1;
-      if (abaSaida) ss.deleteSheet(abaSaida);
-      abaSaida = ss.insertSheet(SYS_CONFIG.SHEETS.SELECTION_OPT, posicaoAba - 1);
+      // 3. AUTO-CRIAÇÃO DE COLUNAS (inicializa a aba se vazia, ou acrescenta gregas se faltarem)
+      const lastColSaida = abaSaida.getLastColumn();
+      let headersOut = lastColSaida > 0
+        ? abaSaida.getRange(1, 1, 1, lastColSaida).getValues()[0]
+        : [...this._defaultHeaders];
+      let headersMudaram = lastColSaida === 0;
 
-      const headersOut = [...this._defaultHeaders];
-      abaSaida.getRange(1, 1, 1, headersOut.length).setValues([headersOut]);
+      this._novasColunas.forEach(col => {
+        if (!headersOut.includes(col)) {
+          headersOut.push(col);
+          headersMudaram = true;
+        }
+      });
 
-      // Formata CNPJ como texto para preservar zeros à esquerda
-      const cnpjCol = headersOut.indexOf('CNPJ');
-      if (cnpjCol >= 0) {
-        abaSaida.getRange(1, cnpjCol + 1, abaSaida.getMaxRows(), 1).setNumberFormat('@');
+      if (headersMudaram) {
+        abaSaida.getRange(1, 1, 1, headersOut.length).setValues([headersOut]);
       }
 
-      // Formata BID/ASK com 4 decimais para não perder valores menores que 0.01
-      ['BID', 'ASK'].forEach(colName => {
-        const ci = headersOut.indexOf(colName);
-        if (ci >= 0) abaSaida.getRange(1, ci + 1, abaSaida.getMaxRows(), 1).setNumberFormat('0.0000');
-      });
+      // 4. LIMPEZA SEGURA DOS DADOS ANTERIORES
+      const lastRowSaida = abaSaida.getLastRow();
+      if (lastRowSaida > 1) {
+        abaSaida.getRange(2, 1, lastRowSaida - 1, headersOut.length).clearContent();
+      }
 
       let bufferFinal = [];
       const stats = { ativos: 0, puts: 0, calls: 0, erros: 0 };
@@ -243,13 +247,13 @@ const CoreScannerOptions = {
       "UPDATED_AT":      new Date(),
 
       // DADOS INJETADOS EM TEMPO DE EXECUÇÃO (Calculados — não vêm da API)
-      "MID_PRICE":       Math.round(midPrice        * 10000) / 10000,
-      "SPREAD_PCT":      Math.round(spreadPct        * 10000) / 10000,
+      "MID_PRICE":       Sanitizador.numeroPuro(midPrice),
+      "SPREAD_PCT":      Sanitizador.numeroPuro(spreadPct),
       "MONEYNESS":       Sanitizador.textoPuro(moneynessCode),
-      "MONEYNESS_RATIO": Math.round((S / K)          * 10000) / 10000,
-      "BREAK_EVEN":      Math.round(breakEven        * 100)   / 100,
-      "RETURN_ON_STRIKE":Math.round(returnOnStrike   * 10000) / 10000,
-      "IV_CALC":         Math.round(ivCalc           * 10000) / 10000,
+      "MONEYNESS_RATIO": Sanitizador.numeroPuro(S / K),
+      "BREAK_EVEN":      Sanitizador.numeroPuro(breakEven),
+      "RETURN_ON_STRIKE":Sanitizador.numeroPuro(returnOnStrike),
+      "IV_CALC":         Sanitizador.numeroPuro(ivCalc),
       "PRICE":           Sanitizador.numeroPuro(greeks.price),
       "DELTA":           Sanitizador.numeroPuro(greeks.delta),
       "GAMMA":           Sanitizador.numeroPuro(greeks.gamma),
