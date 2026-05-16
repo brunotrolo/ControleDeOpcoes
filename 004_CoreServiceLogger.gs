@@ -63,22 +63,3 @@ const SysLogger = {
   }
 };
 
-// ============================================================================
-// SERVIÇO DE EXTRAÇÃO (DataExtractor)
-// ============================================================================
-// SUÍTE DE TESTES (Homologação 003)
-// ============================================================================
-
-function testSuiteLoggerV3() {
-  console.log("=== HOMOLOGANDO LOGGER v3.1 ===");
-  
-  // 1. Teste de Registro
-  SysLogger.log("Teste", "INFO", "Log de teste unitário", { status: "OK" });
-  console.log(`Buffer contém: ${SysLogger._buffer.length} itens. ${SysLogger._buffer.length === 1 ? "✅" : "❌"}`);
-
-  // 2. Teste de Flush
-  SysLogger.flush();
-  console.log(`Buffer após flush: ${SysLogger._buffer.length} itens. ${SysLogger._buffer.length === 0 ? "✅" : "❌"}`);
-
-  console.log("=== FIM DA HOMOLOGAÇÃO 003 ===");
-}

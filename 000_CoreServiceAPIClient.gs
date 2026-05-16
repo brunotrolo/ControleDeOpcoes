@@ -111,33 +111,3 @@ const OplabService = {
     return ApiClient._fetchData(url, { headers: this._getHeaders() });
   }
 };
-
-// ============================================================================
-// SUÍTE DE TESTES E HOMOLOGAÇÃO
-// ============================================================================
-
-function testSuiteApiClient() {
-  console.log("=== INICIANDO HOMOLOGAÇÃO API CLIENT v3.0 ===");
-
-  // Teste 1: Performance do Cache de Token (OpLab)
-  const t0 = Date.now();
-  OplabService._getHeaders(); // 1ª leitura (I/O)
-  const t1 = Date.now();
-  OplabService._getHeaders(); // 2ª leitura (RAM)
-  const t2 = Date.now();
-  
-  console.log(`[PERF] 1ª Leitura Token (Properties): ${t1 - t0}ms`);
-  console.log(`[PERF] 2ª Leitura Token (RAM Cache): ${t2 - t1}ms`);
-  console.log(`[PERF] Ganho de Velocidade: ${((t1-t0) / (t2-t1 || 1)).toFixed(1)}x`);
-
-  // Teste 2: Conectividade Real OpLab (Ativo)
-  console.log("--- Testando Conectividade OpLab (PETR4) ---");
-  const stock = OplabService.getStockData("PETR4");
-  if (stock && stock.symbol) {
-    console.log(`✅ [OpLab] OK: Preço ${stock.symbol} = R$ ${stock.close}`);
-  } else {
-    console.error("❌ [OpLab] Falha na resposta.");
-  }
-
-  console.log("=== FIM DA HOMOLOGAÇÃO ===");
-}

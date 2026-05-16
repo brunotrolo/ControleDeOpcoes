@@ -199,16 +199,3 @@ const StockDataSync = {
 function atualizarDadosAtivos() {
   StockDataSync.run();
 }
-
-// ============================================================================
-// SUÍTE DE HOMOLOGAÇÃO
-// ============================================================================
-
-function testSuiteStockDataSync007() {
-  console.log("=== INICIANDO HOMOLOGAÇÃO: MOTOR 007 (v4.1) ===");
-  const tickerTeste = "PETR4";
-  const dados = OplabService.getStockData(tickerTeste);
-  if (dados && dados.close !== undefined) {
-    console.log(`✅ Conexão OK. Fechamento de ${tickerTeste}: ${Sanitizador.numeroPuro(dados.close)}`);
-  }
-}

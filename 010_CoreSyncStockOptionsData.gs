@@ -258,26 +258,3 @@ function atualizarDetalhesOpcoes() {
   OptionDetailsSync.run();
 }
 
-// ============================================================================
-// SUÍTE DE HOMOLOGAÇÃO (010)
-// ============================================================================
-
-function testSuiteOptionDetailsSync008() {
-  console.log("=== INICIANDO HOMOLOGAÇÃO: OPTION DETAILS SYNC (010) ===");
-  const tickerTeste = "PETRC425";
-
-  console.log(`--- Testando Fetch da API para ${tickerTeste} ---`);
-  const dados = OplabService.getOptionDetails(tickerTeste);
-
-  if (dados && dados.strike) {
-    console.log(`✅ Dados da Opção recebidos. Strike: ${dados.strike}`);
-    console.log(`   Data de Vencimento Original: ${dados.due_date}`);
-  } else {
-    console.error(`❌ Falha ao processar ${tickerTeste}. Talvez o ativo não exista mais ou a API falhou.`);
-  }
-
-  console.log("--- Executando Carga Controlada ---");
-  OptionDetailsSync.run();
-
-  console.log("=== TESTES CONCLUÍDOS ===");
-}

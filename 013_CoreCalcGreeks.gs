@@ -283,29 +283,3 @@ function calcularGregasNativo() {
   GreeksCalculator.run();
 }
 
-// ============================================================================
-// SUÍTE DE TESTES (012)
-// ============================================================================
-
-function testSuiteCalcGreeksInternal011() {
-  console.log("=== INICIANDO AUDITORIA MATEMÁTICA: CALC GREEKS (012) ===");
-  const tol = 0.001;
-
-  // Teste 1: CDF
-  const cdfZero = OptionMath.cdf(0);
-  console.log(`[MATH] CDF(0): ${cdfZero} ${Math.abs(cdfZero - 0.5) < tol ? "✅" : "❌"}`);
-
-  // Teste 2: Black-Scholes ATM Call
-  const S = 100, K = 100, T = 1, r = 0.05, vol = 0.20;
-  const res = OptionMath.calculate(S, K, T, r, vol, 'c');
-  console.log(`[BS] Preço: ${res.price.toFixed(2)} (Esperado: ~10.45)`);
-
-  // Teste 3: Estimativa de IV
-  const iv = OptionMath.estimateIV(S, K, T, r, res.price, 'c');
-  console.log(`[IV] Estimativa: ${(iv * 100).toFixed(2)}% (Esperado: ~20%)`);
-
-  console.log("--- Executando Carga Controlada ---");
-  GreeksCalculator.run();
-
-  console.log("=== FIM DA AUDITORIA ===");
-}
