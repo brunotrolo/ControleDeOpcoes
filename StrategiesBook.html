@@ -28,98 +28,94 @@
       </div>
     </div>
 
-    <!-- GRID DE CARDS -->
+    <!-- GRID DE CARDS: máximo 3 colunas -->
     <div v-if="estrategiasFiltradas.length > 0"
-      style="padding:1rem;display:grid;gap:0.875rem;"
-      :style="isMobile ? 'grid-template-columns:1fr;' : 'grid-template-columns:repeat(auto-fill,minmax(380px,1fr));'"
+      style="padding:1.25rem;display:grid;gap:1rem;"
+      :style="isMobile ? 'grid-template-columns:1fr;' : 'grid-template-columns:repeat(3,1fr);'"
     >
       <div
         v-for="est in estrategiasFiltradas" :key="est.id"
         class="premium-card"
-        style="padding:0;overflow:hidden;border:1px solid var(--border-default);"
+        style="padding:0;overflow:hidden;border:1px solid var(--border-default);display:flex;flex-direction:column;"
       >
-        <!-- Card Header -->
-        <div :style="'padding:0.625rem 1rem;display:flex;align-items:center;justify-content:space-between;gap:0.5rem;border-bottom:1px solid var(--border-subtle);background:' + est.corFundo + ';'">
-          <div style="display:flex;align-items:center;gap:0.5rem;min-width:0;overflow:hidden;">
-            <span :style="'padding:0.18rem 0.55rem;border-radius:var(--radius-xs);font-size:0.6rem;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;border:1px solid;white-space:nowrap;background:' + est.corBadge + ';color:' + est.corTexto + ';border-color:' + est.corBorda + ';'">{{ est.tipoEstrutura }}</span>
-            <span class="t-label" style="color:var(--text-primary);font-weight:700;flex-shrink:0;">{{ est.ticker }}</span>
+        <!-- Card Header: badge+ticker empilhados | DTE+data à direita -->
+        <div :style="'padding:0.875rem 1rem;display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;border-bottom:1px solid var(--border-subtle);background:' + est.corFundo + ';'">
+          <div style="display:flex;flex-direction:column;gap:0.35rem;min-width:0;">
+            <span :style="'display:inline-block;width:fit-content;padding:0.2rem 0.6rem;border-radius:var(--radius-xs);font-size:0.58rem;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;border:1px solid;white-space:nowrap;background:' + est.corBadge + ';color:' + est.corTexto + ';border-color:' + est.corBorda + ';'">{{ est.tipoEstrutura }}</span>
+            <span style="font-size:1.15rem;font-weight:800;color:var(--text-primary);letter-spacing:0.03em;line-height:1.1;">{{ est.ticker }}</span>
           </div>
-          <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0;">
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.35rem;flex-shrink:0;">
+            <span :style="'padding:0.2rem 0.55rem;border-radius:var(--radius-xs);font-size:0.65rem;font-weight:700;' + (est.dte <= 7 ? 'background:var(--brand-rose-light);color:var(--brand-rose);' : est.dte <= 21 ? 'background:var(--brand-amber-light);color:var(--brand-amber);' : 'background:var(--surface-overlay);color:var(--text-muted);')">{{ est.dte }}d</span>
             <span class="t-label-sm" style="color:var(--text-tertiary);">{{ fmtDate(est.vencimento) }}</span>
-            <span :style="'padding:0.15rem 0.45rem;border-radius:var(--radius-xs);font-size:0.62rem;font-weight:700;' + (est.dte <= 7 ? 'background:var(--brand-rose-light);color:var(--brand-rose);' : est.dte <= 21 ? 'background:var(--brand-amber-light);color:var(--brand-amber);' : 'background:var(--surface-overlay);color:var(--text-muted);')">{{ est.dte }}d</span>
           </div>
         </div>
 
         <!-- Tabela de Pernas -->
-        <div style="padding:0.5rem 1rem;border-bottom:1px solid var(--border-subtle);overflow-x:auto;">
-          <table style="width:100%;border-collapse:collapse;min-width:320px;">
+        <div style="padding:0.5rem 1rem 0.75rem;border-bottom:1px solid var(--border-subtle);overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;">
             <thead>
               <tr>
-                <th class="t-label-sm" style="text-align:left;padding:0.18rem 0.2rem;color:var(--text-muted);font-weight:600;white-space:nowrap;">Opção</th>
-                <th class="t-label-sm" style="text-align:center;padding:0.18rem 0.2rem;color:var(--text-muted);font-weight:600;">Lado</th>
-                <th class="t-label-sm" style="text-align:center;padding:0.18rem 0.2rem;color:var(--text-muted);font-weight:600;">Tipo</th>
-                <th class="t-label-sm" style="text-align:right;padding:0.18rem 0.2rem;color:var(--text-muted);font-weight:600;">Strike</th>
-                <th class="t-label-sm" style="text-align:right;padding:0.18rem 0.2rem;color:var(--text-muted);font-weight:600;">Entrada</th>
-                <th class="t-label-sm" style="text-align:right;padding:0.18rem 0.2rem;color:var(--text-muted);font-weight:600;">Atual</th>
-                <th class="t-label-sm" style="text-align:center;padding:0.18rem 0.2rem;color:var(--text-muted);font-weight:600;">MNY</th>
-                <th class="t-label-sm" style="text-align:right;padding:0.18rem 0.2rem;color:var(--text-muted);font-weight:600;">Qtd</th>
+                <th class="t-label-sm" style="text-align:left;padding:0.25rem 0.3rem 0.4rem 0;color:var(--text-muted);font-weight:600;white-space:nowrap;">Opção</th>
+                <th class="t-label-sm" style="text-align:center;padding:0.25rem 0.3rem 0.4rem;color:var(--text-muted);font-weight:600;">Lado</th>
+                <th class="t-label-sm" style="text-align:center;padding:0.25rem 0.3rem 0.4rem;color:var(--text-muted);font-weight:600;">Tipo</th>
+                <th class="t-label-sm" style="text-align:right;padding:0.25rem 0.3rem 0.4rem;color:var(--text-muted);font-weight:600;">Strike</th>
+                <th class="t-label-sm" style="text-align:right;padding:0.25rem 0.3rem 0.4rem;color:var(--text-muted);font-weight:600;">PM</th>
+                <th class="t-label-sm" style="text-align:right;padding:0.25rem 0.3rem 0.4rem;color:var(--text-muted);font-weight:600;">Atual</th>
+                <th class="t-label-sm" style="text-align:center;padding:0.25rem 0.3rem 0.4rem;color:var(--text-muted);font-weight:600;">MNY</th>
+                <th class="t-label-sm" style="text-align:right;padding:0.25rem 0 0.4rem 0.3rem;color:var(--text-muted);font-weight:600;">Qtd</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="(leg, li) in est.pernas" :key="li" style="border-top:1px solid var(--border-subtle);">
-                <td style="padding:0.28rem 0.2rem;">
+                <td style="padding:0.4rem 0.3rem 0.4rem 0;">
                   <span class="t-value-sm" style="color:var(--text-primary);font-family:monospace;white-space:nowrap;">{{ leg.simboloOpcao }}</span>
                 </td>
-                <td style="padding:0.28rem 0.2rem;text-align:center;">
-                  <span :style="'padding:0.08rem 0.4rem;border-radius:var(--radius-xs);font-size:0.6rem;font-weight:800;' + (leg.direcaoTrade === 'VENDA' ? 'background:var(--brand-emerald-light);color:var(--brand-emerald);' : 'background:var(--brand-rose-light);color:var(--brand-rose);')">{{ leg.direcaoTrade === 'VENDA' ? 'V' : 'C' }}</span>
+                <td style="padding:0.4rem 0.3rem;text-align:center;">
+                  <span :style="'padding:0.1rem 0.45rem;border-radius:var(--radius-xs);font-size:0.6rem;font-weight:800;' + (leg.direcaoTrade === 'VENDA' ? 'background:var(--brand-emerald-light);color:var(--brand-emerald);' : 'background:var(--brand-rose-light);color:var(--brand-rose);')">{{ leg.direcaoTrade === 'VENDA' ? 'V' : 'C' }}</span>
                 </td>
-                <td style="padding:0.28rem 0.2rem;text-align:center;">
+                <td style="padding:0.4rem 0.3rem;text-align:center;">
                   <span class="t-label-sm" style="color:var(--text-muted);">{{ leg.tipoOpcao || '--' }}</span>
                 </td>
-                <td class="t-value-sm" style="padding:0.28rem 0.2rem;text-align:right;color:var(--text-primary);">{{ fmt(leg.strike) }}</td>
-                <td class="t-value-sm" style="padding:0.28rem 0.2rem;text-align:right;color:var(--text-secondary);">{{ fmt(leg.premioMedio) }}</td>
-                <td class="t-value-sm" style="padding:0.28rem 0.2rem;text-align:right;font-weight:700;"
+                <td class="t-value-sm" style="padding:0.4rem 0.3rem;text-align:right;color:var(--text-primary);">{{ fmt(leg.strike) }}</td>
+                <td class="t-value-sm" style="padding:0.4rem 0.3rem;text-align:right;color:var(--text-secondary);">{{ fmt(leg.premioMedio) }}</td>
+                <td class="t-value-sm" style="padding:0.4rem 0.3rem;text-align:right;font-weight:700;"
                   :style="leg.direcaoTrade === 'VENDA'
                     ? (leg.premioAtual > leg.premioMedio ? 'color:var(--brand-rose);' : 'color:var(--brand-emerald);')
                     : (leg.premioAtual < leg.premioMedio ? 'color:var(--brand-rose);' : 'color:var(--brand-emerald);')"
                 >{{ fmt(leg.premioAtual) }}</td>
-                <td style="padding:0.28rem 0.2rem;text-align:center;">
-                  <span :style="'padding:0.08rem 0.35rem;border-radius:var(--radius-xs);font-size:0.58rem;font-weight:700;' + (leg.moneynessCode === 'ITM' ? 'background:var(--brand-rose-light);color:var(--brand-rose);' : leg.moneynessCode === 'ATM' ? 'background:var(--brand-amber-light);color:var(--brand-amber);' : 'background:var(--surface-overlay);color:var(--text-muted);')">{{ leg.moneynessCode || '--' }}</span>
+                <td style="padding:0.4rem 0.3rem;text-align:center;">
+                  <span :style="'padding:0.1rem 0.4rem;border-radius:var(--radius-xs);font-size:0.58rem;font-weight:700;' + (leg.moneynessCode === 'ITM' ? 'background:var(--brand-rose-light);color:var(--brand-rose);' : leg.moneynessCode === 'ATM' ? 'background:var(--brand-amber-light);color:var(--brand-amber);' : 'background:var(--surface-overlay);color:var(--text-muted);')">{{ leg.moneynessCode || '--' }}</span>
                 </td>
-                <td class="t-value-sm" style="padding:0.28rem 0.2rem;text-align:right;color:var(--text-secondary);">{{ leg.quantidade || '--' }}</td>
+                <td class="t-value-sm" style="padding:0.4rem 0 0.4rem 0.3rem;text-align:right;color:var(--text-secondary);">{{ leg.quantidade || '--' }}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <!-- Métricas Financeiras -->
-        <div style="padding:0.75rem 1rem;display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 1.25rem;">
+        <!-- Métricas: layout vertical (label | valor em cada linha) -->
+        <div style="padding:1rem;display:flex;flex-direction:column;flex:1;">
 
-          <!-- Col 1: Fluxo na Abertura -->
-          <div>
-            <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.1em;">Fluxo na Abertura</p>
-            <div style="display:flex;flex-direction:column;gap:0.18rem;">
-              <div v-if="est.valorRecebido > 0" style="display:flex;justify-content:space-between;align-items:center;">
-                <span class="t-label-sm" style="color:var(--text-tertiary);">Recebido (V)</span>
-                <span class="t-value-sm" style="color:var(--brand-emerald);font-weight:700;">+ {{ fmt(est.valorRecebido) }}</span>
-              </div>
-              <div v-if="est.valorPago > 0" style="display:flex;justify-content:space-between;align-items:center;">
-                <span class="t-label-sm" style="color:var(--text-tertiary);">Pago (C)</span>
-                <span class="t-value-sm" style="color:var(--brand-rose);font-weight:700;">- {{ fmt(est.valorPago) }}</span>
-              </div>
-              <div style="display:flex;justify-content:space-between;align-items:center;padding-top:0.2rem;border-top:1px solid var(--border-subtle);">
-                <span class="t-label-sm" style="color:var(--text-secondary);font-weight:700;">{{ est.saldoLiquido >= 0 ? 'Crédito' : 'Débito' }} Líquido</span>
-                <span class="t-value-sm" :style="'font-weight:800;' + (est.saldoLiquido >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);')">
-                  {{ fmtSigned(est.saldoLiquido) }}
-                </span>
-              </div>
+          <!-- Fluxo na Abertura -->
+          <p class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">Fluxo na Abertura</p>
+          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+            <div v-if="est.valorRecebido > 0" style="display:flex;justify-content:space-between;align-items:center;">
+              <span class="t-label-sm" style="color:var(--text-tertiary);">Recebido (V)</span>
+              <span class="t-value-sm" style="color:var(--brand-emerald);font-weight:700;">+ {{ fmt(est.valorRecebido) }}</span>
+            </div>
+            <div v-if="est.valorPago > 0" style="display:flex;justify-content:space-between;align-items:center;">
+              <span class="t-label-sm" style="color:var(--text-tertiary);">Pago (C)</span>
+              <span class="t-value-sm" style="color:var(--brand-rose);font-weight:700;">- {{ fmt(est.valorPago) }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:0.35rem;margin-top:0.1rem;border-top:1px solid var(--border-subtle);">
+              <span class="t-label-sm" style="color:var(--text-secondary);font-weight:700;">{{ est.saldoLiquido >= 0 ? 'Crédito' : 'Débito' }} Líquido</span>
+              <span class="t-value-sm" :style="'font-weight:800;' + (est.saldoLiquido >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);')">{{ fmtSigned(est.saldoLiquido) }}</span>
             </div>
           </div>
 
-          <!-- Col 2: Situação Atual -->
-          <div>
-            <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.1em;">Situação Atual</p>
-            <div style="display:flex;flex-direction:column;gap:0.18rem;">
+          <!-- Situação Atual -->
+          <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-subtle);">
+            <p class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">Situação Atual</p>
+            <div style="display:flex;flex-direction:column;gap:0.35rem;">
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <span class="t-label-sm" style="color:var(--text-tertiary);">Desmontar</span>
                 <span class="t-value-sm" :style="'font-weight:700;' + (est.custoDesmontar <= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);')">
@@ -127,44 +123,40 @@
                 </span>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span class="t-label-sm" style="color:var(--text-tertiary);">P/L Total</span>
-                <span class="t-value-sm" :style="'font-weight:800;' + (est.plTotal >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);')">
-                  {{ fmtSigned(est.plTotal) }}
-                </span>
+                <span class="t-label-sm" style="color:var(--text-secondary);font-weight:700;">P/L Total</span>
+                <span class="t-value-sm" :style="'font-weight:800;' + (est.plTotal >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);')">{{ fmtSigned(est.plTotal) }}</span>
               </div>
               <div v-if="est.plPct !== null" style="display:flex;justify-content:space-between;align-items:center;">
                 <span class="t-label-sm" style="color:var(--text-tertiary);">Retorno</span>
-                <span class="t-value-sm" :style="'font-weight:700;' + (est.plPct >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);')">
-                  {{ (est.plPct >= 0 ? '+' : '') + est.plPct.toFixed(1) }}%
-                </span>
+                <span class="t-value-sm" :style="'font-weight:700;' + (est.plPct >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);')">{{ (est.plPct >= 0 ? '+' : '') + est.plPct.toFixed(1) }}%</span>
               </div>
             </div>
           </div>
 
-          <!-- Limites: só para spreads verticais -->
-          <div v-if="est.maxProfit !== null" style="grid-column:1/-1;padding-top:0.5rem;border-top:1px solid var(--border-subtle);display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
-            <div>
-              <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.125rem;">Ganho Máx.</p>
-              <p class="t-value-sm" style="color:var(--brand-emerald);font-weight:700;">{{ fmt(est.maxProfit) }}</p>
+          <!-- Limites: só para spreads verticais (com fundo colorido) -->
+          <div v-if="est.maxProfit !== null" style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-subtle);display:grid;grid-template-columns:1fr 1fr;gap:0.625rem;">
+            <div style="background:var(--brand-emerald-light);border-radius:var(--radius-md);padding:0.625rem 0.875rem;">
+              <p class="t-label-sm" style="color:var(--brand-emerald);font-weight:600;margin-bottom:0.3rem;">Ganho Máx.</p>
+              <p class="t-value-sm" style="color:var(--brand-emerald);font-weight:800;">{{ fmt(est.maxProfit) }}</p>
             </div>
-            <div>
-              <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.125rem;">Perda Máx.</p>
-              <p class="t-value-sm" style="color:var(--brand-rose);font-weight:700;">{{ fmt(est.maxLoss) }}</p>
+            <div style="background:var(--brand-rose-light);border-radius:var(--radius-md);padding:0.625rem 0.875rem;">
+              <p class="t-label-sm" style="color:var(--brand-rose);font-weight:600;margin-bottom:0.3rem;">Perda Máx.</p>
+              <p class="t-value-sm" style="color:var(--brand-rose);font-weight:800;">{{ fmt(est.maxLoss) }}</p>
             </div>
           </div>
 
-          <!-- Greeks: sempre visível -->
-          <div style="grid-column:1/-1;padding-top:0.5rem;border-top:1px solid var(--border-subtle);display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;">
+          <!-- Greeks -->
+          <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-subtle);display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;">
             <div>
-              <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.125rem;">Delta Líq.</p>
+              <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.3rem;">Delta Líq.</p>
               <p class="t-value-sm" style="color:var(--text-primary);font-weight:700;">{{ fmtNum(est.deltaNet) }}</p>
             </div>
             <div>
-              <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.125rem;">Theta/d</p>
+              <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.3rem;">Theta/d</p>
               <p class="t-value-sm" :style="'font-weight:700;' + (est.thetaNet >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);')">{{ fmtSigned(est.thetaNet) }}</p>
             </div>
             <div>
-              <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.125rem;">Spot</p>
+              <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.3rem;">Spot</p>
               <p class="t-value-sm" style="color:var(--text-secondary);font-weight:700;">{{ fmt(est.spotAtual) }}</p>
             </div>
           </div>
