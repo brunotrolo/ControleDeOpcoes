@@ -24,14 +24,14 @@
             ? 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);'
             : 'background:var(--surface-base);color:var(--text-muted);border-color:var(--border-default);'"
           style="padding:0.3rem 0.75rem;border-radius:var(--radius-full);border:1px solid;font-size:0.7rem;font-weight:700;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;transition:all 0.15s;"
-        >{{ f.label }} <span v-if="f.count > 0" style="opacity:0.75;">({{ f.count }})</span></button>
+        >{{ f.label }}<span v-if="f.count > 0" style="opacity:0.65;margin-left:0.25rem;">({{ f.count }})</span></button>
       </div>
     </div>
 
     <!-- GRID DE CARDS -->
     <div v-if="estrategiasFiltradas.length > 0"
       style="padding:1rem;display:grid;gap:0.875rem;"
-      :style="isMobile ? 'grid-template-columns:1fr;' : 'grid-template-columns:repeat(auto-fill,minmax(360px,1fr));'"
+      :style="isMobile ? 'grid-template-columns:1fr;' : 'grid-template-columns:repeat(auto-fill,minmax(380px,1fr));'"
     >
       <div
         v-for="est in estrategiasFiltradas" :key="est.id"
@@ -39,65 +39,66 @@
         style="padding:0;overflow:hidden;border:1px solid var(--border-default);"
       >
         <!-- Card Header -->
-        <div :style="'padding:0.75rem 1rem;display:flex;align-items:center;justify-content:space-between;gap:0.5rem;border-bottom:1px solid var(--border-subtle);background:' + est.corFundo + ';'"
-        >
-          <div style="display:flex;align-items:center;gap:0.625rem;min-width:0;">
-            <span
-              :style="'padding:0.2rem 0.6rem;border-radius:var(--radius-xs);font-size:0.65rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;border:1px solid;white-space:nowrap;background:' + est.corBadge + ';color:' + est.corTexto + ';border-color:' + est.corBorda + ';'"
-            >{{ est.tipoEstrutura }}</span>
-            <span class="t-label" style="color:var(--text-primary);font-weight:700;">{{ est.ticker }}</span>
-            <span class="t-label-sm" style="color:var(--text-tertiary);">{{ est.vencimento }}</span>
+        <div :style="'padding:0.625rem 1rem;display:flex;align-items:center;justify-content:space-between;gap:0.5rem;border-bottom:1px solid var(--border-subtle);background:' + est.corFundo + ';'">
+          <div style="display:flex;align-items:center;gap:0.5rem;min-width:0;overflow:hidden;">
+            <span :style="'padding:0.18rem 0.55rem;border-radius:var(--radius-xs);font-size:0.6rem;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;border:1px solid;white-space:nowrap;background:' + est.corBadge + ';color:' + est.corTexto + ';border-color:' + est.corBorda + ';'">{{ est.tipoEstrutura }}</span>
+            <span class="t-label" style="color:var(--text-primary);font-weight:700;flex-shrink:0;">{{ est.ticker }}</span>
           </div>
           <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0;">
-            <span
-              :style="'padding:0.15rem 0.5rem;border-radius:var(--radius-xs);font-size:0.65rem;font-weight:700;' + (est.dte <= 7 ? 'background:var(--brand-rose-light);color:var(--brand-rose);' : est.dte <= 21 ? 'background:var(--brand-amber-light);color:var(--brand-amber);' : 'background:var(--surface-overlay);color:var(--text-muted);')"
-            >{{ est.dte }}d</span>
+            <span class="t-label-sm" style="color:var(--text-tertiary);">{{ fmtDate(est.vencimento) }}</span>
+            <span :style="'padding:0.15rem 0.45rem;border-radius:var(--radius-xs);font-size:0.62rem;font-weight:700;' + (est.dte <= 7 ? 'background:var(--brand-rose-light);color:var(--brand-rose);' : est.dte <= 21 ? 'background:var(--brand-amber-light);color:var(--brand-amber);' : 'background:var(--surface-overlay);color:var(--text-muted);')">{{ est.dte }}d</span>
           </div>
         </div>
 
-        <!-- Pernas da Estrutura -->
-        <div style="padding:0.625rem 1rem;border-bottom:1px solid var(--border-subtle);">
-          <table style="width:100%;border-collapse:collapse;">
+        <!-- Tabela de Pernas -->
+        <div style="padding:0.5rem 1rem;border-bottom:1px solid var(--border-subtle);overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;min-width:320px;">
             <thead>
               <tr>
-                <th class="t-label-sm" style="text-align:left;padding:0.2rem 0.25rem;color:var(--text-muted);font-weight:600;">Opção</th>
-                <th class="t-label-sm" style="text-align:center;padding:0.2rem 0.25rem;color:var(--text-muted);font-weight:600;">Lado</th>
-                <th class="t-label-sm" style="text-align:right;padding:0.2rem 0.25rem;color:var(--text-muted);font-weight:600;">Strike</th>
-                <th class="t-label-sm" style="text-align:right;padding:0.2rem 0.25rem;color:var(--text-muted);font-weight:600;">Entrada</th>
-                <th class="t-label-sm" style="text-align:right;padding:0.2rem 0.25rem;color:var(--text-muted);font-weight:600;">Atual</th>
-                <th class="t-label-sm" style="text-align:center;padding:0.2rem 0.25rem;color:var(--text-muted);font-weight:600;">Moneyness</th>
+                <th class="t-label-sm" style="text-align:left;padding:0.18rem 0.2rem;color:var(--text-muted);font-weight:600;white-space:nowrap;">Opção</th>
+                <th class="t-label-sm" style="text-align:center;padding:0.18rem 0.2rem;color:var(--text-muted);font-weight:600;">Lado</th>
+                <th class="t-label-sm" style="text-align:center;padding:0.18rem 0.2rem;color:var(--text-muted);font-weight:600;">Tipo</th>
+                <th class="t-label-sm" style="text-align:right;padding:0.18rem 0.2rem;color:var(--text-muted);font-weight:600;">Strike</th>
+                <th class="t-label-sm" style="text-align:right;padding:0.18rem 0.2rem;color:var(--text-muted);font-weight:600;">Entrada</th>
+                <th class="t-label-sm" style="text-align:right;padding:0.18rem 0.2rem;color:var(--text-muted);font-weight:600;">Atual</th>
+                <th class="t-label-sm" style="text-align:center;padding:0.18rem 0.2rem;color:var(--text-muted);font-weight:600;">MNY</th>
+                <th class="t-label-sm" style="text-align:right;padding:0.18rem 0.2rem;color:var(--text-muted);font-weight:600;">Qtd</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="leg in est.pernas" :key="leg.simboloOpcao" style="border-top:1px solid var(--border-subtle);">
-                <td style="padding:0.3rem 0.25rem;">
-                  <span class="t-value-sm" style="color:var(--text-primary);font-family:monospace;">{{ leg.simboloOpcao }}</span>
+              <tr v-for="(leg, li) in est.pernas" :key="li" style="border-top:1px solid var(--border-subtle);">
+                <td style="padding:0.28rem 0.2rem;">
+                  <span class="t-value-sm" style="color:var(--text-primary);font-family:monospace;white-space:nowrap;">{{ leg.simboloOpcao }}</span>
                 </td>
-                <td style="padding:0.3rem 0.25rem;text-align:center;">
-                  <span
-                    :style="'padding:0.1rem 0.45rem;border-radius:var(--radius-xs);font-size:0.6rem;font-weight:800;letter-spacing:0.06em;' + (leg.direcaoTrade === 'VENDA' ? 'background:var(--brand-emerald-light);color:var(--brand-emerald);' : 'background:var(--brand-rose-light);color:var(--brand-rose);')"
-                  >{{ leg.direcaoTrade === 'VENDA' ? 'V' : 'C' }}</span>
+                <td style="padding:0.28rem 0.2rem;text-align:center;">
+                  <span :style="'padding:0.08rem 0.4rem;border-radius:var(--radius-xs);font-size:0.6rem;font-weight:800;' + (leg.direcaoTrade === 'VENDA' ? 'background:var(--brand-emerald-light);color:var(--brand-emerald);' : 'background:var(--brand-rose-light);color:var(--brand-rose);')">{{ leg.direcaoTrade === 'VENDA' ? 'V' : 'C' }}</span>
                 </td>
-                <td class="t-value-sm" style="padding:0.3rem 0.25rem;text-align:right;color:var(--text-primary);">{{ fmt(leg.strike) }}</td>
-                <td class="t-value-sm" style="padding:0.3rem 0.25rem;text-align:right;color:var(--text-secondary);">{{ fmt(leg.premioMedio) }}</td>
-                <td class="t-value-sm" style="padding:0.3rem 0.25rem;text-align:right;color:var(--text-secondary);">{{ fmt(leg.premioAtual) }}</td>
-                <td style="padding:0.3rem 0.25rem;text-align:center;">
-                  <span
-                    :style="'padding:0.1rem 0.4rem;border-radius:var(--radius-xs);font-size:0.6rem;font-weight:700;' + (leg.moneynessCode === 'ITM' ? 'background:var(--brand-rose-light);color:var(--brand-rose);' : leg.moneynessCode === 'ATM' ? 'background:var(--brand-amber-light);color:var(--brand-amber);' : 'background:var(--surface-overlay);color:var(--text-muted);')"
-                  >{{ leg.moneynessCode || '--' }}</span>
+                <td style="padding:0.28rem 0.2rem;text-align:center;">
+                  <span class="t-label-sm" style="color:var(--text-muted);">{{ leg.tipoOpcao || '--' }}</span>
                 </td>
+                <td class="t-value-sm" style="padding:0.28rem 0.2rem;text-align:right;color:var(--text-primary);">{{ fmt(leg.strike) }}</td>
+                <td class="t-value-sm" style="padding:0.28rem 0.2rem;text-align:right;color:var(--text-secondary);">{{ fmt(leg.premioMedio) }}</td>
+                <td class="t-value-sm" style="padding:0.28rem 0.2rem;text-align:right;font-weight:700;"
+                  :style="leg.direcaoTrade === 'VENDA'
+                    ? (leg.premioAtual > leg.premioMedio ? 'color:var(--brand-rose);' : 'color:var(--brand-emerald);')
+                    : (leg.premioAtual < leg.premioMedio ? 'color:var(--brand-rose);' : 'color:var(--brand-emerald);')"
+                >{{ fmt(leg.premioAtual) }}</td>
+                <td style="padding:0.28rem 0.2rem;text-align:center;">
+                  <span :style="'padding:0.08rem 0.35rem;border-radius:var(--radius-xs);font-size:0.58rem;font-weight:700;' + (leg.moneynessCode === 'ITM' ? 'background:var(--brand-rose-light);color:var(--brand-rose);' : leg.moneynessCode === 'ATM' ? 'background:var(--brand-amber-light);color:var(--brand-amber);' : 'background:var(--surface-overlay);color:var(--text-muted);')">{{ leg.moneynessCode || '--' }}</span>
+                </td>
+                <td class="t-value-sm" style="padding:0.28rem 0.2rem;text-align:right;color:var(--text-secondary);">{{ leg.quantidade || '--' }}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
         <!-- Métricas Financeiras -->
-        <div style="padding:0.75rem 1rem;display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 1rem;">
+        <div style="padding:0.75rem 1rem;display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 1.25rem;">
 
-          <!-- Col 1: Fluxo de Caixa Inicial -->
+          <!-- Col 1: Fluxo na Abertura -->
           <div>
-            <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:0.1em;">Fluxo na Abertura</p>
-            <div style="display:flex;flex-direction:column;gap:0.2rem;">
+            <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.1em;">Fluxo na Abertura</p>
+            <div style="display:flex;flex-direction:column;gap:0.18rem;">
               <div v-if="est.valorRecebido > 0" style="display:flex;justify-content:space-between;align-items:center;">
                 <span class="t-label-sm" style="color:var(--text-tertiary);">Recebido (V)</span>
                 <span class="t-value-sm" style="color:var(--brand-emerald);font-weight:700;">+ {{ fmt(est.valorRecebido) }}</span>
@@ -109,7 +110,7 @@
               <div style="display:flex;justify-content:space-between;align-items:center;padding-top:0.2rem;border-top:1px solid var(--border-subtle);">
                 <span class="t-label-sm" style="color:var(--text-secondary);font-weight:700;">{{ est.saldoLiquido >= 0 ? 'Crédito' : 'Débito' }} Líquido</span>
                 <span class="t-value-sm" :style="'font-weight:800;' + (est.saldoLiquido >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);')">
-                  {{ est.saldoLiquido >= 0 ? '+' : '' }}{{ fmt(est.saldoLiquido) }}
+                  {{ fmtSigned(est.saldoLiquido) }}
                 </span>
               </div>
             </div>
@@ -117,31 +118,31 @@
 
           <!-- Col 2: Situação Atual -->
           <div>
-            <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:0.1em;">Situação Atual</p>
-            <div style="display:flex;flex-direction:column;gap:0.2rem;">
+            <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.1em;">Situação Atual</p>
+            <div style="display:flex;flex-direction:column;gap:0.18rem;">
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <span class="t-label-sm" style="color:var(--text-tertiary);">Desmontar</span>
                 <span class="t-value-sm" :style="'font-weight:700;' + (est.custoDesmontar <= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);')">
-                  {{ est.custoDesmontar <= 0 ? '+' : '- ' }}{{ fmt(Math.abs(est.custoDesmontar)) }}
+                  {{ est.custoDesmontar <= 0 ? '+ ' : '- ' }}{{ fmt(est.custoDesmontar) }}
                 </span>
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <span class="t-label-sm" style="color:var(--text-tertiary);">P/L Total</span>
                 <span class="t-value-sm" :style="'font-weight:800;' + (est.plTotal >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);')">
-                  {{ est.plTotal >= 0 ? '+' : '' }}{{ fmt(est.plTotal) }}
+                  {{ fmtSigned(est.plTotal) }}
                 </span>
               </div>
               <div v-if="est.plPct !== null" style="display:flex;justify-content:space-between;align-items:center;">
                 <span class="t-label-sm" style="color:var(--text-tertiary);">Retorno</span>
                 <span class="t-value-sm" :style="'font-weight:700;' + (est.plPct >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);')">
-                  {{ est.plPct >= 0 ? '+' : '' }}{{ est.plPct.toFixed(1) }}%
+                  {{ (est.plPct >= 0 ? '+' : '') + est.plPct.toFixed(1) }}%
                 </span>
               </div>
             </div>
           </div>
 
-          <!-- Limites da Estrutura (só para spreads verticais) -->
-          <div v-if="est.maxProfit !== null" style="grid-column:1/-1;padding-top:0.5rem;border-top:1px solid var(--border-subtle);display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;">
+          <!-- Limites: só para spreads verticais -->
+          <div v-if="est.maxProfit !== null" style="grid-column:1/-1;padding-top:0.5rem;border-top:1px solid var(--border-subtle);display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
             <div>
               <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.125rem;">Ganho Máx.</p>
               <p class="t-value-sm" style="color:var(--brand-emerald);font-weight:700;">{{ fmt(est.maxProfit) }}</p>
@@ -150,25 +151,21 @@
               <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.125rem;">Perda Máx.</p>
               <p class="t-value-sm" style="color:var(--brand-rose);font-weight:700;">{{ fmt(est.maxLoss) }}</p>
             </div>
-            <div>
-              <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.125rem;">Delta Líq.</p>
-              <p class="t-value-sm" style="color:var(--text-primary);font-weight:700;">{{ est.deltaNet.toFixed(2) }}</p>
-            </div>
           </div>
 
-          <!-- Greeks simples (só delta se não for spread) -->
-          <div v-else style="grid-column:1/-1;padding-top:0.5rem;border-top:1px solid var(--border-subtle);display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;">
+          <!-- Greeks: sempre visível -->
+          <div style="grid-column:1/-1;padding-top:0.5rem;border-top:1px solid var(--border-subtle);display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;">
             <div>
-              <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.125rem;">Delta</p>
-              <p class="t-value-sm" style="color:var(--text-primary);font-weight:700;">{{ est.deltaNet.toFixed(2) }}</p>
+              <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.125rem;">Delta Líq.</p>
+              <p class="t-value-sm" style="color:var(--text-primary);font-weight:700;">{{ fmtNum(est.deltaNet) }}</p>
             </div>
             <div>
               <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.125rem;">Theta/d</p>
-              <p class="t-value-sm" style="color:var(--brand-emerald);font-weight:700;">{{ fmt(est.thetaNet) }}</p>
+              <p class="t-value-sm" :style="'font-weight:700;' + (est.thetaNet >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);')">{{ fmtSigned(est.thetaNet) }}</p>
             </div>
             <div>
-              <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.125rem;">Qtd</p>
-              <p class="t-value-sm" style="color:var(--text-primary);font-weight:700;">{{ est.quantidade }}</p>
+              <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.125rem;">Spot</p>
+              <p class="t-value-sm" style="color:var(--text-secondary);font-weight:700;">{{ fmt(est.spotAtual) }}</p>
             </div>
           </div>
 
@@ -197,13 +194,8 @@ window.StrategiesBook = {
     return { filtroAtivo: 'todas' };
   },
 
-  mounted: function() {
-    if (window.refreshIcons) window.refreshIcons();
-  },
-
-  updated: function() {
-    if (window.refreshIcons) window.refreshIcons();
-  },
+  mounted:  function() { if (window.refreshIcons) window.refreshIcons(); },
+  updated:  function() { if (window.refreshIcons) window.refreshIcons(); },
 
   computed: {
     trades: function() {
@@ -211,15 +203,13 @@ window.StrategiesBook = {
     },
 
     estrategias: function() {
-      var self = this;
+      var self   = this;
       var grupos = {};
-
       this.trades.forEach(function(t) {
-        var id = t.estrategiaId || ('_solo_' + t.tradeId);
+        var id = t.estrategiaId || ('_solo_' + (t.tradeId || t.simboloOpcao));
         if (!grupos[id]) grupos[id] = [];
         grupos[id].push(t);
       });
-
       return Object.keys(grupos).map(function(id) {
         return self._construirEstrutura(id, grupos[id]);
       }).sort(function(a, b) { return a.dte - b.dte; });
@@ -227,168 +217,186 @@ window.StrategiesBook = {
 
     filtros: function() {
       var ests = this.estrategias;
-      var counts = { todas: ests.length, credito: 0, debito: 0, simples: 0, composta: 0 };
-      ests.forEach(function(e) {
-        if (e.categoria === 'credito')   counts.credito++;
-        else if (e.categoria === 'debito')  counts.debito++;
-        else if (e.categoria === 'simples') counts.simples++;
-        else                                counts.composta++;
-      });
       return [
-        { key: 'todas',    label: 'Todas',    count: counts.todas },
-        { key: 'credito',  label: 'Crédito',  count: counts.credito },
-        { key: 'debito',   label: 'Débito',   count: counts.debito },
-        { key: 'simples',  label: 'Simples',  count: counts.simples },
-        { key: 'composta', label: 'Compostas',count: counts.composta }
+        { key: 'todas',    label: 'Todas',    count: ests.length },
+        { key: 'credito',  label: 'Crédito',  count: ests.filter(function(e) { return e.categoria === 'credito'; }).length },
+        { key: 'debito',   label: 'Débito',   count: ests.filter(function(e) { return e.categoria === 'debito';  }).length },
+        { key: 'simples',  label: 'Simples',  count: ests.filter(function(e) { return e.isSimples; }).length },
+        { key: 'composta', label: 'Compostas',count: ests.filter(function(e) { return !e.isSimples; }).length }
       ];
     },
 
     estrategiasFiltradas: function() {
-      var f = this.filtroAtivo;
-      if (f === 'todas') return this.estrategias;
-      return this.estrategias.filter(function(e) { return e.categoria === f; });
+      var f    = this.filtroAtivo;
+      var ests = this.estrategias;
+      if (f === 'credito')  return ests.filter(function(e) { return e.categoria === 'credito'; });
+      if (f === 'debito')   return ests.filter(function(e) { return e.categoria === 'debito';  });
+      if (f === 'simples')  return ests.filter(function(e) { return e.isSimples;  });
+      if (f === 'composta') return ests.filter(function(e) { return !e.isSimples; });
+      return ests;
     }
   },
 
   methods: {
+    // Formata como "R$ X,XX" (valor absoluto — use para preços sempre positivos)
     fmt: function(v) {
       if (v === null || v === undefined || isNaN(v)) return '--';
       return 'R$ ' + Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     },
 
+    // Formata com sinal explícito: "+R$ X,XX" ou "-R$ X,XX"
+    fmtSigned: function(v) {
+      if (v === null || v === undefined || isNaN(v)) return '--';
+      var abs = Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return (v >= 0 ? '+' : '-') + 'R$ ' + abs;
+    },
+
+    // Formata número puro (delta, qtd)
+    fmtNum: function(v) {
+      if (v === null || v === undefined || isNaN(v)) return '--';
+      return v.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    },
+
+    // Formata data como "DD/MM/AAAA"
+    fmtDate: function(d) {
+      if (!d) return '--';
+      var dt = (d instanceof Date) ? d : new Date(d);
+      if (isNaN(dt.getTime())) return '--';
+      return String(dt.getDate()).padStart(2, '0') + '/'
+           + String(dt.getMonth() + 1).padStart(2, '0') + '/'
+           + dt.getFullYear();
+    },
+
     _construirEstrutura: function(id, pernas) {
+      var self    = this;
       var tipo    = this._classificar(pernas);
       var cor     = this._cores(tipo);
       var metrics = this._metricas(pernas);
-
-      var leg0  = pernas[0];
-      var dte   = Math.min.apply(null, pernas.map(function(p) { return p.dteCorridos || 999; }));
-      var venc  = leg0.dataVencimento || '--';
+      var leg0    = pernas[0];
+      var dte     = Math.min.apply(null, pernas.map(function(p) { return typeof p.dteCorridos === 'number' ? p.dteCorridos : 999; }));
 
       return Object.assign({
-        id:           id,
-        ticker:       leg0.tickerAtivo,
-        vencimento:   venc,
-        dte:          dte,
-        tipoEstrutura:tipo,
-        pernas:       pernas.slice().sort(function(a, b) { return (a.strike || 0) - (b.strike || 0); }),
-        corFundo:     cor.fundo,
-        corBadge:     cor.badge,
-        corTexto:     cor.texto,
-        corBorda:     cor.borda
+        id:            id,
+        ticker:        leg0.tickerAtivo || '--',
+        vencimento:    leg0.dataVencimento || null,
+        dte:           dte,
+        tipoEstrutura: tipo,
+        isSimples:     pernas.length === 1,
+        spotAtual:     leg0.spotPrice || 0,
+        pernas:        pernas.slice().sort(function(a, b) { return (a.strike || 0) - (b.strike || 0); }),
+        corFundo:      cor.fundo,
+        corBadge:      cor.badge,
+        corTexto:      cor.texto,
+        corBorda:      cor.borda
       }, metrics);
     },
 
     _classificar: function(pernas) {
-      var n      = pernas.length;
-      var vendas = pernas.filter(function(p) { return p.direcaoTrade === 'VENDA'; });
-      var compras= pernas.filter(function(p) { return p.direcaoTrade === 'COMPRA'; });
-      var puts   = pernas.filter(function(p) { return p.tipoOpcao === 'PUT'; });
-      var calls  = pernas.filter(function(p) { return p.tipoOpcao === 'CALL'; });
+      var n       = pernas.length;
+      var vendas  = pernas.filter(function(p) { return p.direcaoTrade === 'VENDA';  });
+      var compras = pernas.filter(function(p) { return p.direcaoTrade === 'COMPRA'; });
+      var puts    = pernas.filter(function(p) { return String(p.tipoOpcao).toUpperCase() === 'PUT';  });
+      var calls   = pernas.filter(function(p) { return String(p.tipoOpcao).toUpperCase() === 'CALL'; });
 
       if (n === 1) {
         var l = pernas[0];
-        return (l.direcaoTrade === 'VENDA' ? 'Venda' : 'Compra') + ' de ' + l.tipoOpcao;
+        return (l.direcaoTrade === 'VENDA' ? 'Venda' : 'Compra') + ' de ' + (l.tipoOpcao || 'Opção');
       }
 
       if (n === 2 && vendas.length === 1 && compras.length === 1) {
         var v = vendas[0], c = compras[0];
-
-        if (puts.length === 2) {
-          return v.strike > c.strike ? 'Trava de Alta com PUT' : 'Trava de Baixa com PUT';
-        }
-        if (calls.length === 2) {
-          return v.strike < c.strike ? 'Trava de Baixa com CALL' : 'Trava de Alta com CALL';
-        }
-        // PUT + CALL mix
-        if (puts.length === 1 && calls.length === 1) {
-          return vendas[0].tipoOpcao === 'PUT' ? 'Risk Reversal (V-PUT / C-CALL)' : 'Risk Reversal (V-CALL / C-PUT)';
-        }
+        if (puts.length === 2)  return v.strike > c.strike ? 'Trava de Alta com PUT'  : 'Trava de Baixa com PUT';
+        if (calls.length === 2) return v.strike < c.strike ? 'Trava de Baixa com CALL': 'Trava de Alta com CALL';
+        if (puts.length === 1 && calls.length === 1) return 'Risk Reversal';
       }
 
-      if (n === 2 && vendas.length === 2) return 'Venda de Straddle/Strangle';
-      if (n === 2 && compras.length === 2) return 'Compra de Straddle/Strangle';
+      if (n === 2 && vendas.length === 2) {
+        var s0 = pernas[0].strike || 0, s1 = pernas[1].strike || 0;
+        return s0 === s1 ? 'Venda de Straddle' : 'Venda de Strangle';
+      }
+      if (n === 2 && compras.length === 2) {
+        var s0 = pernas[0].strike || 0, s1 = pernas[1].strike || 0;
+        return s0 === s1 ? 'Compra de Straddle' : 'Compra de Strangle';
+      }
 
       return 'Estrutura Composta (' + n + ' pernas)';
     },
 
     _cores: function(tipo) {
-      var creditoTipos = ['Trava de Alta com PUT', 'Trava de Baixa com CALL', 'Venda de PUT', 'Venda de CALL', 'Venda de Straddle/Strangle'];
-      var debitoTipos  = ['Trava de Alta com CALL', 'Trava de Baixa com PUT', 'Compra de PUT', 'Compra de CALL', 'Compra de Straddle/Strangle'];
-
-      if (creditoTipos.some(function(t) { return tipo.indexOf(t) !== -1 || tipo === t; })) {
+      var t = tipo || '';
+      if (t.indexOf('Venda') === 0 || t === 'Trava de Alta com PUT' || t === 'Trava de Baixa com CALL') {
         return { fundo: 'var(--brand-emerald-light)', badge: 'var(--brand-emerald-light)', texto: 'var(--brand-emerald)', borda: 'var(--brand-emerald)' };
       }
-      if (debitoTipos.some(function(t) { return tipo.indexOf(t) !== -1 || tipo === t; })) {
+      if (t.indexOf('Compra') === 0 || t === 'Trava de Alta com CALL' || t === 'Trava de Baixa com PUT') {
         return { fundo: 'var(--brand-amber-light)', badge: 'var(--brand-amber-light)', texto: 'var(--brand-amber)', borda: 'var(--brand-amber)' };
       }
-      if (tipo.indexOf('Risk Reversal') !== -1) {
+      if (t === 'Risk Reversal') {
         return { fundo: 'var(--brand-indigo-light)', badge: 'var(--brand-indigo-light)', texto: 'var(--brand-indigo)', borda: 'var(--brand-indigo)' };
       }
       return { fundo: 'var(--surface-overlay)', badge: 'var(--surface-overlay)', texto: 'var(--text-muted)', borda: 'var(--border-default)' };
     },
 
     _metricas: function(pernas) {
-      var vendas = pernas.filter(function(p) { return p.direcaoTrade === 'VENDA'; });
-      var compras= pernas.filter(function(p) { return p.direcaoTrade === 'COMPRA'; });
+      var vendas  = pernas.filter(function(p) { return p.direcaoTrade === 'VENDA';  });
+      var compras = pernas.filter(function(p) { return p.direcaoTrade === 'COMPRA'; });
+      var puts    = pernas.filter(function(p) { return String(p.tipoOpcao).toUpperCase() === 'PUT';  });
+      var calls   = pernas.filter(function(p) { return String(p.tipoOpcao).toUpperCase() === 'CALL'; });
 
-      var valorRecebido = vendas.reduce(function(s, p) { return s + (p.premioMedio || 0) * (p.quantidade || 1); }, 0);
-      var valorPago     = compras.reduce(function(s, p) { return s + (p.premioMedio || 0) * (p.quantidade || 1); }, 0);
+      var valorRecebido = vendas.reduce( function(s, p) { return s + (p.premioMedio  || 0) * (p.quantidade || 1); }, 0);
+      var valorPago     = compras.reduce(function(s, p) { return s + (p.premioMedio  || 0) * (p.quantidade || 1); }, 0);
       var saldoLiquido  = valorRecebido - valorPago;
 
-      var custoFecharVendas  = vendas.reduce(function(s, p) { return s + (p.premioAtual || 0) * (p.quantidade || 1); }, 0);
+      var custoFecharVendas  = vendas.reduce( function(s, p) { return s + (p.premioAtual || 0) * (p.quantidade || 1); }, 0);
       var ganhoFecharCompras = compras.reduce(function(s, p) { return s + (p.premioAtual || 0) * (p.quantidade || 1); }, 0);
-      var custoDesmontar = custoFecharVendas - ganhoFecharCompras;
+      var custoDesmontar     = custoFecharVendas - ganhoFecharCompras;
 
-      var plTotal  = pernas.reduce(function(s, p) { return s + (p.plTotalValor || 0); }, 0);
-      var plPct    = saldoLiquido !== 0 ? (plTotal / Math.abs(saldoLiquido)) * 100 : null;
+      var plTotal = pernas.reduce(function(s, p) { return s + (p.plTotalValor || 0); }, 0);
+      var plPct   = saldoLiquido !== 0 ? (plTotal / Math.abs(saldoLiquido)) * 100 : null;
 
+      // Delta líquido: short = delta invertido
       var deltaNet = pernas.reduce(function(s, p) {
-        var d = p.delta || 0;
-        return s + (p.direcaoTrade === 'VENDA' ? -d : d) * (p.quantidade || 1);
+        var d = (p.delta || 0) * (p.quantidade || 1);
+        return s + (p.direcaoTrade === 'VENDA' ? -d : d);
       }, 0);
-      var thetaNet = pernas.reduce(function(s, p) {
-        return s + (p.theta || 0) * (p.quantidade || 1);
-      }, 0);
-      var quantidade = pernas[0] ? (pernas[0].quantidade || 1) : 1;
 
-      // Max profit / max loss: apenas para spreads verticais de 2 pernas
+      // Theta líquido: mantém sinal do dado (theta já vem como negativo para comprador)
+      var thetaNet = pernas.reduce(function(s, p) {
+        var t = (p.theta || 0) * (p.quantidade || 1);
+        return s + (p.direcaoTrade === 'VENDA' ? -t : t);
+      }, 0);
+
+      // Ganho/Perda Máx: APENAS spreads verticais de mesmo tipo (2 PUTs ou 2 CALLs, 1V+1C)
       var maxProfit = null, maxLoss = null;
-      if (pernas.length === 2 && vendas.length === 1 && compras.length === 1) {
-        var v = vendas[0], c = compras[0];
-        var largura = Math.abs((v.strike || 0) - (c.strike || 0)) * Math.min(v.quantidade || 1, c.quantidade || 1);
-        if (saldoLiquido > 0) {
-          // Spread de crédito
+      var isVertSpread = pernas.length === 2 && vendas.length === 1 && compras.length === 1
+                       && (puts.length === 2 || calls.length === 2);
+      if (isVertSpread) {
+        var vl = vendas[0], cl = compras[0];
+        var qtdMin  = Math.min(vl.quantidade || 1, cl.quantidade || 1);
+        var largura = Math.abs((vl.strike || 0) - (cl.strike || 0)) * qtdMin;
+        if (saldoLiquido >= 0) {
           maxProfit = saldoLiquido;
-          maxLoss   = largura - saldoLiquido;
+          maxLoss   = Math.max(largura - saldoLiquido, 0);
         } else {
-          // Spread de débito
-          maxProfit = largura + saldoLiquido; // saldoLiquido é negativo
+          maxProfit = Math.max(largura + saldoLiquido, 0);
           maxLoss   = -saldoLiquido;
         }
       }
 
-      // Categoria para filtro
-      var categoria;
-      var tipo = this._classificar(pernas);
-      if (pernas.length === 1) categoria = 'simples';
-      else if (['Trava de Alta com PUT','Trava de Baixa com CALL','Venda de Straddle/Strangle'].indexOf(tipo) !== -1) categoria = 'credito';
-      else if (['Trava de Alta com CALL','Trava de Baixa com PUT','Compra de Straddle/Strangle'].indexOf(tipo) !== -1) categoria = 'debito';
-      else categoria = 'composta';
+      // Categoria para filtros: baseado em saldo líquido
+      var categoria = saldoLiquido >= 0 ? 'credito' : 'debito';
 
       return {
-        valorRecebido: valorRecebido,
-        valorPago:     valorPago,
-        saldoLiquido:  saldoLiquido,
-        custoDesmontar:custoDesmontar,
-        plTotal:       plTotal,
-        plPct:         plPct,
-        deltaNet:      deltaNet,
-        thetaNet:      thetaNet,
-        quantidade:    quantidade,
-        maxProfit:     maxProfit,
-        maxLoss:       maxLoss,
-        categoria:     categoria
+        valorRecebido:  valorRecebido,
+        valorPago:      valorPago,
+        saldoLiquido:   saldoLiquido,
+        custoDesmontar: custoDesmontar,
+        plTotal:        plTotal,
+        plPct:          plPct,
+        deltaNet:       deltaNet,
+        thetaNet:       thetaNet,
+        maxProfit:      maxProfit,
+        maxLoss:        maxLoss,
+        categoria:      categoria
       };
     }
   }
