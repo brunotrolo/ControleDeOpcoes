@@ -186,17 +186,38 @@ function lerAbaComoJSON(nomeAba) {
 }
 
 // ==========================================
-// 1c. EXPORTAR COCKPIT (CSV Download)
+// 1c. EXPORTAR CSV (Download de qualquer aba)
 // ==========================================
 
 /**
- * Lê a aba COCKPIT a partir da linha 10 (cabeçalho real) até a última linha
- * preenchida e devolve o array 2D de display values para o frontend gerar o CSV.
- *
- * Uso no frontend:
- *   google.script.run
- *     .withSuccessHandler(handler)
- *     .exportarCockpitCSV();
+ * Exporta qualquer aba como array 2D de display values para o frontend gerar o CSV.
+ * COCKPIT usa linha 10 como cabeçalho; todas as demais abas usam linha 1.
+ */
+function exportarAbaCSV(nomeAba) {
+  try {
+    const ss    = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = getPlanilhaDinamica(ss, nomeAba);
+    if (!sheet) return { success: false, error: 'Aba "' + nomeAba + '" não encontrada.' };
+
+    const linhaHeader = (nomeAba === SYS_CONFIG.SHEETS.COCKPIT) ? 10 : 1;
+    const lastRow  = sheet.getLastRow();
+    const lastCol  = sheet.getLastColumn();
+
+    if (lastRow < linhaHeader || lastCol === 0) return { success: true, rows: [] };
+
+    const numLinhas = lastRow - linhaHeader + 1;
+    const rows = sheet
+      .getRange(linhaHeader, 1, numLinhas, lastCol)
+      .getDisplayValues();
+
+    return { success: true, rows: rows };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * Atalho legado para compatibilidade com o botão de export do MenuSidebar.
  */
 function exportarCockpitCSV() {
   try {
