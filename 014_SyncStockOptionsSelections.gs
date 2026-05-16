@@ -8,6 +8,15 @@
 const CoreScannerOptions = {
   _serviceName: "CoreScanner_v6.5",
   _novasColunas: ["MID_PRICE", "SPREAD_PCT", "MONEYNESS", "MONEYNESS_RATIO", "BREAK_EVEN", "RETURN_ON_STRIKE", "IV_CALC", "DELTA", "GAMMA", "VEGA", "THETA", "RHO", "POE"],
+  _defaultHeaders: [
+    "TICKER", "OPTION_TICKER", "CONTRACT_DESC", "CATEGORY", "TYPE", "STYLE", "EXCHANGE_ID",
+    "OPEN", "HIGH", "LOW", "CLOSE", "SPOT", "SPOT_PRICE_API", "STRIKE", "STRIKE_EOD", "VARIATION",
+    "VOLUME_QTY", "VOLUME_FIN", "TRADES", "BID", "ASK", "BID_VOL", "ASK_VOL",
+    "LOT_SIZE", "DTE_CALENDAR", "ISIN", "SECURITY_CAT", "MM_FLAG", "CNPJ",
+    "EXCH_TIME", "LAST_TRADE", "EXPIRY", "BLOCK_DATE", "CREATED_AT", "UPDATED_AT",
+    "MID_PRICE", "SPREAD_PCT", "MONEYNESS", "MONEYNESS_RATIO", "BREAK_EVEN", "RETURN_ON_STRIKE",
+    "IV_CALC", "PRICE", "DELTA", "GAMMA", "VEGA", "THETA", "RHO", "POE"
+  ],
 
   run() {
     const inicio = Date.now();
@@ -58,9 +67,12 @@ const CoreScannerOptions = {
         }
       }
 
-      // 3. AUTO-CRIAÇÃO DE COLUNAS (Verifica se as gregas já existem no cabeçalho)
-      let headersOut = abaSaida.getRange(1, 1, 1, abaSaida.getLastColumn()).getValues()[0];
-      let headersMudaram = false;
+      // 3. AUTO-CRIAÇÃO DE COLUNAS (inicializa a aba se vazia, ou acrescenta gregas se faltarem)
+      const lastColSaida = abaSaida.getLastColumn();
+      let headersOut = lastColSaida > 0
+        ? abaSaida.getRange(1, 1, 1, lastColSaida).getValues()[0]
+        : [...this._defaultHeaders];
+      let headersMudaram = lastColSaida === 0;
 
       this._novasColunas.forEach(col => {
         if (!headersOut.includes(col)) {
