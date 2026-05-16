@@ -57,11 +57,11 @@
               <tr>
                 <th class="t-label-sm" style="text-align:left;padding:0.25rem 0.3rem 0.4rem 0;color:var(--text-muted);font-weight:600;white-space:nowrap;">Opção</th>
                 <th class="t-label-sm" style="text-align:center;padding:0.25rem 0.3rem 0.4rem;color:var(--text-muted);font-weight:600;">Lado</th>
-                <th class="t-label-sm" style="text-align:center;padding:0.25rem 0.3rem 0.4rem;color:var(--text-muted);font-weight:600;">Tipo</th>
                 <th class="t-label-sm" style="text-align:right;padding:0.25rem 0.3rem 0.4rem;color:var(--text-muted);font-weight:600;">Strike</th>
                 <th class="t-label-sm" style="text-align:right;padding:0.25rem 0.3rem 0.4rem;color:var(--text-muted);font-weight:600;">PM</th>
                 <th class="t-label-sm" style="text-align:right;padding:0.25rem 0.3rem 0.4rem;color:var(--text-muted);font-weight:600;">Atual</th>
                 <th class="t-label-sm" style="text-align:center;padding:0.25rem 0.3rem 0.4rem;color:var(--text-muted);font-weight:600;">MNY</th>
+                <th class="t-label-sm" style="text-align:right;padding:0.25rem 0.3rem 0.4rem;color:var(--text-muted);font-weight:600;">Δ</th>
                 <th class="t-label-sm" style="text-align:right;padding:0.25rem 0 0.4rem 0.3rem;color:var(--text-muted);font-weight:600;">Qtd</th>
               </tr>
             </thead>
@@ -70,11 +70,9 @@
                 <td style="padding:0.4rem 0.3rem 0.4rem 0;">
                   <span class="t-value-sm" style="color:var(--text-primary);font-family:monospace;white-space:nowrap;">{{ leg.simboloOpcao }}</span>
                 </td>
-                <td style="padding:0.4rem 0.3rem;text-align:center;">
-                  <span :style="'padding:0.1rem 0.45rem;border-radius:var(--radius-xs);font-size:0.6rem;font-weight:800;' + (leg.direcaoTrade === 'VENDA' ? 'background:var(--brand-emerald-light);color:var(--brand-emerald);' : 'background:var(--brand-rose-light);color:var(--brand-rose);')">{{ leg.direcaoTrade === 'VENDA' ? 'V' : 'C' }}</span>
-                </td>
-                <td style="padding:0.4rem 0.3rem;text-align:center;">
-                  <span class="t-label-sm" style="color:var(--text-muted);">{{ leg.tipoOpcao || '--' }}</span>
+                <td style="padding:0.4rem 0.3rem;text-align:center;white-space:nowrap;">
+                  <span :style="'padding:0.08rem 0.35rem;border-radius:var(--radius-xs);font-size:0.6rem;font-weight:800;' + (leg.direcaoTrade === 'VENDA' ? 'background:var(--brand-emerald-light);color:var(--brand-emerald);' : 'background:var(--brand-rose-light);color:var(--brand-rose);')">{{ leg.direcaoTrade === 'VENDA' ? 'V' : 'C' }}</span>
+                  <span class="t-label-sm" style="color:var(--text-muted);margin-left:0.2rem;">{{ leg.tipoOpcao || '' }}</span>
                 </td>
                 <td class="t-value-sm" style="padding:0.4rem 0.3rem;text-align:right;color:var(--text-primary);">{{ fmt(leg.strike) }}</td>
                 <td class="t-value-sm" style="padding:0.4rem 0.3rem;text-align:right;color:var(--text-secondary);">{{ fmt(leg.premioMedio) }}</td>
@@ -86,6 +84,9 @@
                 <td style="padding:0.4rem 0.3rem;text-align:center;">
                   <span :style="'padding:0.1rem 0.4rem;border-radius:var(--radius-xs);font-size:0.58rem;font-weight:700;' + (leg.moneynessCode === 'ITM' ? 'background:var(--brand-rose-light);color:var(--brand-rose);' : leg.moneynessCode === 'ATM' ? 'background:var(--brand-amber-light);color:var(--brand-amber);' : 'background:var(--surface-overlay);color:var(--text-muted);')">{{ leg.moneynessCode || '--' }}</span>
                 </td>
+                <td class="t-value-sm" style="padding:0.4rem 0.3rem;text-align:right;font-weight:700;"
+                  :style="(leg.delta || 0) >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'"
+                >{{ (leg.delta !== null && leg.delta !== undefined) ? Number(leg.delta).toFixed(2) : '--' }}</td>
                 <td class="t-value-sm" style="padding:0.4rem 0 0.4rem 0.3rem;text-align:right;color:var(--text-secondary);">{{ leg.quantidade || '--' }}</td>
               </tr>
             </tbody>
@@ -133,15 +134,30 @@
             </div>
           </div>
 
-          <!-- Limites: só para spreads verticais (com fundo colorido) -->
-          <div v-if="est.maxProfit !== null" style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-subtle);display:grid;grid-template-columns:1fr 1fr;gap:0.625rem;">
-            <div style="background:var(--brand-emerald-light);border-radius:var(--radius-md);padding:0.625rem 0.875rem;">
-              <p class="t-label-sm" style="color:var(--brand-emerald);font-weight:600;margin-bottom:0.3rem;">Ganho Máx.</p>
-              <p class="t-value-sm" style="color:var(--brand-emerald);font-weight:800;">{{ fmt(est.maxProfit) }}</p>
-            </div>
-            <div style="background:var(--brand-rose-light);border-radius:var(--radius-md);padding:0.625rem 0.875rem;">
-              <p class="t-label-sm" style="color:var(--brand-rose);font-weight:600;margin-bottom:0.3rem;">Perda Máx.</p>
-              <p class="t-value-sm" style="color:var(--brand-rose);font-weight:800;">{{ fmt(est.maxLoss) }}</p>
+          <!-- Spread Economics: só para spreads verticais -->
+          <div v-if="est.maxProfit !== null" style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-subtle);">
+            <p class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">Estrutura do Spread</p>
+            <div style="display:flex;flex-direction:column;gap:0.32rem;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span class="t-label-sm" style="color:var(--text-tertiary);">Prêmio Líquido/op</span>
+                <span class="t-value-sm" style="color:var(--text-secondary);font-weight:700;">{{ fmt(est.premioLiquidoUnit) }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span class="t-label-sm" style="color:var(--text-tertiary);">Quantidade</span>
+                <span class="t-value-sm" style="color:var(--text-secondary);font-weight:700;">{{ est.qtdTotal.toLocaleString('pt-BR') }} ops · {{ est.lotes }} lotes</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding-top:0.32rem;margin-top:0.1rem;border-top:1px solid var(--border-subtle);">
+                <span class="t-label-sm" style="color:var(--text-tertiary);">Prêmio Total (crédito)</span>
+                <span class="t-value-sm" style="color:var(--brand-emerald);font-weight:700;">+ {{ fmt(est.maxProfit) }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span class="t-label-sm" style="color:var(--text-tertiary);">Margem Bloqueada</span>
+                <span class="t-value-sm" style="color:var(--text-primary);font-weight:700;">{{ fmt(est.margemBloqueada) }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span class="t-label-sm" style="color:var(--text-secondary);font-weight:700;">Prejuízo Máx. Real</span>
+                <span class="t-value-sm" style="color:var(--brand-rose);font-weight:800;">- {{ fmt(est.maxLoss) }}</span>
+              </div>
             </div>
           </div>
 
@@ -377,18 +393,28 @@ window.StrategiesBook = {
       // Categoria para filtros: baseado em saldo líquido
       var categoria = saldoLiquido >= 0 ? 'credito' : 'debito';
 
+      // Métricas de estrutura: prêmio unitário, quantidade em lotes, margem bloqueada
+      var qtdTotal          = pernas.reduce(function(mx, p) { return Math.max(mx, p.quantidade || 1); }, 0);
+      var lotes             = Math.round(qtdTotal / 100);
+      var premioLiquidoUnit = qtdTotal > 0 ? saldoLiquido / qtdTotal : 0;
+      var margemBloqueada   = (maxProfit !== null && maxLoss !== null) ? maxProfit + maxLoss : null;
+
       return {
-        valorRecebido:  valorRecebido,
-        valorPago:      valorPago,
-        saldoLiquido:   saldoLiquido,
-        custoDesmontar: custoDesmontar,
-        plTotal:        plTotal,
-        plPct:          plPct,
-        deltaNet:       deltaNet,
-        thetaNet:       thetaNet,
-        maxProfit:      maxProfit,
-        maxLoss:        maxLoss,
-        categoria:      categoria
+        valorRecebido:    valorRecebido,
+        valorPago:        valorPago,
+        saldoLiquido:     saldoLiquido,
+        custoDesmontar:   custoDesmontar,
+        plTotal:          plTotal,
+        plPct:            plPct,
+        deltaNet:         deltaNet,
+        thetaNet:         thetaNet,
+        maxProfit:        maxProfit,
+        maxLoss:          maxLoss,
+        categoria:        categoria,
+        qtdTotal:         qtdTotal,
+        lotes:            lotes,
+        premioLiquidoUnit:premioLiquidoUnit,
+        margemBloqueada:  margemBloqueada
       };
     }
   }
