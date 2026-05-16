@@ -25,6 +25,8 @@ function onOpen(e) {
         .addSeparator()
         .addItem('🧮 4a. Calcular Gregas (API OPLab)', 'AtualizarGregasAPI_Menu')
         .addItem('🔬 4b. Calcular Gregas (Nativo BS)', 'CalcularGregasNativo_Menu')
+        .addSeparator()
+        .addItem('📡 5. Scanner de Opções (SCANNER_OPCOES)', 'AtualizarScannerOpcoes_Menu')
         .addToUi();
   } catch (err) {
     console.warn("[onOpen] Interface indisponível.");

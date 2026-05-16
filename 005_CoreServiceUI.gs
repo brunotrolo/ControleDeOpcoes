@@ -70,6 +70,7 @@ function AtualizarDadosAtivos_Menu()        { _menuBridge("Ativos", atualizarDad
 function AtualizarDetalhes_Menu()           { _menuBridge("Detalhes", atualizarDetalhesOpcoes); }
 function AtualizarGregasAPI_Menu()          { _menuBridge("Gregas (API)", atualizarGregas); }
 function CalcularGregasNativo_Menu()        { _menuBridge("Gregas (Nativo)", calcularGregasNativo); }
+function AtualizarScannerOpcoes_Menu()      { _menuBridge("Scanner Opções", atualizarScannerOpcoes); }
 // ================================================================
 // TESTE DE HOMOLOGACAO
 // ================================================================

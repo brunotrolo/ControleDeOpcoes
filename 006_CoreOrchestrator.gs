@@ -23,6 +23,11 @@ const CoreOrchestrator = {
         exec: () => typeof StockDataSync !== 'undefined' ? StockDataSync.run() : console.warn("Motor 007 não carregado."),
         requer_token: true
       },
+      "ATUALIZAR_SCANNER": {
+        nome: "Scanner de Opções (SCANNER_OPCOES)",
+        exec: () => typeof CoreScannerOptions !== 'undefined' ? CoreScannerOptions.run() : console.warn("Motor 014 não carregado."),
+        requer_token: true
+      },
     };
   },
 
