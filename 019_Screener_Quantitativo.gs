@@ -107,7 +107,7 @@ function orquestrarScreener() {
     'Fontes: ' + Object.keys(mapaVolumes).length + ' ativos (Volume) | ' +
     Object.keys(mapaM9Alta).length + ' ativos (M9=Alta) | ' +
     Object.keys(mapaCorrel).length + ' ativos (CorrelIbov) | ' +
-    todasPuts.length + ' PUTs (BestRates)'
+    todasPuts.length + ' PUTs (Scanner)'
   );
 
   if (Object.keys(mapaVolumes).length === 0 || Object.keys(mapaM9Alta).length === 0 || todasPuts.length === 0) {
@@ -397,29 +397,32 @@ function _screener_lerCorrelIbov(ss) {
 }
 
 function _screener_lerOpcoesPUT(ss) {
-  var sheet = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.BEST_RATES);
+  // Lê do SCANNER_OPCOES (todas as PUTs negociadas), não do BEST_RATES (apenas top por prêmio).
+  // Isso garante que COMPRAs (proteção, maior OTM) também apareçam no resultado.
+  var sheet = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.SELECTION_OPT);
   if (!sheet || sheet.getLastRow() < 2) return [];
   var colMap = DataUtils.getColMap(sheet);
   var dados  = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
   var result = [];
   dados.forEach(function(row) {
     if (String(row[colMap['CATEGORY']] || '').trim().toUpperCase() !== 'PUT') return;
-    var spot = parseFloat(row[colMap['SPOT']]) || 0;
-    if (spot === 0) return;
+    var spot   = parseFloat(row[colMap['SPOT']]) || parseFloat(row[colMap['SPOT_PRICE_API']]) || 0;
+    var strike = parseFloat(row[colMap['STRIKE']]) || 0;
+    if (spot === 0 || strike === 0) return;
+    var ssr = parseFloat(row[colMap['MONEYNESS_RATIO']]) || (spot / strike);
     result.push({
       optionTicker: String(row[colMap['OPTION_TICKER']] || '').trim(),
       ticker:       String(row[colMap['TICKER']]        || '').trim().toUpperCase(),
       expiry:       row[colMap['EXPIRY']],
-      dte:          parseFloat(row[colMap['DTE_CALENDAR']])             || 0,
+      dte:          parseFloat(row[colMap['DTE_CALENDAR']])    || 0,
       spot:         spot,
-      strike:       parseFloat(row[colMap['STRIKE']])                   || 0,
-      ssr:          parseFloat(row[colMap['SPOT_STRIKE_RATIO']])        || 0,
-      profitRate:   parseFloat(row[colMap['PROFIT_RATE_IF_EXERCISED']]) || 0,
-      veOverStrike: parseFloat(row[colMap['VE_OVER_STRIKE']])           || 0,
-      ivRank:       parseFloat(row[colMap['IV_RANK']])                  || 0,
-      ivCurrent:    parseFloat(row[colMap['IV_CURRENT']])               || 0,
-      m9Trend:      parseFloat(row[colMap['M9M21_TREND']])              || 0,
-      volFin:       parseFloat(row[colMap['VOLUME_FIN']])               || 0,
+      strike:       strike,
+      ssr:          ssr,
+      profitRate:   (parseFloat(row[colMap['RETURN_ON_STRIKE']]) || 0) * 100,
+      ivRank:       0,
+      ivCurrent:    parseFloat(row[colMap['IV_CALC']])    || 0,
+      m9Trend:      0,
+      volFin:       parseFloat(row[colMap['VOLUME_FIN']]) || 0,
       empresa:      String(row[colMap['COMPANY_NAME']] || ''),
       setor:        String(row[colMap['SECTOR']]       || '')
     });
