@@ -205,12 +205,16 @@ function orquestrarScreener() {
 
   // Enriquece e classifica cada candidata
   candidatas.forEach(function(op) {
-    op.ivRank    = ivRankMap[op.ticker]           || 0;
-    op.profitRate = profitRateMap[op.optionTicker] !== undefined
-                    ? profitRateMap[op.optionTicker]
-                    : (op.returnOnStrike > 0
-                        ? op.returnOnStrike * 100
-                        : (op.strike > 0 ? parseFloat((op.premio / op.strike * 100).toFixed(4)) : 0));
+    op.ivRank = ivRankMap[op.ticker] || 0;
+    var profitFallback = op.returnOnStrike > 0
+                         ? op.returnOnStrike * 100
+                         : (op.strike > 0 ? parseFloat((op.premio / op.strike * 100).toFixed(4)) : 0);
+    var profitFromMap  = profitRateMap[op.optionTicker];
+    // BEST_RATES às vezes armazena PROFIT_RATE_IF_EXERCISED anualizado (> 20%),
+    // inconsistente com os demais que usam retorno bruto. Descarta valores > 20%.
+    op.profitRate = (profitFromMap !== undefined && profitFromMap <= 20)
+                    ? profitFromMap
+                    : profitFallback;
     op.m9Value   = 'Alta';
     op.papel     = (op.ssr <= C.SSR_VENDA_MAX) ? 'VENDA' : 'COMPRA';
     if (!op.empresa && mapaVolumes[op.ticker]) op.empresa = mapaVolumes[op.ticker].empresa;
@@ -517,8 +521,9 @@ function _screener_lerOpcoesPUT(ss) {
     var delta  = parseFloat(row[colMap['DELTA']]) || 0;
     var theta  = parseFloat(row[colMap['THETA']]) || 0;
 
-    // Calcula THETA via Black-Scholes quando a coluna do SCANNER_OPCOES está zerada
-    if (theta === 0 && premio > 0 && spot > 0 && strike > 0 && dte > 0) {
+    // Calcula THETA via Black-Scholes quando zerado OU quando o valor da planilha é
+    // fisicamente impossível (|theta| > premio significa decaimento diário > prêmio total)
+    if ((theta === 0 || Math.abs(theta) > premio) && premio > 0 && spot > 0 && strike > 0 && dte > 0) {
       try {
         var cfg    = ConfigManager.get();
         var selicS = String(cfg['Taxa_Selic_Anual'] || '0.1075').replace(',', '.');
