@@ -111,35 +111,6 @@ function getPlanilhaDinamica(planilhaAtiva, nomeProcurado) {
 }
 
 // ==========================================
-// 🧪 MÓDULO DE TESTE (Para Homologação)
-// ==========================================
-
-/**
- * Rode esta função diretamente no Google Apps Script para validar
- * se o servidor consegue ler as 10 abas perfeitamente.
- */
-function testarAPI_Leitura() {
-  Logger.log("Iniciando Teste: getDadosLight()...");
-  const light = getDadosLight();
-  Logger.log("Status Light: " + light.success);
-  Logger.log("Abas carregadas no Light: " + Object.keys(light.raw).join(", "));
-
-  Logger.log("-----------------------------------------");
-
-  Logger.log("Iniciando Teste: getAbasPesadas()...");
-  const pesadas = getAbasPesadas();
-  Logger.log("Status Pesadas: " + pesadas.success);
-  Logger.log("Abas carregadas no Pesadas: " + Object.keys(pesadas.raw).join(", "));
-
-  if (pesadas.error) {
-    Logger.log("ERRO ENCONTRADO: " + pesadas.error);
-  } else {
-    Logger.log("✅ PARTE 1 HOMOLOGADA COM SUCESSO. Nenhuma falha de leitura.");
-  }
-}
-
-
-// ==========================================
 // 1b. LEITURA DIRETA DE ABA
 // ==========================================
 
@@ -211,36 +182,6 @@ function exportarAbaCSV(nomeAba) {
       .getDisplayValues();
 
     return { success: true, rows: rows };
-  } catch (e) {
-    return { success: false, error: e.toString() };
-  }
-}
-
-/**
- * Atalho legado para compatibilidade com o botão de export do MenuSidebar.
- */
-function exportarCockpitCSV() {
-  try {
-    const ss    = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.COCKPIT);
-
-    if (!sheet) return { success: false, error: "Aba COCKPIT não encontrada." };
-
-    const LINHA_CABECALHO = 10;
-    const lastRow  = sheet.getLastRow();
-    const lastCol  = sheet.getLastColumn();
-
-    if (lastRow < LINHA_CABECALHO || lastCol === 0) {
-      return { success: true, rows: [] };
-    }
-
-    const numLinhas = lastRow - LINHA_CABECALHO + 1;
-    const rows = sheet
-      .getRange(LINHA_CABECALHO, 1, numLinhas, lastCol)
-      .getDisplayValues();
-
-    return { success: true, rows: rows };
-
   } catch (e) {
     return { success: false, error: e.toString() };
   }
@@ -405,30 +346,6 @@ function apiLimparAba(nomeAba, manterLinhasTop = 1, mensagemAuditoria = null) {
     return { success: false, error: e.message };
   }
 }
-
-// ==========================================
-// 🧪 MÓDULO DE TESTE DA PARTE 2 (Homologação)
-// ==========================================
-
-function testarAPI_Escrita() {
-  Logger.log("Iniciando Teste de Escrita na aba [Logs]...");
-
-  // 1. Testa Inserção (Adiciona um Log falso)
-  const timestamp = new Date().toLocaleString();
-  const resInsert = apiAdicionarLinhas(SYS_CONFIG.SHEETS.LOGS, [[timestamp, "SISTEMA_TESTE", "INFO", "Teste de Homologação da API de Escrita", ""]]);
-  Logger.log("Adicionar Linha: " + resInsert.success + " | " + resInsert.message);
-
-  // 2. Testa Limpeza Segura (Limpa os Logs mantendo o cabeçalho e adicionando auditoria)
-  const resLimpar = apiLimparAba(SYS_CONFIG.SHEETS.LOGS, 1, "Auditoria de teste gerada pelo testarAPI_Escrita.");
-  Logger.log("Limpar Aba Segura: " + resLimpar.success + " | " + resLimpar.message);
-
-  if (resInsert.error || resLimpar.error) {
-    Logger.log("❌ ERRO ENCONTRADO DURANTE A ESCRITA/LIMPEZA.");
-  } else {
-    Logger.log("✅ PARTE 2 HOMOLOGADA COM SUCESSO. Banco de dados seguro.");
-  }
-}
-
 
 // ==========================================
 // 5. EXTERNAL API BRIDGE (Integrações de Terceiros)

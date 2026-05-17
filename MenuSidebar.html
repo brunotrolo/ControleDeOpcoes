@@ -453,15 +453,6 @@ window.MenuSidebar = {
     this.$nextTick(() => { if (window.refreshIcons) window.refreshIcons(); });
   },
 
-  watch: {
-    isCollapsed() {
-      this.$nextTick(() => { if (window.refreshIcons) window.refreshIcons(); });
-    },
-    currentView() {
-      this.$nextTick(() => { if (window.refreshIcons) window.refreshIcons(); });
-    }
-  },
-
   methods: {
     toggleTema() {
       if (window.ThemeManager) {
@@ -555,7 +546,7 @@ window.MenuSidebar = {
       google.script.run
         .withSuccessHandler(gerarDownload)
         .withFailureHandler(falha)
-        .exportarCockpitCSV();
+        .exportarAbaCSV('COCKPIT');
     },
 
     acionarAtualizar() {

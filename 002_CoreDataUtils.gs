@@ -19,31 +19,7 @@ const DataUtils = {
     } catch (e) { return String(raw); }
   },
 
-  /** Cria mapa de cabeçalhos { Nome: Indice_0 } */
-  getHeaderMap(aba) {
-    if (!aba) return {};
-    const headers = aba.getRange(1, 1, 1, aba.getLastColumn()).getValues()[0];
-    const map = {};
-    headers.forEach((h, i) => { if(h) map[String(h).trim()] = i; });
-    return map;
-  },
-
-  /** Mapeia ID para número da linha (Performance O(1)) */
-  getRowMap(aba, colName = "ID_Trade_Unico") {
-    const map = {};
-    const lastRow = aba.getLastRow();
-    if (lastRow < 2) return map;
-    
-    const headers = aba.getRange(1, 1, 1, aba.getLastColumn()).getValues()[0];
-    const colIdx = headers.indexOf(colName);
-    if (colIdx === -1) return map;
-
-    const data = aba.getRange(2, colIdx + 1, lastRow - 1, 1).getValues();
-    data.forEach((row, i) => { if (row[0]) map[String(row[0]).trim()] = i + 2; });
-    return map;
-  },
-
-  /** 
+  /**
    * Cria mapa de cabeçalhos { NOME_HEADER: indice_0based }
    * Substitui os _getColMap() duplicados nos motores 010, 011 e 012.
    */
@@ -74,13 +50,5 @@ const DataUtils = {
       return map;
   },
 
-  /** Lógica de Merge: Une dados novos aos existentes sem apagar colunas manuais */
-  buildRowMerge(abaHeaders, existingRowData, newDataObj) {
-    return abaHeaders.map((header, idx) => {
-      const key = String(header).trim();
-      if (newDataObj[key] !== undefined) return newDataObj[key];
-      return existingRowData ? existingRowData[idx] : "";
-    });
-  }
 };
 

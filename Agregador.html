@@ -350,10 +350,14 @@ window.Agregador = {
     };
   },
 
-  _enriquecerDados(trades, greeks) {
-    return trades.map(t => {
-      const g    = greeks?.find(greek => greek.tradeId === t.tradeId);
-      const base = g ? { ...t, ...g } : { ...t };
+  _enriquecerDados: function(trades, greeks) {
+    var greekMap = {};
+    if (greeks) {
+      greeks.forEach(function(g) { if (g.tradeId) greekMap[g.tradeId] = g; });
+    }
+    return trades.map(function(t) {
+      var g    = greekMap[t.tradeId];
+      var base = g ? Object.assign({}, t, g) : Object.assign({}, t);
 
       const pm = parseFloat(base.premioMedio || 0);
       const pa = parseFloat(base.premioAtual || 0);
