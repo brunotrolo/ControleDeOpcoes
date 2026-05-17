@@ -401,8 +401,11 @@ function _screener_lerCorrelIbov(ss) {
 }
 
 function _screener_lerOpcoesPUT(ss) {
-  // Lê do SCANNER_OPCOES (todas as PUTs negociadas), não do BEST_RATES (apenas top por prêmio).
-  // Isso garante que COMPRAs (proteção, maior OTM) também apareçam no resultado.
+  // Fonte primária: SCANNER_OPCOES (todas as PUTs — CLOSE, todas as COMPRAs profundas)
+  // Enriquecimento: BEST_RATES (IV_RANK, PROFIT_RATE_IF_EXERCISED reais) onde disponível.
+  // Isso garante IV_RANK para VENDAs relevantes (ex: PRIO3) e COMPRA para spreads.
+  var mapaEnrich = _screener_lerBestRatesMap(ss);
+
   var sheet = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.SELECTION_OPT);
   if (!sheet || sheet.getLastRow() < 2) return [];
   var colMap = DataUtils.getColMap(sheet);
@@ -414,7 +417,6 @@ function _screener_lerOpcoesPUT(ss) {
     var strike = parseFloat(row[colMap['STRIKE']]) || 0;
     if (spot === 0 || strike === 0) return;
     var ssr = parseFloat(row[colMap['MONEYNESS_RATIO']]) || (spot / strike);
-    // EXPIRY fica vazio para opções sem negociação recente; lê do CONTRACT_DESC como fallback
     var expiryRaw = row[colMap['EXPIRY']];
     var expiry = (expiryRaw instanceof Date && !isNaN(expiryRaw)) ? expiryRaw : null;
     if (!expiry) {
@@ -422,25 +424,50 @@ function _screener_lerOpcoesPUT(ss) {
       var m = desc.match(/(\d{2})-(\d{2})-(\d{4})/);
       if (m) expiry = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]));
     }
+    var optTicker = String(row[colMap['OPTION_TICKER']] || '').trim();
+    var enrich    = mapaEnrich[optTicker] || {};
     result.push({
-      optionTicker: String(row[colMap['OPTION_TICKER']] || '').trim(),
-      ticker:       String(row[colMap['TICKER']]        || '').trim().toUpperCase(),
+      optionTicker: optTicker,
+      ticker:       String(row[colMap['TICKER']] || '').trim().toUpperCase(),
       expiry:       expiry,
-      dte:          parseFloat(row[colMap['DTE_CALENDAR']])    || 0,
+      dte:          parseFloat(row[colMap['DTE_CALENDAR']]) || 0,
       spot:         spot,
       strike:       strike,
       ssr:          ssr,
-      premio:       parseFloat(row[colMap['CLOSE']])       || 0,
-      profitRate:   (parseFloat(row[colMap['RETURN_ON_STRIKE']]) || 0) * 100,
-      ivRank:       0,
-      ivCurrent:    parseFloat(row[colMap['IV_CALC']])    || 0,
-      m9Trend:      0,
+      premio:       parseFloat(row[colMap['CLOSE']]) || 0,
+      // BEST_RATES tem PROFIT_RATE real e IV_RANK; Scanner tem RETURN_ON_STRIKE e IV_CALC
+      profitRate:   enrich.profitRate !== undefined ? enrich.profitRate
+                      : (parseFloat(row[colMap['RETURN_ON_STRIKE']]) || 0) * 100,
+      ivRank:       enrich.ivRank    !== undefined ? enrich.ivRank    : 0,
+      ivCurrent:    enrich.ivCurrent !== undefined ? enrich.ivCurrent
+                      : (parseFloat(row[colMap['IV_CALC']]) || 0),
       volFin:       parseFloat(row[colMap['VOLUME_FIN']]) || 0,
-      empresa:      String(row[colMap['COMPANY_NAME']] || ''),
-      setor:        String(row[colMap['SECTOR']]       || '')
+      empresa:      enrich.empresa || String(row[colMap['COMPANY_NAME']] || ''),
+      setor:        enrich.setor   || String(row[colMap['SECTOR']]       || '')
     });
   });
   return result;
+}
+
+// Mapa de enriquecimento: optionTicker → {profitRate, ivRank, ivCurrent, empresa, setor}
+function _screener_lerBestRatesMap(ss) {
+  var sheet = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.BEST_RATES);
+  if (!sheet || sheet.getLastRow() < 2) return {};
+  var colMap = DataUtils.getColMap(sheet);
+  var dados  = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+  var mapa   = {};
+  dados.forEach(function(row) {
+    var optTicker = String(row[colMap['OPTION_TICKER']] || '').trim();
+    if (!optTicker) return;
+    mapa[optTicker] = {
+      profitRate:  parseFloat(row[colMap['PROFIT_RATE_IF_EXERCISED']]) || 0,
+      ivRank:      parseFloat(row[colMap['IV_RANK']])    || 0,
+      ivCurrent:   parseFloat(row[colMap['IV_CURRENT']]) || 0,
+      empresa:     String(row[colMap['COMPANY_NAME']] || ''),
+      setor:       String(row[colMap['SECTOR']]       || '')
+    };
+  });
+  return mapa;
 }
 
 // ─── Utilitários ─────────────────────────────────────────────────────────────
