@@ -206,15 +206,10 @@ function orquestrarScreener() {
   // Enriquece e classifica cada candidata
   candidatas.forEach(function(op) {
     op.ivRank = ivRankMap[op.ticker] || 0;
-    var profitFallback = op.returnOnStrike > 0
-                         ? op.returnOnStrike * 100
-                         : (op.strike > 0 ? parseFloat((op.premio / op.strike * 100).toFixed(4)) : 0);
-    var profitFromMap  = profitRateMap[op.optionTicker];
-    // BEST_RATES às vezes armazena PROFIT_RATE_IF_EXERCISED anualizado (> 20%),
-    // inconsistente com os demais que usam retorno bruto. Descarta valores > 20%.
-    op.profitRate = (profitFromMap !== undefined && profitFromMap <= 20)
-                    ? profitFromMap
-                    : profitFallback;
+    // PROFIT_RATE calculado diretamente de premio/strike × 100 (métrica bruta consistente).
+    // BEST_RATES e RETURN_ON_STRIKE são descartados aqui: ambos usam bases diferentes
+    // por ativo (raw vs. anualizado por OPLab), gerando valores incomparáveis entre opções.
+    op.profitRate = op.strike > 0 ? parseFloat((op.premio / op.strike * 100).toFixed(2)) : 0;
     op.m9Value   = 'Alta';
     op.papel     = (op.ssr <= C.SSR_VENDA_MAX) ? 'VENDA' : 'COMPRA';
     if (!op.empresa && mapaVolumes[op.ticker]) op.empresa = mapaVolumes[op.ticker].empresa;
