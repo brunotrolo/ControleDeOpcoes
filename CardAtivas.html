@@ -5,7 +5,7 @@
      Sistema de design: premium-card, Plus Jakarta Sans, JetBrains Mono
      Restricoes GAS: var, sem arrow functions, sem optional chaining
      ====================================================================== -->
-<template id="carousel-ativas-template">
+<template id="card-ativas-template">
   <div style="width:100%;font-family:'Plus Jakarta Sans',sans-serif;">
 
     <!-- Cabecalho da secao -->
@@ -441,13 +441,13 @@ function caBuildMetricas(op) {
 }
 
 // Componente principal
-window.CarouselAtivas = {
+window.CardAtivas = {
   props: {
     isMobile:           { type: Boolean, default: false },
     isLoading:          { type: Boolean, default: false },
     statsPreCalculados: Object
   },
-  template: '#carousel-ativas-template',
+  template: '#card-ativas-template',
 
   computed: {
     activeTrades: function() {

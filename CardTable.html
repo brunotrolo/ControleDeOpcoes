@@ -1,4 +1,4 @@
-<template id="cockpit-table-template">
+<template id="card-table-template">
   <div
     class="rounded-[var(--radius-xl)] overflow-hidden flex flex-col transition-all"
     style="background: var(--surface-base); border: 1px solid var(--border-subtle); box-shadow: var(--shadow-sm);"
@@ -181,14 +181,14 @@
 <script>
 // Formatação delegada ao window.Formatador (Presentation Utilities Layer)
 
-window.CockpitTable = {
+window.CardTable = {
   props: {
     data:               Array,
     isMobile:           { type: Boolean, default: false },
     isLoading:          { type: Boolean, default: false },
     statsPreCalculados: Object
   },
-  template: '#cockpit-table-template',
+  template: '#card-table-template',
 
   data() {
     return {
