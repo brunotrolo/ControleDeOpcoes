@@ -384,10 +384,12 @@ function _screener_filtrarCorrelacao(listaElegivel, mapaVolumes, mapaCorrel, cor
 
 function _screener_lerMaioresVolumes(ss) {
   var sheet = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.HIGHEST_VOL);
-  if (!sheet || sheet.getLastRow() < 2) return {};
+  if (!sheet) return {};
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return {};
   var colMap = DataUtils.getColMap(sheet);
   if (colMap['TICKER'] === undefined || colMap['VOLUME_PUT'] === undefined) return {};
-  var dados = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+  var dados = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
   var mapa  = {};
   dados.forEach(function(row) {
     var ticker = String(row[colMap['TICKER']] || '').trim().toUpperCase();
@@ -407,10 +409,12 @@ function _screener_lerMaioresVolumes(ss) {
 
 function _screener_lerM9M21Alta(ss) {
   var sheet = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.RANK_M9M21);
-  if (!sheet || sheet.getLastRow() < 2) return {};
+  if (!sheet) return {};
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return {};
   var colMap = DataUtils.getColMap(sheet);
   if (colMap['TICKER'] === undefined || colMap['M9M21_TREND'] === undefined) return {};
-  var dados = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+  var dados = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
   var mapa  = {};
   dados.forEach(function(row) {
     var ticker = String(row[colMap['TICKER']] || '').trim().toUpperCase();
@@ -423,10 +427,12 @@ function _screener_lerM9M21Alta(ss) {
 
 function _screener_lerCorrelIbov(ss) {
   var sheet = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.RANK_CORREL_IBOV);
-  if (!sheet || sheet.getLastRow() < 2) return {};
+  if (!sheet) return {};
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return {};
   var colMap = DataUtils.getColMap(sheet);
   if (colMap['TICKER'] === undefined) return {};
-  var dados = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+  var dados = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
   var mapa  = {};
   dados.forEach(function(row) {
     var ticker = String(row[colMap['TICKER']] || '').trim().toUpperCase();
@@ -448,32 +454,38 @@ function _screener_lerEnrichmentMaps(ss) {
 
   // 1. BEST_RATES: IV_RANK por ticker + PROFIT_RATE por opção
   var sheetBR = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.BEST_RATES);
-  if (sheetBR && sheetBR.getLastRow() >= 2) {
-    var cmBR    = DataUtils.getColMap(sheetBR);
-    var dadosBR = sheetBR.getRange(2, 1, sheetBR.getLastRow() - 1, sheetBR.getLastColumn()).getValues();
-    dadosBR.forEach(function(row) {
-      var ticker    = String(row[cmBR['TICKER']]        || '').trim().toUpperCase();
-      var optTicker = String(row[cmBR['OPTION_TICKER']] || '').trim();
-      var ivRank    = parseFloat(row[cmBR['IV_RANK']])                  || 0;
-      var profitRate = parseFloat(row[cmBR['PROFIT_RATE_IF_EXERCISED']]) || 0;
-      if (ticker    && ivRank    > 0) ivRankMap[ticker]       = ivRank;
-      if (optTicker && profitRate > 0) profitRateMap[optTicker] = profitRate;
-    });
+  if (sheetBR) {
+    var lastRowBR = sheetBR.getLastRow();
+    if (lastRowBR >= 2) {
+      var cmBR    = DataUtils.getColMap(sheetBR);
+      var dadosBR = sheetBR.getRange(2, 1, lastRowBR - 1, sheetBR.getLastColumn()).getValues();
+      dadosBR.forEach(function(row) {
+        var ticker    = String(row[cmBR['TICKER']]        || '').trim().toUpperCase();
+        var optTicker = String(row[cmBR['OPTION_TICKER']] || '').trim();
+        var ivRank    = parseFloat(row[cmBR['IV_RANK']])                  || 0;
+        var profitRate = parseFloat(row[cmBR['PROFIT_RATE_IF_EXERCISED']]) || 0;
+        if (ticker    && ivRank    > 0) ivRankMap[ticker]       = ivRank;
+        if (optTicker && profitRate > 0) profitRateMap[optTicker] = profitRate;
+      });
+    }
   }
 
   // 2. DADOS_ATIVOS: complementa IV_RANK para tickers do portfólio não cobertos pelo BEST_RATES
   var sheetDA = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.ASSETS);
-  if (sheetDA && sheetDA.getLastRow() >= 2) {
-    var cmDA    = DataUtils.getColMap(sheetDA);
-    var dadosDA = sheetDA.getRange(2, 1, sheetDA.getLastRow() - 1, sheetDA.getLastColumn()).getValues();
-    dadosDA.forEach(function(row) {
-      var ticker = String(row[cmDA['TICKER']] || '').trim().toUpperCase();
-      var ivRank = parseFloat(row[cmDA['IV_RANK']]) || 0;
-      // Só sobrescreve se BEST_RATES não cobriu este ticker
-      if (ticker && ivRank > 0 && !ivRankMap[ticker]) {
-        ivRankMap[ticker] = ivRank;
-      }
-    });
+  if (sheetDA) {
+    var lastRowDA = sheetDA.getLastRow();
+    if (lastRowDA >= 2) {
+      var cmDA    = DataUtils.getColMap(sheetDA);
+      var dadosDA = sheetDA.getRange(2, 1, lastRowDA - 1, sheetDA.getLastColumn()).getValues();
+      dadosDA.forEach(function(row) {
+        var ticker = String(row[cmDA['TICKER']] || '').trim().toUpperCase();
+        var ivRank = parseFloat(row[cmDA['IV_RANK']]) || 0;
+        // Só sobrescreve se BEST_RATES não cobriu este ticker
+        if (ticker && ivRank > 0 && !ivRankMap[ticker]) {
+          ivRankMap[ticker] = ivRank;
+        }
+      });
+    }
   }
 
   return { ivRankMap: ivRankMap, profitRateMap: profitRateMap };
@@ -486,9 +498,17 @@ function _screener_lerEnrichmentMaps(ss) {
  */
 function _screener_lerOpcoesPUT(ss) {
   var sheet = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.SELECTION_OPT);
-  if (!sheet || sheet.getLastRow() < 2) return [];
+  if (!sheet) return [];
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
   var colMap = DataUtils.getColMap(sheet);
-  var dados  = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+  var dados  = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+
+  // Lê SELIC uma única vez fora do loop (evita sheet read por opção com theta corrompido)
+  var cfgSelic = ConfigManager.get();
+  var selicStr = String(cfgSelic['Taxa_Selic_Anual'] || '0.1075').replace(',', '.');
+  var SELIC    = parseFloat(selicStr) || 0.1075;
+
   var result = [];
 
   dados.forEach(function(row) {
@@ -521,12 +541,9 @@ function _screener_lerOpcoesPUT(ss) {
     var thetaRatio = premio > 0 ? Math.abs(theta) / premio : 0;
     if ((theta === 0 || thetaRatio > 0.10) && premio > 0 && spot > 0 && strike > 0 && dte > 0) {
       try {
-        var cfg    = ConfigManager.get();
-        var selicS = String(cfg['Taxa_Selic_Anual'] || '0.1075').replace(',', '.');
-        var selic  = parseFloat(selicS) || 0.1075;
-        var T      = Math.max(dte, 1) / 252;
-        var iv     = OptionMath.estimateIV(spot, strike, T, selic, premio, 'p');
-        var bsGs   = OptionMath.calculate(spot, strike, T, selic, iv, 'p');
+        var T    = Math.max(dte, 1) / 252;
+        var iv   = OptionMath.estimateIV(spot, strike, T, SELIC, premio, 'p');
+        var bsGs = OptionMath.calculate(spot, strike, T, SELIC, iv, 'p');
         theta = bsGs.theta;
         if (delta === 0) delta = bsGs.delta;
       } catch (e) { /* opção sem mercado: mantém zeros */ }
