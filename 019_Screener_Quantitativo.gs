@@ -1,5 +1,5 @@
 /**
- * @fileoverview 019_Screener_Quantitativo.gs - v1.0
+ * @fileoverview 019_Screener_Quantitativo.gs - v2.0
  * ═══════════════════════════════════════════════════════════════
  * FUNIL QUANTITATIVO — Trava de Alta com PUT
  *
@@ -40,11 +40,11 @@ const SCREENER_CONFIG = {
 
   // ── Filtros de qualidade ───────────────────────────────────
   DTE_MIN:        15,     // DTE mínimo em dias corridos
-  DTE_MAX:        90,     // DTE máximo (> 90d: muito theta a carregar)
+  DTE_MAX:        35,     // DTE máximo — foca no vencimento corrente (série com liquidez)
   PROFIT_MIN:     1.0,    // Profit rate mínimo (%) — corta negativos e próximos de 0
-  SSR_MIN:        1.005,  // Spot/Strike mínimo (≥0.5% OTM: não queremos ATM exato)
+  SSR_MIN:        1.04,   // Spot/Strike mínimo (≥4% OTM: distância mínima de segurança)
   SSR_MAX:        1.30,   // Spot/Strike máximo (≤30% OTM: muito longe = prêmio ruim)
-  VOL_FIN_MIN:    500,    // Volume financeiro mínimo da opção (R$ — liquidez mínima)
+  VOL_FIN_MIN:    50000,  // Volume financeiro mínimo da opção (R$50k/dia — anti-deserto)
   IV_RANK_MIN:    5,      // IV Rank mínimo (elimina ações com prêmios paupérrimos)
 
   // ── Pesos do score (devem somar 100) ──────────────────────
@@ -58,8 +58,8 @@ const SCREENER_CONFIG = {
   TAG_IV_RANK_ALTO:    60,   // IV Rank ≥ 60 → "IV Alto"
   TAG_M9_FORTE:        1.03, // M9M21_VALUE ≥ 1.03 → "Tendência Forte"
   TAG_DTE_IDEAL_MIN:   25,   // DTE ≥ 25 → faixa ideal de theta decay
-  TAG_DTE_IDEAL_MAX:   55,   // DTE ≤ 55 → "DTE Ideal"
-  TAG_OTM_PROXIMA_MAX: 1.10  // SSR ≤ 1.10 → "OTM Próxima" (≤10% abaixo do spot)
+  TAG_DTE_IDEAL_MAX:   35,   // DTE ≤ 35 → "DTE Ideal" (alinhado ao DTE_MAX)
+  TAG_OTM_PROXIMA_MAX: 1.10  // SSR ≤ 1.10 → "OTM Próxima" (4%-10% abaixo do spot)
 };
 
 const SCREENER_HEADERS = [
