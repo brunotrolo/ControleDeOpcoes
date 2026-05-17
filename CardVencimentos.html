@@ -2,292 +2,507 @@
 
 <!-- ======================================================================
      TEMPLATE: CARD-VENCIMENTOS
-     Calendário executivo de vencimentos agrupado por data de expiração.
-     Dados: statsPreCalculados.distribuicaoVencimentos (do Agregador)
+     Calendário executivo de vencimentos com drawer lateral de posições.
+     Dados: statsPreCalculados.distribuicaoVencimentos + listaAtivas
      ====================================================================== -->
 <template id="card-vencimentos-template">
-  <div class="premium-card" style="padding:0;overflow:hidden;">
+  <div style="width:100%;font-family:'Plus Jakarta Sans',sans-serif;">
 
-    <!-- ── Skeleton ── -->
-    <div v-if="isEmpty" style="padding:1.5rem;">
-      <div style="height:22px;width:220px;border-radius:var(--radius-sm);
-                  background:var(--surface-overlay);margin-bottom:1.25rem;
-                  animation:cv-pulse 1.5s ease infinite;"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:1.25rem;">
-        <div v-for="n in 3" :key="n"
-          style="height:72px;border-radius:var(--radius-md);background:var(--surface-overlay);
-                 animation:cv-pulse 1.5s ease infinite;"></div>
-      </div>
-      <div v-for="n in 4" :key="'r'+n"
-        style="height:48px;border-radius:var(--radius-sm);background:var(--surface-overlay);
-               margin-bottom:0.375rem;animation:cv-pulse 1.5s ease infinite;"></div>
-    </div>
+    <!-- ═══════════════════════════════════════════════════════════
+         DRAWER LATERAL
+         ═══════════════════════════════════════════════════════════ -->
+    <transition name="venc-drawer">
+      <div v-if="drawer.aberto"
+        style="position:fixed;top:0;right:0;bottom:0;width:440px;max-width:95vw;z-index:1000;
+               display:flex;flex-direction:column;background:var(--surface-base);
+               box-shadow:-8px 0 48px rgba(0,0,0,0.22);border-left:1px solid var(--border-subtle);">
 
-    <!-- ── Content ── -->
-    <div v-else>
-
-      <!-- Header -->
-      <div style="padding:1.25rem 1.5rem 1rem;display:flex;justify-content:space-between;
-                  align-items:center;border-bottom:1px solid var(--border-subtle);">
-        <div style="display:flex;align-items:center;gap:0.75rem;">
-          <div style="width:32px;height:32px;border-radius:var(--radius-md);flex-shrink:0;
-                      background:var(--brand-indigo-light);border:1px solid var(--brand-indigo-muted);
-                      display:flex;align-items:center;justify-content:center;">
-            <i data-lucide="calendar-clock" style="width:16px;height:16px;color:var(--brand-indigo);"></i>
-          </div>
+        <!-- Header do drawer -->
+        <div style="display:flex;align-items:center;justify-content:space-between;
+                    padding:1.25rem 1.5rem;border-bottom:1px solid var(--border-subtle);
+                    background:var(--surface-overlay);">
           <div>
-            <div class="t-title" style="color:var(--text-primary);">Calendário de Vencimentos</div>
-            <div class="t-label" style="color:var(--text-muted);margin-top:2px;">
-              Pipeline de expiração das posições ativas
+            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
+                        letter-spacing:0.18em;color:var(--text-muted);margin-bottom:4px;">
+              VENCIMENTO
+            </div>
+            <div style="font-size:1.05rem;font-weight:800;color:var(--text-primary);
+                        letter-spacing:-0.02em;font-family:'JetBrains Mono',monospace;">
+              {{ drawer.titulo }}
             </div>
           </div>
+          <button @click="fecharDrawer"
+            style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border-subtle);
+                   background:var(--surface-base);cursor:pointer;display:flex;align-items:center;
+                   justify-content:center;color:var(--text-muted);font-size:1rem;
+                   transition:background 0.15s;">×</button>
         </div>
-        <span style="font-family:'JetBrains Mono',monospace;font-size:0.62rem;font-weight:700;
-                     color:var(--brand-indigo);background:var(--brand-indigo-light);
-                     border:1px solid var(--brand-indigo-muted);padding:3px 10px;
-                     border-radius:99px;text-transform:uppercase;letter-spacing:0.08em;
-                     white-space:nowrap;">
-          {{ vencimentos.length }} datas · {{ totalPosicoes }} pos
-        </span>
+
+        <!-- Strip de totais do grupo -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;
+                    background:var(--border-subtle);border-bottom:1px solid var(--border-subtle);">
+          <div style="background:var(--surface-base);padding:1rem 1.25rem;">
+            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
+                        letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;">Posições</div>
+            <div style="font-size:1.5rem;font-weight:800;color:var(--text-primary);
+                        font-family:'JetBrains Mono',monospace;">{{ drawer.ops.length }}</div>
+          </div>
+          <div style="background:var(--surface-base);padding:1rem 1.25rem;">
+            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
+                        letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;">Nocional</div>
+            <div style="font-size:1.05rem;font-weight:800;color:var(--brand-indigo);
+                        font-family:'JetBrains Mono',monospace;">{{ fmtK(somaDrawer('nocional')) }}</div>
+          </div>
+          <div style="background:var(--surface-base);padding:1rem 1.25rem;">
+            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
+                        letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;">Ganho Máx</div>
+            <div style="font-size:1.05rem;font-weight:800;font-family:'JetBrains Mono',monospace;
+                        color:var(--brand-emerald);">{{ fmtK(somaDrawer('ganhoMaximo')) }}</div>
+          </div>
+        </div>
+
+        <!-- Cards das posições -->
+        <div style="flex:1;overflow-y:auto;padding:0.875rem;
+                    scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent;">
+
+          <div v-for="op in drawer.ops" :key="op.tradeId || op.simboloOpcao"
+            class="premium-card"
+            style="margin-bottom:0.75rem;padding:0;display:flex;flex-direction:column;
+                   border-width:2px !important;overflow:hidden;"
+            :style="cvCorBorda(op)">
+
+            <!-- Header: ticker + tipo + moneyness -->
+            <div style="padding:0.875rem 1rem 0.75rem;border-bottom:1px solid var(--border-subtle);">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;
+                          margin-bottom:0.5rem;">
+                <div style="display:flex;align-items:center;gap:0.5rem;">
+                  <span style="font-size:1.25rem;font-weight:800;color:var(--text-primary);
+                               letter-spacing:-0.04em;line-height:1;font-family:'JetBrains Mono',monospace;">
+                    {{ op.tickerAtivo || '--' }}
+                  </span>
+                  <span style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+                               letter-spacing:0.08em;padding:2px 6px;border-radius:var(--radius-xs);
+                               border:1.5px solid;"
+                    :style="cvTipoBadge(op)">
+                    {{ (op.direcaoTrade || '').charAt(0) }} {{ op.tipoOpcao || '—' }}
+                  </span>
+                </div>
+                <span style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
+                             letter-spacing:0.08em;padding:2px 7px;border-radius:99px;border:1.5px solid;"
+                  :style="cvMoneyBadge(op.moneynessCode)">
+                  {{ op.moneynessCode || 'N/A' }}
+                </span>
+              </div>
+              <div style="display:flex;align-items:center;gap:0.375rem;">
+                <span style="font-size:0.65rem;font-weight:700;color:var(--text-muted);
+                             font-family:'JetBrains Mono',monospace;">{{ op.simboloOpcao || '--' }}</span>
+                <span style="color:var(--border-default);">|</span>
+                <span style="font-size:0.6rem;color:var(--text-muted);">QTD: {{ op.quantidade || '—' }}</span>
+                <span style="margin-left:auto;font-size:0.6rem;font-weight:700;color:var(--text-muted);">
+                  {{ op.dteCorridos }}d &middot; {{ fmtData(String(op.dataVencimento || '').split('T')[0]) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Spot / Dist / Strike -->
+            <div style="display:flex;justify-content:space-around;align-items:center;
+                        padding:0.5rem 0.75rem;background:var(--surface-sunken);
+                        border-bottom:1px solid var(--border-subtle);">
+              <div style="text-align:center;">
+                <div style="font-size:0.55rem;font-weight:700;color:var(--text-muted);
+                            text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px;">Spot</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;
+                            font-weight:700;color:var(--text-primary);">
+                  {{ fmtMoeda(op.spotPrice) }}
+                </div>
+              </div>
+              <div style="width:1px;height:1.5rem;background:var(--border-default);"></div>
+              <div style="text-align:center;">
+                <div style="font-size:0.55rem;font-weight:700;color:var(--text-muted);
+                            text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px;">Dist.</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:700;
+                            padding:1px 5px;border-radius:var(--radius-xs);
+                            background:var(--surface-base);border:1px solid var(--border-subtle);"
+                  :style="(parseFloat(op.distanciaPct)||0) >= 0 ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">
+                  {{ cvFmtDist(op.distanciaPct) }}
+                </div>
+              </div>
+              <div style="width:1px;height:1.5rem;background:var(--border-default);"></div>
+              <div style="text-align:center;">
+                <div style="font-size:0.55rem;font-weight:700;color:var(--text-muted);
+                            text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px;">Strike</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;
+                            font-weight:700;color:var(--text-primary);">
+                  {{ fmtMoeda(op.strike) }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Grid 3×3 métricas -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;background:var(--border-subtle);">
+              <div style="background:var(--surface-base);padding:0.5rem 0.625rem;display:flex;flex-direction:column;">
+                <span style="font-size:0.52rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">Prêmio Médio</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;color:var(--text-secondary);">{{ fmtMoeda(op.premioMedio) }}</span>
+              </div>
+              <div style="background:var(--surface-base);padding:0.5rem 0.625rem;display:flex;flex-direction:column;">
+                <span style="font-size:0.52rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">Prêmio Atual</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;color:var(--text-secondary);">{{ fmtMoeda(op.premioAtual) }}</span>
+              </div>
+              <div style="background:var(--surface-base);padding:0.5rem 0.625rem;display:flex;flex-direction:column;">
+                <span style="font-size:0.52rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">Ganho Máx.</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;color:var(--brand-emerald);">{{ fmtK(op.ganhoMaximo) }}</span>
+              </div>
+              <div style="background:var(--surface-base);padding:0.5rem 0.625rem;display:flex;flex-direction:column;">
+                <span style="font-size:0.52rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">P/L %</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;"
+                  :style="(parseFloat(op.plTotalPct)||0) >= 0 ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">{{ cvFmtPct(op.plTotalPct) }}</span>
+              </div>
+              <div style="background:var(--surface-base);padding:0.5rem 0.625rem;display:flex;flex-direction:column;">
+                <span style="font-size:0.52rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">Delta</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;color:var(--brand-indigo);">{{ op.delta != null ? parseFloat(op.delta).toFixed(4).replace('.', ',') : '--' }}</span>
+              </div>
+              <div style="background:var(--surface-base);padding:0.5rem 0.625rem;display:flex;flex-direction:column;">
+                <span style="font-size:0.52rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">Nocional</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;color:var(--text-primary);">{{ fmtK(op.nocional) }}</span>
+              </div>
+              <div style="background:var(--surface-base);padding:0.5rem 0.625rem;display:flex;flex-direction:column;">
+                <span style="font-size:0.52rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">Moneyness</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;color:var(--text-secondary);">{{ op.moneynessCode || '—' }}</span>
+              </div>
+              <div style="background:var(--surface-base);padding:0.5rem 0.625rem;display:flex;flex-direction:column;grid-column:span 2;">
+                <span style="font-size:0.52rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">Símbolo · Tipo</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;color:var(--text-secondary);">{{ op.simboloOpcao }} &middot; {{ op.tipoOpcao }}</span>
+              </div>
+            </div>
+
+            <!-- Footer P/L -->
+            <div style="padding:0.625rem 1rem;display:flex;justify-content:space-between;
+                        align-items:center;border-top:2px solid;"
+              :style="cvFooterStyle(op)">
+              <div>
+                <div style="font-size:0.52rem;font-weight:700;text-transform:uppercase;
+                            letter-spacing:0.1em;opacity:0.7;margin-bottom:2px;">P/L Aberto</div>
+                <div style="display:flex;align-items:baseline;gap:0.375rem;">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:0.95rem;
+                               font-weight:800;letter-spacing:-0.02em;white-space:nowrap;">
+                    {{ fmtK(op.plTotalValor) }}
+                  </span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;
+                               font-weight:600;opacity:0.6;white-space:nowrap;">
+                    ({{ cvFmtPct(op.plTotalPct) }})
+                  </span>
+                </div>
+              </div>
+              <div style="font-size:1.25rem;line-height:1;">{{ cvCardIcon(op) }}</div>
+            </div>
+
+          </div>
+
+          <div v-if="drawer.ops.length === 0"
+            style="padding:3rem;text-align:center;color:var(--text-muted);">
+            <div style="font-size:2rem;opacity:0.4;margin-bottom:0.5rem;">📭</div>
+            <div style="font-size:0.8rem;font-weight:700;text-transform:uppercase;
+                        letter-spacing:0.1em;">Nenhuma operação encontrada.</div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Overlay escurecido -->
+    <transition name="venc-overlay">
+      <div v-if="drawer.aberto" @click="fecharDrawer"
+        style="position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.35);"></div>
+    </transition>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         CARD PRINCIPAL
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="premium-card" style="padding:0;overflow:hidden;">
+
+      <!-- Skeleton -->
+      <div v-if="isEmpty" style="padding:1.5rem;">
+        <div style="height:22px;width:220px;border-radius:var(--radius-sm);
+                    background:var(--surface-overlay);margin-bottom:1.25rem;
+                    animation:cv-pulse 1.5s ease infinite;"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:1.25rem;">
+          <div v-for="n in 3" :key="n"
+            style="height:72px;border-radius:var(--radius-md);background:var(--surface-overlay);
+                   animation:cv-pulse 1.5s ease infinite;"></div>
+        </div>
+        <div v-for="n in 4" :key="'r'+n"
+          style="height:48px;border-radius:var(--radius-sm);background:var(--surface-overlay);
+                 margin-bottom:0.375rem;animation:cv-pulse 1.5s ease infinite;"></div>
       </div>
 
-      <!-- Buckets de urgência -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;
-                  border-bottom:1px solid var(--border-subtle);">
+      <!-- Conteúdo -->
+      <div v-else>
 
-        <div style="padding:0.875rem 1rem;border-right:1px solid var(--border-subtle);text-align:center;">
-          <div style="font-size:0.56rem;font-weight:700;color:var(--brand-rose);
-                      text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px;">
-            Urgente ≤15d
-          </div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:800;
-                      color:var(--brand-rose);line-height:1;">{{ urgente.pos }}</div>
-          <div style="font-size:0.58rem;color:var(--text-muted);margin-top:3px;">
-            pos · {{ urgente.datas }} exp
-          </div>
-        </div>
-
-        <div style="padding:0.875rem 1rem;border-right:1px solid var(--border-subtle);text-align:center;">
-          <div style="font-size:0.56rem;font-weight:700;color:var(--brand-amber);
-                      text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px;">
-            Atenção 16–45d
-          </div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:800;
-                      color:var(--brand-amber);line-height:1;">{{ atencao.pos }}</div>
-          <div style="font-size:0.58rem;color:var(--text-muted);margin-top:3px;">
-            pos · {{ atencao.datas }} exp
-          </div>
-        </div>
-
-        <div style="padding:0.875rem 1rem;text-align:center;">
-          <div style="font-size:0.56rem;font-weight:700;color:var(--brand-emerald);
-                      text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px;">
-            Conforto >45d
-          </div>
-          <div style="font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:800;
-                      color:var(--brand-emerald);line-height:1;">{{ conforto.pos }}</div>
-          <div style="font-size:0.58rem;color:var(--text-muted);margin-top:3px;">
-            pos · {{ conforto.datas }} exp
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Cabeçalho de colunas (desktop) -->
-      <div v-if="!isMobile"
-        style="display:grid;grid-template-columns:80px 1fr 52px 1fr 1fr 1fr;
-               padding:0.5rem 1.5rem;background:var(--surface-sunken);
-               border-bottom:1px solid var(--border-subtle);">
-        <div class="t-label" style="color:var(--text-muted);">DTE</div>
-        <div class="t-label" style="color:var(--text-muted);">Vencimento</div>
-        <div class="t-label" style="color:var(--text-muted);text-align:center;">Pos.</div>
-        <div class="t-label" style="color:var(--text-muted);text-align:right;">Nocional</div>
-        <div class="t-label" style="color:var(--text-muted);text-align:right;">Ganho Máx</div>
-        <div class="t-label" style="color:var(--text-muted);text-align:right;">P/L Aberto</div>
-      </div>
-
-      <!-- Linhas de vencimento -->
-      <div>
-        <div v-for="(v, idx) in vencimentos" :key="v.dataVencimento"
-          style="border-bottom:1px solid var(--border-subtle);padding:0 1.5rem;"
-          :style="(idx % 2 === 1) ? 'background:var(--surface-sunken);' : 'background:var(--surface-base);'">
-
-          <!-- Desktop -->
-          <div v-if="!isMobile"
-            style="display:grid;grid-template-columns:80px 1fr 52px 1fr 1fr 1fr;
-                   padding:0.75rem 0;align-items:center;">
-
-            <!-- DTE badge -->
+        <!-- Header -->
+        <div style="padding:1.25rem 1.5rem 1rem;display:flex;justify-content:space-between;
+                    align-items:center;border-bottom:1px solid var(--border-subtle);">
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <div style="width:32px;height:32px;border-radius:var(--radius-md);flex-shrink:0;
+                        background:var(--brand-indigo-light);border:1px solid var(--brand-indigo-muted);
+                        display:flex;align-items:center;justify-content:center;">
+              <i data-lucide="calendar-clock" style="width:16px;height:16px;color:var(--brand-indigo);"></i>
+            </div>
             <div>
-              <span style="display:inline-block;padding:3px 9px;border-radius:99px;
-                           font-family:'JetBrains Mono',monospace;font-size:0.65rem;
-                           font-weight:800;border:1.5px solid;white-space:nowrap;"
-                :style="'color:'+corDTE(calcDTE(v.dataVencimento)).text
-                       +';background:'+corDTE(calcDTE(v.dataVencimento)).bg
-                       +';border-color:'+corDTE(calcDTE(v.dataVencimento)).border+';'">
-                {{ calcDTE(v.dataVencimento) }}d
-              </span>
-            </div>
-
-            <!-- Data + label -->
-            <div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;
-                          font-weight:700;color:var(--text-primary);">
-                {{ fmtData(v.dataVencimento) }}
-              </div>
-              <div style="font-size:0.56rem;font-weight:700;text-transform:uppercase;
-                          letter-spacing:0.06em;margin-top:1px;"
-                :style="'color:'+corDTE(calcDTE(v.dataVencimento)).text+';'">
-                {{ corDTE(calcDTE(v.dataVencimento)).label }}
+              <div class="t-title" style="color:var(--text-primary);">Calendário de Vencimentos</div>
+              <div class="t-label" style="color:var(--text-muted);margin-top:2px;">
+                Clique em uma linha para ver as posições do vencimento
               </div>
             </div>
+          </div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:0.62rem;font-weight:700;
+                       color:var(--brand-indigo);background:var(--brand-indigo-light);
+                       border:1px solid var(--brand-indigo-muted);padding:3px 10px;
+                       border-radius:99px;text-transform:uppercase;letter-spacing:0.08em;
+                       white-space:nowrap;">
+            {{ vencimentos.length }} datas · {{ totalPosicoes }} pos
+          </span>
+        </div>
 
-            <!-- Contagem -->
-            <div style="text-align:center;">
-              <span style="font-family:'JetBrains Mono',monospace;font-size:0.9rem;
-                           font-weight:800;color:var(--text-primary);">{{ v.contagem }}</span>
+        <!-- Buckets de urgência -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;
+                    border-bottom:1px solid var(--border-subtle);">
+
+          <div style="padding:0.875rem 1rem;border-right:1px solid var(--border-subtle);text-align:center;">
+            <div style="font-size:0.56rem;font-weight:700;color:var(--brand-rose);
+                        text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px;">Urgente ≤15d</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:800;
+                        color:var(--brand-rose);line-height:1;">{{ urgente.pos }}</div>
+            <div style="font-size:0.58rem;color:var(--text-muted);margin-top:3px;">
+              pos · {{ urgente.datas }} exp
             </div>
-
-            <!-- Nocional + barra -->
-            <div style="text-align:right;">
-              <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;
-                          font-weight:700;color:var(--text-primary);">
-                {{ fmtK(v.nocional) }}
-              </div>
-              <div style="margin-top:5px;height:3px;border-radius:99px;background:var(--border-subtle);">
-                <div style="height:100%;border-radius:99px;transition:width 0.4s ease;"
-                  :style="'width:'+barPct(v.nocional)+'%;background:'
-                         +corDTE(calcDTE(v.dataVencimento)).text+';'"></div>
-              </div>
-            </div>
-
-            <!-- Ganho Máx -->
-            <div style="text-align:right;">
-              <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;
-                          font-weight:700;color:var(--brand-emerald);">
-                {{ fmtK(v.ganhoMaximo) }}
-              </div>
-              <div style="font-size:0.56rem;color:var(--text-muted);margin-top:1px;">
-                {{ yieldStr(v.ganhoMaximo, v.nocional) }}
-              </div>
-            </div>
-
-            <!-- P/L Aberto -->
-            <div style="text-align:right;">
-              <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:700;"
-                :style="(parseFloat(v.plAberto)||0) >= 0
-                        ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">
-                {{ fmtSigned(v.plAberto) }}
-              </div>
-              <div style="font-size:0.56rem;color:var(--text-muted);margin-top:1px;">
-                {{ plPctStr(v.plAberto, v.nocional) }}
-              </div>
-            </div>
-
           </div>
 
-          <!-- Mobile -->
-          <div v-else style="padding:0.875rem 0;">
+          <div style="padding:0.875rem 1rem;border-right:1px solid var(--border-subtle);text-align:center;">
+            <div style="font-size:0.56rem;font-weight:700;color:var(--brand-amber);
+                        text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px;">Atenção 16–45d</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:800;
+                        color:var(--brand-amber);line-height:1;">{{ atencao.pos }}</div>
+            <div style="font-size:0.58rem;color:var(--text-muted);margin-top:3px;">
+              pos · {{ atencao.datas }} exp
+            </div>
+          </div>
 
-            <!-- Linha 1: DTE + data + contagem -->
-            <div style="display:flex;justify-content:space-between;align-items:center;
-                        margin-bottom:0.625rem;">
-              <div style="display:flex;align-items:center;gap:0.5rem;">
-                <span style="display:inline-block;padding:3px 8px;border-radius:99px;
+          <div style="padding:0.875rem 1rem;text-align:center;">
+            <div style="font-size:0.56rem;font-weight:700;color:var(--brand-emerald);
+                        text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px;">Conforto >45d</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:800;
+                        color:var(--brand-emerald);line-height:1;">{{ conforto.pos }}</div>
+            <div style="font-size:0.58rem;color:var(--text-muted);margin-top:3px;">
+              pos · {{ conforto.datas }} exp
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Cabeçalho de colunas (desktop) -->
+        <div v-if="!isMobile"
+          style="display:grid;grid-template-columns:80px 1fr 52px 1fr 1fr 1fr;
+                 padding:0.5rem 1.5rem;background:var(--surface-sunken);
+                 border-bottom:1px solid var(--border-subtle);">
+          <div class="t-label" style="color:var(--text-muted);">DTE</div>
+          <div class="t-label" style="color:var(--text-muted);">Vencimento</div>
+          <div class="t-label" style="color:var(--text-muted);text-align:center;">Pos.</div>
+          <div class="t-label" style="color:var(--text-muted);text-align:right;">Nocional</div>
+          <div class="t-label" style="color:var(--text-muted);text-align:right;">Ganho Máx</div>
+          <div class="t-label" style="color:var(--text-muted);text-align:right;">P/L Aberto</div>
+        </div>
+
+        <!-- Linhas de vencimento -->
+        <div>
+          <div v-for="(v, idx) in vencimentos" :key="v.dataVencimento"
+            style="border-bottom:1px solid var(--border-subtle);padding:0 1.5rem;
+                   cursor:pointer;transition:background 0.15s;"
+            :style="(idx % 2 === 1) ? 'background:var(--surface-sunken);' : 'background:var(--surface-base);'"
+            @click="abrirDrawer(v)"
+            @mouseover="$event.currentTarget.style.background='var(--surface-overlay)'"
+            @mouseout="$event.currentTarget.style.background=(idx % 2 === 1) ? 'var(--surface-sunken)' : 'var(--surface-base)'">
+
+            <!-- Desktop -->
+            <div v-if="!isMobile"
+              style="display:grid;grid-template-columns:80px 1fr 52px 1fr 1fr 1fr;
+                     padding:0.75rem 0;align-items:center;">
+
+              <!-- DTE badge -->
+              <div>
+                <span style="display:inline-block;padding:3px 9px;border-radius:99px;
                              font-family:'JetBrains Mono',monospace;font-size:0.65rem;
-                             font-weight:800;border:1.5px solid;"
+                             font-weight:800;border:1.5px solid;white-space:nowrap;"
                   :style="'color:'+corDTE(calcDTE(v.dataVencimento)).text
                          +';background:'+corDTE(calcDTE(v.dataVencimento)).bg
                          +';border-color:'+corDTE(calcDTE(v.dataVencimento)).border+';'">
                   {{ calcDTE(v.dataVencimento) }}d
                 </span>
-                <span style="font-family:'JetBrains Mono',monospace;font-size:0.88rem;
-                             font-weight:700;color:var(--text-primary);">
-                  {{ fmtData(v.dataVencimento) }}
-                </span>
               </div>
-              <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;
-                           font-weight:700;color:var(--text-secondary);">
-                {{ v.contagem }} pos
-              </span>
-            </div>
 
-            <!-- Linha 2: métricas 3 colunas -->
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;
-                        margin-bottom:0.625rem;">
+              <!-- Data + label -->
               <div>
-                <div class="t-label" style="color:var(--text-muted);margin-bottom:2px;">Nocional</div>
-                <div style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;
+                            font-weight:700;color:var(--text-primary);">
+                  {{ fmtData(v.dataVencimento) }}
+                </div>
+                <div style="font-size:0.56rem;font-weight:700;text-transform:uppercase;
+                            letter-spacing:0.06em;margin-top:1px;"
+                  :style="'color:'+corDTE(calcDTE(v.dataVencimento)).text+';'">
+                  {{ corDTE(calcDTE(v.dataVencimento)).label }}
+                </div>
+              </div>
+
+              <!-- Contagem -->
+              <div style="text-align:center;">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:0.9rem;
+                             font-weight:800;color:var(--text-primary);">{{ v.contagem }}</span>
+              </div>
+
+              <!-- Nocional + barra -->
+              <div style="text-align:right;">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;
                             font-weight:700;color:var(--text-primary);">
                   {{ fmtK(v.nocional) }}
                 </div>
+                <div style="margin-top:5px;height:3px;border-radius:99px;background:var(--border-subtle);">
+                  <div style="height:100%;border-radius:99px;transition:width 0.4s ease;"
+                    :style="'width:'+barPct(v.nocional)+'%;background:'
+                           +corDTE(calcDTE(v.dataVencimento)).text+';'"></div>
+                </div>
               </div>
-              <div>
-                <div class="t-label" style="color:var(--text-muted);margin-bottom:2px;">Ganho Máx</div>
-                <div style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;
+
+              <!-- Ganho Máx -->
+              <div style="text-align:right;">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;
                             font-weight:700;color:var(--brand-emerald);">
                   {{ fmtK(v.ganhoMaximo) }}
                 </div>
+                <div style="font-size:0.56rem;color:var(--text-muted);margin-top:1px;">
+                  {{ yieldStr(v.ganhoMaximo, v.nocional) }}
+                </div>
               </div>
-              <div>
-                <div class="t-label" style="color:var(--text-muted);margin-bottom:2px;">P/L</div>
-                <div style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;font-weight:700;"
+
+              <!-- P/L Aberto -->
+              <div style="text-align:right;">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:700;"
                   :style="(parseFloat(v.plAberto)||0) >= 0
                           ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">
                   {{ fmtSigned(v.plAberto) }}
                 </div>
+                <div style="font-size:0.56rem;color:var(--text-muted);margin-top:1px;">
+                  {{ plPctStr(v.plAberto, v.nocional) }}
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Mobile -->
+            <div v-else style="padding:0.875rem 0;">
+
+              <!-- Linha 1: DTE + data + contagem -->
+              <div style="display:flex;justify-content:space-between;align-items:center;
+                          margin-bottom:0.625rem;">
+                <div style="display:flex;align-items:center;gap:0.5rem;">
+                  <span style="display:inline-block;padding:3px 8px;border-radius:99px;
+                               font-family:'JetBrains Mono',monospace;font-size:0.65rem;
+                               font-weight:800;border:1.5px solid;"
+                    :style="'color:'+corDTE(calcDTE(v.dataVencimento)).text
+                           +';background:'+corDTE(calcDTE(v.dataVencimento)).bg
+                           +';border-color:'+corDTE(calcDTE(v.dataVencimento)).border+';'">
+                    {{ calcDTE(v.dataVencimento) }}d
+                  </span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:0.88rem;
+                               font-weight:700;color:var(--text-primary);">
+                    {{ fmtData(v.dataVencimento) }}
+                  </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.375rem;">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;
+                               font-weight:700;color:var(--text-secondary);">
+                    {{ v.contagem }} pos
+                  </span>
+                  <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--text-muted);"></i>
+                </div>
+              </div>
+
+              <!-- Métricas 3 colunas -->
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;
+                          margin-bottom:0.625rem;">
+                <div>
+                  <div class="t-label" style="color:var(--text-muted);margin-bottom:2px;">Nocional</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;
+                              font-weight:700;color:var(--text-primary);">{{ fmtK(v.nocional) }}</div>
+                </div>
+                <div>
+                  <div class="t-label" style="color:var(--text-muted);margin-bottom:2px;">Ganho Máx</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;
+                              font-weight:700;color:var(--brand-emerald);">{{ fmtK(v.ganhoMaximo) }}</div>
+                </div>
+                <div>
+                  <div class="t-label" style="color:var(--text-muted);margin-bottom:2px;">P/L</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;font-weight:700;"
+                    :style="(parseFloat(v.plAberto)||0) >= 0
+                            ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">
+                    {{ fmtSigned(v.plAberto) }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Barra nocional -->
+              <div style="height:3px;border-radius:99px;background:var(--border-subtle);">
+                <div style="height:100%;border-radius:99px;"
+                  :style="'width:'+barPct(v.nocional)+'%;background:'
+                         +corDTE(calcDTE(v.dataVencimento)).text+';'"></div>
               </div>
             </div>
 
-            <!-- Barra nocional -->
-            <div style="height:3px;border-radius:99px;background:var(--border-subtle);">
-              <div style="height:100%;border-radius:99px;"
-                :style="'width:'+barPct(v.nocional)+'%;background:'
-                       +corDTE(calcDTE(v.dataVencimento)).text+';'"></div>
+          </div>
+        </div>
+
+        <!-- Rodapé totais -->
+        <div style="padding:0.875rem 1.5rem;background:var(--surface-sunken);
+                    display:flex;justify-content:space-between;align-items:center;
+                    flex-wrap:wrap;gap:0.75rem;">
+          <div class="t-label" style="color:var(--text-muted);text-transform:uppercase;">
+            Total do Portfólio
+          </div>
+          <div style="display:flex;gap:1.5rem;align-items:center;flex-wrap:wrap;">
+            <div>
+              <span class="t-label" style="color:var(--text-muted);margin-right:0.375rem;">Nocional</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;
+                           font-weight:700;color:var(--text-primary);">{{ fmtMoeda(totais.nocional) }}</span>
             </div>
-
+            <div>
+              <span class="t-label" style="color:var(--text-muted);margin-right:0.375rem;">Ganho Máx</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;
+                           font-weight:700;color:var(--brand-emerald);">{{ fmtMoeda(totais.ganhoMaximo) }}</span>
+            </div>
+            <div>
+              <span class="t-label" style="color:var(--text-muted);margin-right:0.375rem;">P/L Aberto</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;font-weight:700;"
+                :style="totais.plAberto >= 0 ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">
+                {{ fmtSigned(totais.plAberto) }}
+              </span>
+            </div>
           </div>
         </div>
+
       </div>
-
-      <!-- Rodapé com totais -->
-      <div style="padding:0.875rem 1.5rem;background:var(--surface-sunken);
-                  display:flex;justify-content:space-between;align-items:center;
-                  flex-wrap:wrap;gap:0.75rem;">
-        <div class="t-label" style="color:var(--text-muted);text-transform:uppercase;">
-          Total do Portfólio
-        </div>
-        <div style="display:flex;gap:1.5rem;align-items:center;flex-wrap:wrap;">
-          <div>
-            <span class="t-label" style="color:var(--text-muted);margin-right:0.375rem;">Nocional</span>
-            <span style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;
-                         font-weight:700;color:var(--text-primary);">
-              {{ fmtMoeda(totais.nocional) }}
-            </span>
-          </div>
-          <div>
-            <span class="t-label" style="color:var(--text-muted);margin-right:0.375rem;">Ganho Máx</span>
-            <span style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;
-                         font-weight:700;color:var(--brand-emerald);">
-              {{ fmtMoeda(totais.ganhoMaximo) }}
-            </span>
-          </div>
-          <div>
-            <span class="t-label" style="color:var(--text-muted);margin-right:0.375rem;">P/L Aberto</span>
-            <span style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;font-weight:700;"
-              :style="totais.plAberto >= 0 ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">
-              {{ fmtSigned(totais.plAberto) }}
-            </span>
-          </div>
-        </div>
-      </div>
-
     </div>
   </div>
 </template>
 
 <style>
   @keyframes cv-pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
+  .venc-drawer-enter-active,
+  .venc-drawer-leave-active  { transition: transform 0.3s cubic-bezier(0.2,0,0,1); }
+  .venc-drawer-enter-from,
+  .venc-drawer-leave-to      { transform: translateX(100%); }
+  .venc-drawer-enter-to,
+  .venc-drawer-leave-from    { transform: translateX(0); }
+  .venc-overlay-enter-active,
+  .venc-overlay-leave-active { transition: opacity 0.22s ease; }
+  .venc-overlay-enter-from,
+  .venc-overlay-leave-to     { opacity: 0; }
 </style>
 
 <script>
@@ -297,6 +512,12 @@ window.CardVencimentos = {
     statsPreCalculados: Object
   },
   template: '#card-vencimentos-template',
+
+  data: function() {
+    return {
+      drawer: { aberto: false, titulo: '', ops: [] }
+    };
+  },
 
   computed: {
     vencimentos: function() {
@@ -363,6 +584,109 @@ window.CardVencimentos = {
   },
 
   methods: {
+    // ── Drawer ────────────────────────────────────────────────────
+    abrirDrawer: function(venc) {
+      var self  = this;
+      var alvo  = venc.dataVencimento;
+      var lista = (self.statsPreCalculados && self.statsPreCalculados.listaAtivas)
+        ? self.statsPreCalculados.listaAtivas : [];
+
+      var ops = lista.filter(function(op) {
+        var d = op.dataVencimento;
+        if (!d) return false;
+        var s = (d instanceof Date) ? d.toISOString().split('T')[0] : String(d).split('T')[0];
+        return s === alvo;
+      });
+
+      ops.sort(function(a, b) {
+        var ma = String(a.moneynessCode || '').toUpperCase();
+        var mb = String(b.moneynessCode || '').toUpperCase();
+        var order = { 'ITM': 0, 'ATM': 1, 'OTM': 2 };
+        var va = order[ma] != null ? order[ma] : 3;
+        var vb = order[mb] != null ? order[mb] : 3;
+        return va - vb;
+      });
+
+      self.drawer.titulo = self.fmtData(alvo);
+      self.drawer.ops    = ops;
+      self.drawer.aberto = true;
+    },
+
+    fecharDrawer: function() {
+      this.drawer.aberto = false;
+      this.drawer.ops    = [];
+    },
+
+    somaDrawer: function(campo) {
+      return this.drawer.ops.reduce(function(acc, op) {
+        return acc + (parseFloat(op[campo]) || 0);
+      }, 0);
+    },
+
+    // ── Helpers dos cards do drawer ───────────────────────────────
+    cvCorBorda: function(op) {
+      var m   = String(op.moneynessCode || '').toUpperCase();
+      var pct = parseFloat(op.plTotalPct) || 0;
+      if (m.indexOf('ITM') >= 0 && pct < 0)
+        return 'border-color:var(--brand-rose-muted);background:var(--brand-rose-light);';
+      if (m.indexOf('ITM') >= 0 || m.indexOf('ATM') >= 0)
+        return 'border-color:var(--brand-amber-muted);background:var(--brand-amber-light);';
+      return 'border-color:var(--brand-emerald-muted);background:var(--brand-emerald-light);';
+    },
+
+    cvTipoBadge: function(op) {
+      var t = String(op.tipoOpcao    || '').toUpperCase();
+      var d = String(op.direcaoTrade || '').toUpperCase();
+      if (d.indexOf('VENDA')  >= 0 && t.indexOf('PUT')  >= 0) return 'color:var(--brand-indigo);background:var(--brand-indigo-light);border-color:var(--brand-indigo-muted);';
+      if (d.indexOf('VENDA')  >= 0 && t.indexOf('CALL') >= 0) return 'color:var(--brand-amber);background:var(--brand-amber-light);border-color:var(--brand-amber-muted);';
+      if (d.indexOf('COMPRA') >= 0 && t.indexOf('PUT')  >= 0) return 'color:var(--brand-rose);background:var(--brand-rose-light);border-color:var(--brand-rose-muted);';
+      if (d.indexOf('COMPRA') >= 0 && t.indexOf('CALL') >= 0) return 'color:var(--brand-emerald);background:var(--brand-emerald-light);border-color:var(--brand-emerald-muted);';
+      return 'color:var(--text-muted);background:var(--surface-overlay);border-color:var(--border-subtle);';
+    },
+
+    cvMoneyBadge: function(code) {
+      var m = String(code || '').toUpperCase();
+      if (m.indexOf('ITM') >= 0) return 'color:#fff;background:var(--brand-rose);border-color:var(--brand-rose);';
+      if (m.indexOf('ATM') >= 0) return 'color:var(--brand-amber);background:var(--brand-amber-light);border-color:var(--brand-amber-muted);';
+      return 'color:var(--brand-emerald);background:var(--brand-emerald-light);border-color:var(--brand-emerald-muted);';
+    },
+
+    cvFooterStyle: function(op) {
+      var m   = String(op.moneynessCode || '').toUpperCase();
+      var pct = parseFloat(op.plTotalPct) || 0;
+      if (m.indexOf('ITM') >= 0 && pct < 0)
+        return 'background:var(--brand-rose-light);border-color:var(--brand-rose-muted);color:var(--brand-rose);';
+      if (m.indexOf('ITM') >= 0 || m.indexOf('ATM') >= 0)
+        return 'background:var(--brand-amber-light);border-color:var(--brand-amber-muted);color:var(--brand-amber);';
+      return 'background:var(--brand-emerald-light);border-color:var(--brand-emerald-muted);color:var(--brand-emerald);';
+    },
+
+    cvCardIcon: function(op) {
+      var m   = String(op.moneynessCode || '').toUpperCase();
+      var pct = parseFloat(op.plTotalPct) || 0;
+      if (m.indexOf('ITM') >= 0 && pct < 0) return '🚨';
+      if (m.indexOf('ITM') >= 0 || m.indexOf('ATM') >= 0) return '⚠️';
+      return '✅';
+    },
+
+    cvFmtDist: function(v) {
+      if (v == null) return '--';
+      var n = parseFloat(v);
+      if (isNaN(n)) return '--';
+      return (n >= 0 ? '+' : '') + n.toFixed(1).replace('.', ',') + '%';
+    },
+
+    cvFmtPct: function(v) {
+      var F = window.Formatador;
+      if (F && F.pct) return F.pct(parseFloat(v || 0) * 100, 1);
+      if (v == null) return '--';
+      var n = parseFloat(v);
+      if (isNaN(n)) return '--';
+      var pct = n * 100;
+      return (pct >= 0 ? '+' : '') + pct.toFixed(1).replace('.', ',') + '%';
+    },
+
+    // ── Cálculos de linha ─────────────────────────────────────────
     calcDTE: function(dataStr) {
       if (!dataStr) return 999;
       var hoje = new Date();
@@ -386,6 +710,7 @@ window.CardVencimentos = {
       return Math.round((parseFloat(nocional) / max) * 100);
     },
 
+    // ── Formatadores ──────────────────────────────────────────────
     fmtData: function(dataStr) {
       if (!dataStr) return '--';
       var pts = String(dataStr).split('T')[0].split('-');
