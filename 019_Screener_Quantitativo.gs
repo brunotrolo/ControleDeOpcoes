@@ -1,63 +1,77 @@
 /**
- * @fileoverview 019_Screener_Quantitativo.gs - v2.2
+ * @fileoverview 019_Screener_Quantitativo.gs - v4.0
  * ═══════════════════════════════════════════════════════════════
- * FUNIL QUANTITATIVO — Trava de Alta com PUT
+ * FUNIL QUANTITATIVO — Trava de Alta com PUT  (Arquitetura Gemini)
  *
- * OBJETIVO: Identificar automaticamente as melhores PUTs para
- *   montar uma Trava de Alta (Bull PUT Spread) no mercado brasileiro.
+ * ESTEIRA DE PRODUÇÃO (5 portas):
  *
- * LÓGICA DO FUNIL (3 etapas):
- *   1. Top ativos por Volume de PUT  ← SELECAO_MAIORES_VOLUMES (016)
- *   2. ∩ Ativos em Tendência de Alta ← RANKING_TENDENCIA_M9M21  (017)
- *   3. Melhor PUT desse grupo         ← SELECAO_OPCOES_MAIORES_LUCROS (015)
+ *  PORTA 1 — LIQUIDEZ     (SELECAO_MAIORES_VOLUMES)
+ *    Top N ativos por volume financeiro de PUT.
+ *    Garante que você conseguirá sair da operação.
  *
- * RACIONAL DE NEGÓCIO — Trava de Alta com PUT:
- *   • Vende PUT próxima ao spot (strike alto) → recebe prêmio gordo.
- *   • Compra PUT mais abaixo (strike baixo)   → limita perda máxima.
- *   • Lucro máximo = crédito líquido recebido, se ativo fechar acima do
- *     strike vendido no vencimento.
- *   • Portanto: queremos ativo em ALTA, PUT OTM, IV alto, DTE ideal.
+ *  PORTA 2 — TENDÊNCIA    (RANKING_TENDENCIA_M9M21)
+ *    Mantém apenas ativos com M9M21_TREND = 1 (alta).
+ *    Garante que você não operará contra a maré.
  *
- * SCORE COMPOSTO (0-100):
- *   Peso 35% → PROFIT_RATE_IF_EXERCISED (retorno se exercido)
- *   Peso 25% → IV_RANK                  (prêmio acima da média histórica)
- *   Peso 20% → VE_OVER_STRIKE           (valor extrínseco sobre strike)
- *   Peso 10% → M9M21_VALUE − 1          (intensidade da tendência de alta)
- *   Peso 10% → VOLUME_PUT_ATIVO         (liquidez do ativo subjacente)
+ *  PORTA 3 — CORRELAÇÃO   (RANKING_CORREL_IBOV)
+ *    Se dois ativos do mesmo setor tiverem CORREL_VALUE > limiar,
+ *    mantém apenas o de maior volume de PUT.
+ *    Protege contra queda sistêmica e concentração setorial.
  *
- * SAÍDA: aba SCREENER_QUANTITATIVO com até 15 oportunidades ranqueadas.
+ *  PORTA 4 — PRÊMIO       (SELECAO_OPCOES_MAIORES_LUCROS)
+ *    Extrai PUTs apenas dos ativos que passaram em tudo.
+ *    Aplica filtros de DTE, distância OTM, liquidez e IV Rank.
+ *
+ *  PORTA 5 — SCORE        (cálculo interno)
+ *    Normalização min-max em 5 dimensões → top 15 diversificados.
+ *
+ * CONFIGURAÇÃO DINÂMICA:
+ *   Todos os parâmetros lidos da aba CONFIG_GLOBAL (prefixo SCREENER_).
+ *   Valores em SCREENER_CONFIG = defaults quando a chave não existe.
+ *
+ * CHAVES ESPERADAS NA ABA CONFIG_GLOBAL (coluna A | coluna B):
+ *   SCREENER_TOP_VOLUME        |  20    Top N ativos por vol. PUT
+ *   SCREENER_MAX_RESULTADOS    |  15    Linhas no resultado final
+ *   SCREENER_MAX_POR_ATIVO     |   2    Máx. PUTs do mesmo ativo
+ *   SCREENER_DTE_MIN           |  15    DTE mínimo (dias)
+ *   SCREENER_DTE_MAX           |  45    DTE máximo (dias)
+ *   SCREENER_PROFIT_MIN        |   1    Lucro mínimo (%)
+ *   SCREENER_SSR_MIN           |1.02    Distância mínima OTM (1.04=4%)
+ *   SCREENER_SSR_MAX           |1.30    Distância máxima OTM
+ *   SCREENER_VOL_FIN_MIN       |25000   Volume financeiro mín. da opção
+ *   SCREENER_IV_RANK_MIN       |   5    IV Rank mínimo
+ *   SCREENER_CORREL_MAX        |0.70    Limiar correlação p/ dedup setorial
+ *   SCREENER_PESO_PROFIT       |  35    Peso score: profit rate
+ *   SCREENER_PESO_IV_RANK      |  25    Peso score: IV Rank
+ *   SCREENER_PESO_VE_STRIKE    |  20    Peso score: valor extrínseco/strike
+ *   SCREENER_PESO_M9_TREND     |  10    Peso score: intensidade M9M21
+ *   SCREENER_PESO_LIQUIDEZ     |  10    Peso score: liquidez do ativo
  * ═══════════════════════════════════════════════════════════════
  */
 
-// ─── Parâmetros do funil (editáveis sem tocar na lógica) ─────────────────────
+// ─── Defaults (fallback quando a chave não existe no CONFIG_GLOBAL) ───────────
 const SCREENER_CONFIG = {
-  // ── Funil ──────────────────────────────────────────────────
-  TOP_VOLUME:     30,     // Candidatos iniciais por vol. de PUT antes do cruzamento
-  MAX_RESULTADOS: 15,     // Linhas no resultado final
-  MAX_POR_ATIVO:  2,      // Máx. de PUTs do mesmo ativo (diversificação)
-
-  // ── Filtros de qualidade ───────────────────────────────────
-  DTE_MIN:        15,     // DTE mínimo em dias corridos
-  DTE_MAX:        45,     // DTE máximo — inclui vencimento corrente e o imediato seguinte
-  PROFIT_MIN:     1.0,    // Profit rate mínimo (%) — corta negativos e próximos de 0
-  SSR_MIN:        1.02,   // Spot/Strike mínimo (≥2% OTM: distância mínima de segurança)
-  SSR_MAX:        1.30,   // Spot/Strike máximo (≤30% OTM: muito longe = prêmio ruim)
-  VOL_FIN_MIN:    25000,  // Volume financeiro mínimo da opção (R$25k/dia — anti-deserto)
-  IV_RANK_MIN:    5,      // IV Rank mínimo (elimina ações com prêmios paupérrimos)
-
-  // ── Pesos do score (devem somar 100) ──────────────────────
+  TOP_VOLUME:     20,
+  MAX_RESULTADOS: 15,
+  MAX_POR_ATIVO:  2,
+  DTE_MIN:        15,
+  DTE_MAX:        45,
+  PROFIT_MIN:     1.0,
+  SSR_MIN:        1.02,
+  SSR_MAX:        1.30,
+  VOL_FIN_MIN:    25000,
+  IV_RANK_MIN:    5,
+  CORREL_MAX:     0.70,
   PESO_PROFIT:    35,
   PESO_IV_RANK:   25,
   PESO_VE_STRIKE: 20,
   PESO_M9_TREND:  10,
   PESO_LIQUIDEZ:  10,
-
-  // ── Tags OBSERVACAO ───────────────────────────────────────
-  TAG_IV_RANK_ALTO:    60,   // IV Rank ≥ 60 → "IV Alto"
-  TAG_M9_FORTE:        1.03, // M9M21_VALUE ≥ 1.03 → "Tendência Forte"
-  TAG_DTE_IDEAL_MIN:   25,   // DTE ≥ 25 → faixa ideal de theta decay
-  TAG_DTE_IDEAL_MAX:   45,   // DTE ≤ 45 → "DTE Ideal" (alinhado ao DTE_MAX)
-  TAG_OTM_PROXIMA_MAX: 1.08  // SSR ≤ 1.08 → "OTM Próxima" (2%-8% abaixo do spot)
+  TAG_IV_RANK_ALTO:    60,
+  TAG_M9_FORTE:        1.03,
+  TAG_DTE_IDEAL_MIN:   25,
+  TAG_DTE_IDEAL_MAX:   45,
+  TAG_OTM_PROXIMA_MAX: 1.08
 };
 
 const SCREENER_HEADERS = [
@@ -71,6 +85,39 @@ const SCREENER_HEADERS = [
   'OBSERVACAO', 'ATUALIZADO_EM'
 ];
 
+// ─── Leitura dinâmica do CONFIG_GLOBAL ───────────────────────────────────────
+
+function _screener_lerConfig() {
+  var cfg = ConfigManager.get();
+  function num(key, fallback) {
+    var v = cfg[key];
+    return (v !== undefined && v !== '' && !isNaN(Number(v))) ? Number(v) : fallback;
+  }
+  return {
+    TOP_VOLUME:          num('SCREENER_TOP_VOLUME',          SCREENER_CONFIG.TOP_VOLUME),
+    MAX_RESULTADOS:      num('SCREENER_MAX_RESULTADOS',      SCREENER_CONFIG.MAX_RESULTADOS),
+    MAX_POR_ATIVO:       num('SCREENER_MAX_POR_ATIVO',       SCREENER_CONFIG.MAX_POR_ATIVO),
+    DTE_MIN:             num('SCREENER_DTE_MIN',             SCREENER_CONFIG.DTE_MIN),
+    DTE_MAX:             num('SCREENER_DTE_MAX',             SCREENER_CONFIG.DTE_MAX),
+    PROFIT_MIN:          num('SCREENER_PROFIT_MIN',          SCREENER_CONFIG.PROFIT_MIN),
+    SSR_MIN:             num('SCREENER_SSR_MIN',             SCREENER_CONFIG.SSR_MIN),
+    SSR_MAX:             num('SCREENER_SSR_MAX',             SCREENER_CONFIG.SSR_MAX),
+    VOL_FIN_MIN:         num('SCREENER_VOL_FIN_MIN',         SCREENER_CONFIG.VOL_FIN_MIN),
+    IV_RANK_MIN:         num('SCREENER_IV_RANK_MIN',         SCREENER_CONFIG.IV_RANK_MIN),
+    CORREL_MAX:          num('SCREENER_CORREL_MAX',          SCREENER_CONFIG.CORREL_MAX),
+    PESO_PROFIT:         num('SCREENER_PESO_PROFIT',         SCREENER_CONFIG.PESO_PROFIT),
+    PESO_IV_RANK:        num('SCREENER_PESO_IV_RANK',        SCREENER_CONFIG.PESO_IV_RANK),
+    PESO_VE_STRIKE:      num('SCREENER_PESO_VE_STRIKE',      SCREENER_CONFIG.PESO_VE_STRIKE),
+    PESO_M9_TREND:       num('SCREENER_PESO_M9_TREND',       SCREENER_CONFIG.PESO_M9_TREND),
+    PESO_LIQUIDEZ:       num('SCREENER_PESO_LIQUIDEZ',       SCREENER_CONFIG.PESO_LIQUIDEZ),
+    TAG_IV_RANK_ALTO:    num('SCREENER_TAG_IV_RANK_ALTO',    SCREENER_CONFIG.TAG_IV_RANK_ALTO),
+    TAG_M9_FORTE:        num('SCREENER_TAG_M9_FORTE',        SCREENER_CONFIG.TAG_M9_FORTE),
+    TAG_DTE_IDEAL_MIN:   num('SCREENER_TAG_DTE_IDEAL_MIN',   SCREENER_CONFIG.TAG_DTE_IDEAL_MIN),
+    TAG_DTE_IDEAL_MAX:   num('SCREENER_TAG_DTE_IDEAL_MAX',   SCREENER_CONFIG.TAG_DTE_IDEAL_MAX),
+    TAG_OTM_PROXIMA_MAX: num('SCREENER_TAG_OTM_PROXIMA_MAX', SCREENER_CONFIG.TAG_OTM_PROXIMA_MAX),
+  };
+}
+
 // ─── Ponto de entrada ─────────────────────────────────────────────────────────
 function ScreenerQuantitativo_Menu() {
   _menuBridge('Screener Quantitativo (Trava de Alta PUT)', orquestrarScreener);
@@ -79,111 +126,108 @@ function ScreenerQuantitativo_Menu() {
 // ─── Orquestrador principal ───────────────────────────────────────────────────
 function orquestrarScreener() {
   var tInicio = Date.now();
+  var C = _screener_lerConfig();
+
   SysLogger.log('Screener', 'START',
-    '>>> INICIANDO SCREENER QUANTITATIVO — TRAVA DE ALTA COM PUT <<<',
-    JSON.stringify({
-      aba: SYS_CONFIG.SHEETS.SCREENER_QUANT,
-      config: SCREENER_CONFIG,
-      timestamp: new Date().toISOString()
-    })
+    '>>> INICIANDO SCREENER QUANTITATIVO v4.0 — TRAVA DE ALTA COM PUT <<<',
+    JSON.stringify({ aba: SYS_CONFIG.SHEETS.SCREENER_QUANT, config: C, timestamp: new Date().toISOString() })
   );
 
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // ── 1. Lê as 3 abas fonte ─────────────────────────────────────────────────
+  // ── 1. Lê as 4 abas fonte ─────────────────────────────────────────────────
   var mapaVolumes = _screener_lerMaioresVolumes(ss);
   var mapaM9Alta  = _screener_lerM9M21Alta(ss);
+  var mapaCorrel  = _screener_lerCorrelIbov(ss);
   var todasPuts   = _screener_lerOpcoesPUT(ss);
 
   SysLogger.log('Screener', 'INFO',
     'Fontes: ' + Object.keys(mapaVolumes).length + ' ativos (Volume) | ' +
-    Object.keys(mapaM9Alta).length + ' ativos (M9M21=Alta) | ' +
+    Object.keys(mapaM9Alta).length + ' ativos (M9=Alta) | ' +
+    Object.keys(mapaCorrel).length + ' ativos (CorrelIbov) | ' +
     todasPuts.length + ' PUTs (BestRates)'
   );
 
-  if (Object.keys(mapaVolumes).length === 0 ||
-      Object.keys(mapaM9Alta).length === 0 ||
-      todasPuts.length === 0) {
-    SysLogger.log('Screener', 'AVISO',
-      'Uma ou mais abas fonte estão vazias. Execute os módulos 015, 016 e 017 antes do Screener.'
-    );
+  if (Object.keys(mapaVolumes).length === 0 || Object.keys(mapaM9Alta).length === 0 || todasPuts.length === 0) {
+    SysLogger.log('Screener', 'AVISO', 'Abas fonte vazias. Execute módulos 015–018 antes do Screener.');
     SysLogger.flush();
     return;
   }
 
-  // ── 2. Top N ativos por volume de PUT ─────────────────────────────────────
-  var porVolume = Object.keys(mapaVolumes)
+  // ── PORTA 1: Top N por volume de PUT ─────────────────────────────────────
+  var topN = Object.keys(mapaVolumes)
     .map(function(tk) { return { ticker: tk, volPut: mapaVolumes[tk].volPut }; })
     .sort(function(a, b) { return b.volPut - a.volPut; })
-    .slice(0, SCREENER_CONFIG.TOP_VOLUME);
+    .slice(0, C.TOP_VOLUME)
+    .map(function(a) { return a.ticker; });
+
+  SysLogger.log('Screener', 'INFO', 'PORTA 1 — Top ' + topN.length + ' por vol. PUT: ' + topN.join(', '));
+
+  // ── PORTA 2: Interseção com M9M21_TREND = 1 ──────────────────────────────
+  var aposM9 = topN.filter(function(tk) { return mapaM9Alta[tk] !== undefined; });
 
   SysLogger.log('Screener', 'INFO',
-    'Top ' + porVolume.length + ' ativos por vol. PUT: ' +
-    porVolume.map(function(a) { return a.ticker; }).join(', ')
+    'PORTA 2 — M9M21=Alta: ' + aposM9.length + ' sobreviventes: ' + aposM9.join(', ')
   );
 
-  // ── 3. Interseção: alto volume ∩ M9M21_TREND = 1 ─────────────────────────
-  var setElegivel = {};  // { ticker: m9Value }
-  porVolume.forEach(function(a) {
-    if (mapaM9Alta[a.ticker] !== undefined) {
-      setElegivel[a.ticker] = mapaM9Alta[a.ticker];
-    }
-  });
-
-  var listaElegivel = Object.keys(setElegivel);
-  SysLogger.log('Screener', 'INFO',
-    'Interseção (vol. alto ∩ tendência de alta): ' + listaElegivel.length +
-    ' ativos: ' + listaElegivel.join(', ')
-  );
-
-  if (listaElegivel.length === 0) {
-    SysLogger.log('Screener', 'AVISO',
-      'Nenhum ativo com alto volume de PUT E M9M21 em alta. ' +
-      'Mercado pode estar em queda generalizada. Screener não atualizado.'
-    );
+  if (aposM9.length === 0) {
+    SysLogger.log('Screener', 'AVISO', 'Nenhum ativo com tendência de alta. Mercado em queda generalizada.');
     SysLogger.flush();
     return;
   }
 
-  // ── 4. Filtra PUTs dos ativos elegíveis com critérios de qualidade ────────
+  // ── PORTA 3: Deduplicação por correlação setorial ─────────────────────────
+  var aposCorrel = _screener_filtrarCorrelacao(aposM9, mapaVolumes, mapaCorrel, C.CORREL_MAX);
+
+  SysLogger.log('Screener', 'INFO',
+    'PORTA 3 — Anti-correlação (limiar=' + C.CORREL_MAX + '): ' +
+    aposCorrel.length + ' sobreviventes: ' + aposCorrel.join(', ') +
+    ' (' + (aposM9.length - aposCorrel.length) + ' removidos por concentração setorial)'
+  );
+
+  if (aposCorrel.length === 0) {
+    SysLogger.log('Screener', 'AVISO', 'Todos os ativos eliminados pela porta de correlação.');
+    SysLogger.flush();
+    return;
+  }
+
+  // ── PORTA 4: Filtro de qualidade sobre PUTs dos elegíveis ────────────────
+  var setElegivel = {};
+  aposCorrel.forEach(function(tk) { setElegivel[tk] = mapaM9Alta[tk]; });
+
   var candidatas = todasPuts.filter(function(op) {
-    if (!setElegivel.hasOwnProperty(op.ticker))   return false; // não está no grupo
-    if (op.profitRate < SCREENER_CONFIG.PROFIT_MIN) return false; // profit negativo/baixo
-    if (op.dte < SCREENER_CONFIG.DTE_MIN)           return false; // vence cedo demais
-    if (op.dte > SCREENER_CONFIG.DTE_MAX)           return false; // vence longe demais
-    if (op.ssr < SCREENER_CONFIG.SSR_MIN)           return false; // ITM ou ATM
-    if (op.ssr > SCREENER_CONFIG.SSR_MAX)           return false; // muito OTM
-    if (op.volFin < SCREENER_CONFIG.VOL_FIN_MIN)    return false; // opção sem liquidez
-    if (op.ivRank < SCREENER_CONFIG.IV_RANK_MIN)    return false; // prêmio pobre
+    if (!setElegivel.hasOwnProperty(op.ticker)) return false;
+    if (op.profitRate < C.PROFIT_MIN)           return false;
+    if (op.dte        < C.DTE_MIN)              return false;
+    if (op.dte        > C.DTE_MAX)              return false;
+    if (op.ssr        < C.SSR_MIN)              return false;
+    if (op.ssr        > C.SSR_MAX)              return false;
+    if (op.volFin     < C.VOL_FIN_MIN)          return false;
+    if (op.ivRank     < C.IV_RANK_MIN)          return false;
     return true;
   });
 
   SysLogger.log('Screener', 'INFO',
-    'PUTs após filtros de qualidade: ' + candidatas.length +
-    ' (de ' + todasPuts.length + ' totais)'
+    'PORTA 4 — Filtros qualidade: ' + candidatas.length + ' PUTs passaram (de ' + todasPuts.length + ' totais)'
   );
 
   if (candidatas.length === 0) {
     SysLogger.log('Screener', 'AVISO',
-      'Nenhuma PUT passou nos filtros. Mercado pode estar sem prêmio adequado. ' +
-      'Considere relaxar DTE_MAX ou SSR_MAX em SCREENER_CONFIG.'
+      'Nenhuma PUT passou nos filtros. Ajuste SCREENER_DTE_MAX, SCREENER_SSR_MIN ' +
+      'ou SCREENER_VOL_FIN_MIN na aba CONFIG_GLOBAL.'
     );
     SysLogger.flush();
     return;
   }
 
-  // ── 5. Enriquece candidatas com M9M21_VALUE e dados do ativo ─────────────
+  // ── PORTA 5: Score e diversificação ──────────────────────────────────────
   candidatas.forEach(function(op) {
     op.m9Value     = setElegivel[op.ticker] || 1;
     op.volPutAtivo = (mapaVolumes[op.ticker] && mapaVolumes[op.ticker].volPut) || 0;
-    // Preenche empresa/setor se vieram vazios do BestRates
     if (!op.empresa && mapaVolumes[op.ticker]) op.empresa = mapaVolumes[op.ticker].empresa;
     if (!op.setor   && mapaVolumes[op.ticker]) op.setor   = mapaVolumes[op.ticker].setor;
   });
 
-  // ── 6. Score composto normalizado (0-100) ─────────────────────────────────
-  // Normalização min-max dentro do grupo de candidatas.
-  // Isso garante que o score seja relativo ao conjunto atual, não absoluto.
   var maxProfit = Math.max.apply(null, candidatas.map(function(o) { return o.profitRate; }));
   var maxIvRank = Math.max.apply(null, candidatas.map(function(o) { return o.ivRank; }));
   var maxVe     = Math.max.apply(null, candidatas.map(function(o) { return o.veOverStrike; }));
@@ -192,89 +236,59 @@ function orquestrarScreener() {
 
   candidatas.forEach(function(op) {
     var s = 0;
-    if (maxProfit > 0) s += (op.profitRate              / maxProfit) * SCREENER_CONFIG.PESO_PROFIT;
-    if (maxIvRank > 0) s += (op.ivRank                  / maxIvRank) * SCREENER_CONFIG.PESO_IV_RANK;
-    if (maxVe     > 0) s += (op.veOverStrike             / maxVe)     * SCREENER_CONFIG.PESO_VE_STRIKE;
-    if (maxM9exc  > 0) s += (Math.max(op.m9Value - 1, 0) / maxM9exc)  * SCREENER_CONFIG.PESO_M9_TREND;
-    if (maxVolPut > 0) s += (op.volPutAtivo              / maxVolPut)  * SCREENER_CONFIG.PESO_LIQUIDEZ;
+    if (maxProfit > 0) s += (op.profitRate               / maxProfit) * C.PESO_PROFIT;
+    if (maxIvRank > 0) s += (op.ivRank                   / maxIvRank) * C.PESO_IV_RANK;
+    if (maxVe     > 0) s += (op.veOverStrike              / maxVe)     * C.PESO_VE_STRIKE;
+    if (maxM9exc  > 0) s += (Math.max(op.m9Value - 1, 0) / maxM9exc)  * C.PESO_M9_TREND;
+    if (maxVolPut > 0) s += (op.volPutAtivo               / maxVolPut) * C.PESO_LIQUIDEZ;
     op.score = parseFloat(s.toFixed(1));
   });
 
-  // ── 7. Ordena por score, aplica diversificação (máx. N por ativo) ─────────
   candidatas.sort(function(a, b) { return b.score - a.score; });
 
   var contadorAtivo = {};
-  var diversificado = candidatas.filter(function(op) {
+  var resultado = candidatas.filter(function(op) {
     var count = contadorAtivo[op.ticker] || 0;
-    if (count < SCREENER_CONFIG.MAX_POR_ATIVO) {
-      contadorAtivo[op.ticker] = count + 1;
-      return true;
-    }
+    if (count < C.MAX_POR_ATIVO) { contadorAtivo[op.ticker] = count + 1; return true; }
     return false;
-  });
+  }).slice(0, C.MAX_RESULTADOS);
 
-  var resultado = diversificado.slice(0, SCREENER_CONFIG.MAX_RESULTADOS);
-
-  // ── 8. Monta tags qualitativas de OBSERVACAO ──────────────────────────────
   resultado.forEach(function(op) {
     var tags = [];
-    if (op.ivRank  >= SCREENER_CONFIG.TAG_IV_RANK_ALTO)   tags.push('IV Alto');
-    if (op.m9Value >= SCREENER_CONFIG.TAG_M9_FORTE)        tags.push('Tendência Forte');
-    if (op.dte     >= SCREENER_CONFIG.TAG_DTE_IDEAL_MIN &&
-        op.dte     <= SCREENER_CONFIG.TAG_DTE_IDEAL_MAX)   tags.push('DTE Ideal');
-    if (op.ssr     >= SCREENER_CONFIG.SSR_MIN &&
-        op.ssr     <= SCREENER_CONFIG.TAG_OTM_PROXIMA_MAX) tags.push('OTM Próxima');
+    if (op.ivRank  >= C.TAG_IV_RANK_ALTO)                                 tags.push('IV Alto');
+    if (op.m9Value >= C.TAG_M9_FORTE)                                     tags.push('Tendência Forte');
+    if (op.dte     >= C.TAG_DTE_IDEAL_MIN && op.dte <= C.TAG_DTE_IDEAL_MAX) tags.push('DTE Ideal');
+    if (op.ssr     >= C.SSR_MIN && op.ssr <= C.TAG_OTM_PROXIMA_MAX)      tags.push('OTM Próxima');
     op.observacao = tags.length > 0 ? tags.join(' | ') : '—';
   });
 
-  // ── 9. Grava resultado na aba SCREENER_QUANTITATIVO ──────────────────────
+  // ── Grava resultado ───────────────────────────────────────────────────────
   var sheet = _screener_garantirAba(ss);
   var ultimaLinha = sheet.getLastRow();
-  if (ultimaLinha > 1) {
-    sheet.getRange(2, 1, ultimaLinha - 1, sheet.getLastColumn()).clearContent();
-  }
+  if (ultimaLinha > 1) sheet.getRange(2, 1, ultimaLinha - 1, sheet.getLastColumn()).clearContent();
 
   var now = new Date();
   var linhas = resultado.map(function(op, i) {
     var distPct = parseFloat(((op.ssr - 1) * 100).toFixed(2));
     return [
-      i + 1,             // RANK
-      op.score,          // SCORE (0-100)
-      op.optionTicker,   // OPTION_TICKER
-      op.ticker,         // TICKER
-      op.empresa,        // EMPRESA
-      op.setor,          // SETOR
-      op.expiry,         // VENCIMENTO (data)
-      op.dte,            // DTE (dias)
-      op.spot,           // SPOT (preço ativo)
-      op.strike,         // STRIKE (exercício)
-      distPct,           // DIST_SPOT_PCT (% abaixo do spot)
-      op.profitRate,     // PROFIT_RATE (% lucro se exercido)
-      op.veOverStrike,   // VE_OVER_STRIKE (valor extrínseco/strike)
-      op.ivRank,         // IV_RANK (0-100)
-      op.ivCurrent,      // IV_CURRENT (IV atual)
-      op.m9Trend,        // M9M21_TREND (1=alta, -1=baixa)
-      op.m9Value,        // M9M21_VALUE (valor bruto da média)
-      op.volPutAtivo,    // VOL_PUT_ATIVO (R$ no ativo)
-      op.volFin,         // VOL_FIN_OPCAO (R$ na opção)
-      op.observacao,     // OBSERVACAO (tags)
-      now                // ATUALIZADO_EM
+      i + 1,           op.score,        op.optionTicker, op.ticker,
+      op.empresa,      op.setor,        op.expiry,       op.dte,
+      op.spot,         op.strike,       distPct,         op.profitRate,
+      op.veOverStrike, op.ivRank,       op.ivCurrent,    op.m9Trend,
+      op.m9Value,      op.volPutAtivo,  op.volFin,       op.observacao, now
     ];
   });
 
-  if (linhas.length > 0) {
-    sheet.getRange(2, 1, linhas.length, SCREENER_HEADERS.length).setValues(linhas);
-  }
+  if (linhas.length > 0) sheet.getRange(2, 1, linhas.length, SCREENER_HEADERS.length).setValues(linhas);
   SpreadsheetApp.flush();
 
   var duracaoTotal = ((Date.now() - tInicio) / 1000).toFixed(1);
   SysLogger.log('Screener', 'FINISH',
     '>>> SCREENER CONCLUÍDO: ' + resultado.length + ' oportunidades em ' + duracaoTotal + 's <<<',
     JSON.stringify({
-      puts_totais:        todasPuts.length,
-      ativos_elegiveis:   listaElegivel.length,
-      apos_filtros:       candidatas.length,
-      resultado_final:    resultado.length,
+      puts_totais: todasPuts.length, apos_m9: aposM9.length,
+      apos_correl: aposCorrel.length, apos_filtros: candidatas.length,
+      resultado_final: resultado.length,
       top3: resultado.slice(0, 3).map(function(o) {
         return o.optionTicker + ' (score=' + o.score + ', profit=' + o.profitRate.toFixed(1) + '%)';
       }),
@@ -284,18 +298,51 @@ function orquestrarScreener() {
   SysLogger.flush();
 }
 
-// ─── Leitura de fontes ────────────────────────────────────────────────────────
+// ─── Porta 3: Deduplicação por correlação setorial ───────────────────────────
 
 /**
- * Lê SELECAO_MAIORES_VOLUMES → { ticker: { volPut, empresa, setor } }
+ * Remove duplicatas setoriais: se dois ativos do mesmo setor tiverem
+ * CORREL_VALUE > correlMax, mantém apenas o de maior volume de PUT.
  */
+function _screener_filtrarCorrelacao(listaElegivel, mapaVolumes, mapaCorrel, correlMax) {
+  var porSetor = {};
+  listaElegivel.forEach(function(ticker) {
+    var setor = (mapaCorrel[ticker] && mapaCorrel[ticker].setor) ||
+                (mapaVolumes[ticker] && mapaVolumes[ticker].setor) ||
+                'SEM_SETOR';
+    if (!porSetor[setor]) porSetor[setor] = [];
+    porSetor[setor].push(ticker);
+  });
+
+  var resultado = [];
+  Object.keys(porSetor).forEach(function(setor) {
+    var grupo = porSetor[setor];
+    if (grupo.length <= 1) { resultado = resultado.concat(grupo); return; }
+
+    var altaCorrel = grupo.some(function(tk) {
+      return mapaCorrel[tk] && Math.abs(mapaCorrel[tk].correlValue) > correlMax;
+    });
+
+    if (!altaCorrel) { resultado = resultado.concat(grupo); return; }
+
+    // Mais de um ativo do mesmo setor com alta correlação → fica só o de maior vol
+    grupo.sort(function(a, b) {
+      return ((mapaVolumes[b] && mapaVolumes[b].volPut) || 0) -
+             ((mapaVolumes[a] && mapaVolumes[a].volPut) || 0);
+    });
+    resultado.push(grupo[0]);
+  });
+
+  return resultado;
+}
+
+// ─── Leitura de fontes ────────────────────────────────────────────────────────
+
 function _screener_lerMaioresVolumes(ss) {
   var sheet = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.HIGHEST_VOL);
   if (!sheet || sheet.getLastRow() < 2) return {};
-
   var colMap = DataUtils.getColMap(sheet);
   if (colMap['TICKER'] === undefined || colMap['VOLUME_PUT'] === undefined) return {};
-
   var dados = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
   var mapa  = {};
   dados.forEach(function(row) {
@@ -312,70 +359,71 @@ function _screener_lerMaioresVolumes(ss) {
   return mapa;
 }
 
-/**
- * Lê RANKING_TENDENCIA_M9M21 → { ticker: m9Value } apenas para TREND = 1 (alta).
- */
 function _screener_lerM9M21Alta(ss) {
   var sheet = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.RANK_M9M21);
   if (!sheet || sheet.getLastRow() < 2) return {};
-
   var colMap = DataUtils.getColMap(sheet);
   if (colMap['TICKER'] === undefined || colMap['M9M21_TREND'] === undefined) return {};
-
   var dados = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
   var mapa  = {};
   dados.forEach(function(row) {
     var ticker = String(row[colMap['TICKER']] || '').trim().toUpperCase();
     var trend  = parseFloat(row[colMap['M9M21_TREND']]) || 0;
     var m9Val  = parseFloat(row[colMap['M9M21_VALUE']]) || 0;
-    if (ticker && trend === 1) {
-      mapa[ticker] = m9Val;
-    }
+    if (ticker && trend === 1) mapa[ticker] = m9Val;
   });
   return mapa;
 }
 
 /**
- * Lê SELECAO_OPCOES_MAIORES_LUCROS → array de objetos PUT.
- * Ignora opções com SPOT = 0 (enriquecimento falhou).
+ * Lê RANKING_CORREL_IBOV → { ticker: { correlValue, setor } }
  */
+function _screener_lerCorrelIbov(ss) {
+  var sheet = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.RANK_CORREL_IBOV);
+  if (!sheet || sheet.getLastRow() < 2) return {};
+  var colMap = DataUtils.getColMap(sheet);
+  if (colMap['TICKER'] === undefined) return {};
+  var dados = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+  var mapa  = {};
+  dados.forEach(function(row) {
+    var ticker = String(row[colMap['TICKER']] || '').trim().toUpperCase();
+    var correl = parseFloat(row[colMap['CORREL_VALUE']]) || 0;
+    var setor  = String(row[colMap['SECTOR']] || '');
+    if (ticker) mapa[ticker] = { correlValue: correl, setor: setor };
+  });
+  return mapa;
+}
+
 function _screener_lerOpcoesPUT(ss) {
   var sheet = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.BEST_RATES);
   if (!sheet || sheet.getLastRow() < 2) return [];
-
   var colMap = DataUtils.getColMap(sheet);
   var campos = ['OPTION_TICKER','TICKER','EXPIRY','DTE_CALENDAR','SPOT','STRIKE',
                 'SPOT_STRIKE_RATIO','PROFIT_RATE_IF_EXERCISED','VE_OVER_STRIKE',
                 'IV_RANK','IV_CURRENT','M9M21_TREND','VOLUME_FIN','COMPANY_NAME','SECTOR'];
-  for (var i = 0; i < campos.length; i++) {
-    if (colMap[campos[i]] === undefined) {
-      SysLogger.log('Screener', 'AVISO', 'Coluna ausente em BEST_RATES: ' + campos[i]);
-    }
-  }
-
+  campos.forEach(function(c) {
+    if (colMap[c] === undefined) SysLogger.log('Screener', 'AVISO', 'Coluna ausente em BEST_RATES: ' + c);
+  });
   var dados  = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
   var result = [];
   dados.forEach(function(row) {
-    var category = String(row[colMap['CATEGORY']] || '').trim().toUpperCase();
-    if (category !== 'PUT') return;
-
+    if (String(row[colMap['CATEGORY']] || '').trim().toUpperCase() !== 'PUT') return;
     var spot = parseFloat(row[colMap['SPOT']]) || 0;
-    if (spot === 0) return; // enriquecimento falhou, dado sem confiabilidade
-
+    if (spot === 0) return;
     result.push({
       optionTicker: String(row[colMap['OPTION_TICKER']] || '').trim(),
       ticker:       String(row[colMap['TICKER']]        || '').trim().toUpperCase(),
       expiry:       row[colMap['EXPIRY']],
-      dte:          parseFloat(row[colMap['DTE_CALENDAR']])          || 0,
+      dte:          parseFloat(row[colMap['DTE_CALENDAR']])             || 0,
       spot:         spot,
-      strike:       parseFloat(row[colMap['STRIKE']])                || 0,
-      ssr:          parseFloat(row[colMap['SPOT_STRIKE_RATIO']])     || 0,
+      strike:       parseFloat(row[colMap['STRIKE']])                   || 0,
+      ssr:          parseFloat(row[colMap['SPOT_STRIKE_RATIO']])        || 0,
       profitRate:   parseFloat(row[colMap['PROFIT_RATE_IF_EXERCISED']]) || 0,
-      veOverStrike: parseFloat(row[colMap['VE_OVER_STRIKE']])        || 0,
-      ivRank:       parseFloat(row[colMap['IV_RANK']])               || 0,
-      ivCurrent:    parseFloat(row[colMap['IV_CURRENT']])            || 0,
-      m9Trend:      parseFloat(row[colMap['M9M21_TREND']])           || 0,
-      volFin:       parseFloat(row[colMap['VOLUME_FIN']])            || 0,
+      veOverStrike: parseFloat(row[colMap['VE_OVER_STRIKE']])           || 0,
+      ivRank:       parseFloat(row[colMap['IV_RANK']])                  || 0,
+      ivCurrent:    parseFloat(row[colMap['IV_CURRENT']])               || 0,
+      m9Trend:      parseFloat(row[colMap['M9M21_TREND']])              || 0,
+      volFin:       parseFloat(row[colMap['VOLUME_FIN']])               || 0,
       empresa:      String(row[colMap['COMPANY_NAME']] || ''),
       setor:        String(row[colMap['SECTOR']]       || '')
     });
@@ -398,44 +446,51 @@ function _screener_garantirAba(ss) {
 
 // ─── Teste de homologação ─────────────────────────────────────────────────────
 function testScreenerQuantitativo() {
-  console.log('=== HOMOLOGAÇÃO 019_Screener_Quantitativo ===');
+  console.log('=== HOMOLOGAÇÃO 019_Screener_Quantitativo v4.0 ===');
   var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var C  = _screener_lerConfig();
 
-  var mapaVol = _screener_lerMaioresVolumes(ss);
-  var mapaM9  = _screener_lerM9M21Alta(ss);
-  var puts    = _screener_lerOpcoesPUT(ss);
+  console.log('Config ativa: TOP=' + C.TOP_VOLUME + ' DTE=' + C.DTE_MIN + '-' + C.DTE_MAX +
+    ' SSR=' + C.SSR_MIN + '-' + C.SSR_MAX + ' VOL=' + C.VOL_FIN_MIN +
+    ' PROFIT>=' + C.PROFIT_MIN + ' CORREL_MAX=' + C.CORREL_MAX);
+
+  var mapaVol   = _screener_lerMaioresVolumes(ss);
+  var mapaM9    = _screener_lerM9M21Alta(ss);
+  var mapaCorr  = _screener_lerCorrelIbov(ss);
+  var puts      = _screener_lerOpcoesPUT(ss);
 
   console.log('MAIORES_VOLUMES : ' + Object.keys(mapaVol).length + ' ativos');
   console.log('M9M21 em alta   : ' + Object.keys(mapaM9).length  + ' ativos');
+  console.log('CorrelIbov      : ' + Object.keys(mapaCorr).length + ' ativos');
   console.log('PUTs BestRates  : ' + puts.length + ' opções');
 
-  var top30 = Object.keys(mapaVol)
+  var topN = Object.keys(mapaVol)
     .map(function(tk) { return { ticker: tk, volPut: mapaVol[tk].volPut }; })
     .sort(function(a, b) { return b.volPut - a.volPut; })
-    .slice(0, SCREENER_CONFIG.TOP_VOLUME)
-    .map(function(a) { return a.ticker; });
+    .slice(0, C.TOP_VOLUME).map(function(a) { return a.ticker; });
 
-  var intersec = top30.filter(function(tk) { return mapaM9[tk] !== undefined; });
-  console.log('Interseção (Top30 ∩ M9 Alta): ' + intersec.length + ' ativos: ' + intersec.join(', '));
+  var aposM9    = topN.filter(function(tk) { return mapaM9[tk] !== undefined; });
+  var aposCorr  = _screener_filtrarCorrelacao(aposM9, mapaVol, mapaCorr, C.CORREL_MAX);
+
+  console.log('PORTA 1 (Top' + C.TOP_VOLUME + '): ' + topN.join(', '));
+  console.log('PORTA 2 (M9=Alta): ' + aposM9.join(', '));
+  console.log('PORTA 3 (Correl<' + C.CORREL_MAX + '): ' + aposCorr.join(', '));
 
   var candidatas = puts.filter(function(op) {
-    return intersec.indexOf(op.ticker) !== -1 &&
-           op.profitRate >= SCREENER_CONFIG.PROFIT_MIN &&
-           op.dte >= SCREENER_CONFIG.DTE_MIN && op.dte <= SCREENER_CONFIG.DTE_MAX &&
-           op.ssr >= SCREENER_CONFIG.SSR_MIN && op.ssr <= SCREENER_CONFIG.SSR_MAX;
+    return aposCorr.indexOf(op.ticker) !== -1 &&
+           op.profitRate >= C.PROFIT_MIN &&
+           op.dte >= C.DTE_MIN && op.dte <= C.DTE_MAX &&
+           op.ssr >= C.SSR_MIN && op.ssr <= C.SSR_MAX &&
+           op.volFin >= C.VOL_FIN_MIN && op.ivRank >= C.IV_RANK_MIN;
   });
-  console.log('PUTs pré-qualificadas: ' + candidatas.length);
+  console.log('PORTA 4 (qualidade): ' + candidatas.length + ' PUTs');
 
   if (candidatas.length > 0) {
-    console.log('Melhor candidata (sem score): ' + JSON.stringify({
-      optionTicker: candidatas[0].optionTicker,
-      ticker:       candidatas[0].ticker,
-      profitRate:   candidatas[0].profitRate,
-      ivRank:       candidatas[0].ivRank,
-      dte:          candidatas[0].dte,
-      ssr:          candidatas[0].ssr
+    console.log('Melhor candidata: ' + JSON.stringify({
+      optionTicker: candidatas[0].optionTicker, ticker: candidatas[0].ticker,
+      profitRate: candidatas[0].profitRate, dte: candidatas[0].dte,
+      ssr: candidatas[0].ssr, volFin: candidatas[0].volFin
     }));
   }
-
   console.log('=== FIM ===');
 }
