@@ -244,7 +244,7 @@ function orquestrarScreener() {
       op.ticker,                                       // TICKER
       op.empresa,                                      // EMPRESA
       op.setor,                                        // SETOR
-      op.expiry,                                       // VENCIMENTO
+      op.expiry ? Utilities.formatDate(op.expiry, Session.getScriptTimeZone(), 'dd/MM/yyyy') : '', // VENCIMENTO
       op.dte,                                          // DTE
       op.spot,                                         // SPOT
       op.strike,                                       // STRIKE
@@ -285,6 +285,7 @@ function orquestrarScreener() {
  * Dentro de cada grupo: VENDAs primeiro (melhores), depois COMPRAs.
  */
 function _screener_agruparPorTicker(vendas, compras, maxResultados) {
+  var MAX_COMPRA_POR_GRUPO = 3; // limita pernas de proteção por grupo ticker+DTE para não engolir outros tickers
   var grupos = {};
 
   var adicionar = function(op) {
@@ -309,7 +310,8 @@ function _screener_agruparPorTicker(vendas, compras, maxResultados) {
   chaves.forEach(function(chave) {
     var g = grupos[chave];
     g.vendas.forEach(function(op)  { resultado.push(op); });
-    g.compras.forEach(function(op) { resultado.push(op); });
+    // Limita COMPRAs às mais próximas do spot (já ordenadas por SSR asc = proteção mais próxima primeiro)
+    g.compras.slice(0, MAX_COMPRA_POR_GRUPO).forEach(function(op) { resultado.push(op); });
   });
 
   return resultado.slice(0, maxResultados);
@@ -411,10 +413,18 @@ function _screener_lerOpcoesPUT(ss) {
     var strike = parseFloat(row[colMap['STRIKE']]) || 0;
     if (spot === 0 || strike === 0) return;
     var ssr = parseFloat(row[colMap['MONEYNESS_RATIO']]) || (spot / strike);
+    // EXPIRY fica vazio para opções sem negociação recente; lê do CONTRACT_DESC como fallback
+    var expiryRaw = row[colMap['EXPIRY']];
+    var expiry = (expiryRaw instanceof Date && !isNaN(expiryRaw)) ? expiryRaw : null;
+    if (!expiry) {
+      var desc = String(row[colMap['CONTRACT_DESC']] || '');
+      var m = desc.match(/(\d{2})-(\d{2})-(\d{4})/);
+      if (m) expiry = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]));
+    }
     result.push({
       optionTicker: String(row[colMap['OPTION_TICKER']] || '').trim(),
       ticker:       String(row[colMap['TICKER']]        || '').trim().toUpperCase(),
-      expiry:       row[colMap['EXPIRY']],
+      expiry:       expiry,
       dte:          parseFloat(row[colMap['DTE_CALENDAR']])    || 0,
       spot:         spot,
       strike:       strike,
@@ -445,6 +455,8 @@ function _screener_garantirAba(ss) {
   var lastCol = sheet.getLastColumn();
   if (lastCol > 0) sheet.getRange(1, 1, 1, lastCol).clearContent();
   sheet.getRange(1, 1, 1, SCREENER_HEADERS.length).setValues([SCREENER_HEADERS]);
+  // Formata coluna VOL_FIN_OPCAO como inteiro sem decimais
+  sheet.getRange(2, 17, sheet.getMaxRows() - 1, 1).setNumberFormat('#,##0');
   return sheet;
 }
 
