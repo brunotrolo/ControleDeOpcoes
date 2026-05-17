@@ -51,7 +51,7 @@ const SCREENER_HEADERS = [
   'ORDEM', 'PAPEL',
   'OPTION_TICKER', 'TICKER', 'EMPRESA', 'SETOR',
   'VENCIMENTO', 'DTE', 'SPOT', 'STRIKE', 'DIST_SPOT_PCT',
-  'PROFIT_RATE', 'IV_RANK', 'IV_CURRENT',
+  'PREMIO', 'PROFIT_RATE', 'IV_RANK', 'IV_CURRENT',
   'M9M21_VALUE', 'VOL_FIN_OPCAO',
   'OBSERVACAO', 'ATUALIZADO_EM'
 ];
@@ -249,6 +249,7 @@ function orquestrarScreener() {
       op.spot,                                         // SPOT
       op.strike,                                       // STRIKE
       parseFloat(((op.ssr - 1) * 100).toFixed(2)),    // DIST_SPOT_PCT
+      op.premio,                                       // PREMIO
       op.profitRate,                                   // PROFIT_RATE
       op.ivRank,                                       // IV_RANK
       op.ivCurrent,                                    // IV_CURRENT
@@ -418,6 +419,7 @@ function _screener_lerOpcoesPUT(ss) {
       spot:         spot,
       strike:       strike,
       ssr:          ssr,
+      premio:       parseFloat(row[colMap['CLOSE']])       || 0,
       profitRate:   (parseFloat(row[colMap['RETURN_ON_STRIKE']]) || 0) * 100,
       ivRank:       0,
       ivCurrent:    parseFloat(row[colMap['IV_CALC']])    || 0,
