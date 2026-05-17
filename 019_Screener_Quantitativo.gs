@@ -183,7 +183,7 @@ function orquestrarScreener() {
 
   // ── Enriquece com M9M21_VALUE e dados do ativo ────────────────────────────
   candidatas.forEach(function(op) {
-    op.m9Value     = setElegivel[op.ticker] || 1;
+    op.m9Value     = (setElegivel[op.ticker] !== undefined) ? 'Alta' : '—';
     op.volPutAtivo = (mapaVolumes[op.ticker] && mapaVolumes[op.ticker].volPut) || 0;
     if (!op.empresa && mapaVolumes[op.ticker]) op.empresa = mapaVolumes[op.ticker].empresa;
     if (!op.setor   && mapaVolumes[op.ticker]) op.setor   = mapaVolumes[op.ticker].setor;
@@ -223,7 +223,7 @@ function orquestrarScreener() {
     var tags = [];
     if (op.papel === 'VENDA') {
       if (op.ivRank  >= C.TAG_IV_RANK_ALTO)  tags.push('IV Alto');
-      if (op.m9Value >= C.TAG_M9_FORTE)      tags.push('Tendência Forte');
+      tags.push('Tendência Alta');
     } else {
       tags.push('Proteção');
     }
@@ -254,9 +254,9 @@ function orquestrarScreener() {
       op.ivRank,                                       // IV_RANK
       op.ivCurrent,                                    // IV_CURRENT
       op.m9Value,                                      // M9M21_VALUE
-      op.volFin,                                       // VOL_FIN_OPCAO
+      Math.round(op.volFin),                           // VOL_FIN_OPCAO
       op.observacao,                                   // OBSERVACAO
-      now                                              // ATUALIZADO_EM
+      Utilities.formatDate(now, Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm') // ATUALIZADO_EM
     ];
   });
 
