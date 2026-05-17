@@ -27,6 +27,11 @@ function onOpen(e) {
         .addItem('🔬 4b. Calcular Gregas (Nativo BS)', 'CalcularGregasNativo_Menu')
         .addSeparator()
         .addItem('📡 5. Scanner de Opções (SCANNER_OPCOES)', 'AtualizarScannerOpcoes_Menu')
+        .addSeparator()
+        .addItem('💰 6. Melhores Taxas Cobertas (PUT/CALL)', 'SyncBestCoveredOptionsRates_Menu')
+        .addItem('📊 7. Maiores Volumes em Opções',           'SyncHighestOptionsVolume_Menu')
+        .addItem('📈 8. Ranking Tendência M9M21',             'SyncM9M21Ranking_Menu')
+        .addItem('🔗 9. Ranking Correlação IBOV',             'SyncCorrelIbovRanking_Menu')
         .addToUi();
   } catch (err) {
     console.warn("[onOpen] Interface indisponível.");

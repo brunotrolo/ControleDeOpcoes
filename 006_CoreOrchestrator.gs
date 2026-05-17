@@ -28,6 +28,26 @@ const CoreOrchestrator = {
         exec: () => typeof CoreScannerOptions !== 'undefined' ? CoreScannerOptions.run() : console.warn("Motor 014 não carregado."),
         requer_token: true
       },
+      "ATUALIZAR_BEST_RATES": {
+        nome: "Melhores Taxas Cobertas PUT/CALL",
+        exec: () => orquestrarSyncBestRates(),
+        requer_token: true
+      },
+      "ATUALIZAR_HIGHEST_VOL": {
+        nome: "Maiores Volumes em Opções",
+        exec: () => orquestrarSyncHighestVolume(),
+        requer_token: true
+      },
+      "ATUALIZAR_RANK_M9M21": {
+        nome: "Ranking Tendência M9M21",
+        exec: () => orquestrarSyncM9M21(),
+        requer_token: true
+      },
+      "ATUALIZAR_RANK_CORREL": {
+        nome: "Ranking Correlação IBOV",
+        exec: () => orquestrarSyncCorrelIbov(),
+        requer_token: true
+      },
     };
   },
 
