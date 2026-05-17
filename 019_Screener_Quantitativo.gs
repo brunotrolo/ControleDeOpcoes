@@ -36,10 +36,10 @@
 
 // ─── Defaults ────────────────────────────────────────────────────────────────
 var SCREENER_CONFIG = {
-  TOP_VOLUME:       20,
-  MAX_RESULTADOS:   60,
+  TOP_VOLUME:       40,
+  MAX_RESULTADOS:   80,
   DTE_MIN:          15,
-  DTE_MAX:          45,
+  DTE_MAX:          60,
   SSR_MAX:          1.30,
   SSR_VENDA_MAX:    1.08,
   CORREL_MAX:       0.70,
