@@ -1,5 +1,5 @@
 /**
- * @fileoverview 019_Screener_Quantitativo.gs - v2.1
+ * @fileoverview 019_Screener_Quantitativo.gs - v2.2
  * ═══════════════════════════════════════════════════════════════
  * FUNIL QUANTITATIVO — Trava de Alta com PUT
  *
@@ -31,8 +31,6 @@
 
 // ─── Parâmetros do funil (editáveis sem tocar na lógica) ─────────────────────
 const SCREENER_CONFIG = {
-  SHEET_NAME:     SYS_CONFIG.SHEETS.SCREENER_QUANT,
-
   // ── Funil ──────────────────────────────────────────────────
   TOP_VOLUME:     30,     // Candidatos iniciais por vol. de PUT antes do cruzamento
   MAX_RESULTADOS: 15,     // Linhas no resultado final
@@ -83,7 +81,11 @@ function orquestrarScreener() {
   var tInicio = Date.now();
   SysLogger.log('Screener', 'START',
     '>>> INICIANDO SCREENER QUANTITATIVO — TRAVA DE ALTA COM PUT <<<',
-    JSON.stringify({ config: SCREENER_CONFIG, timestamp: new Date().toISOString() })
+    JSON.stringify({
+      aba: SYS_CONFIG.SHEETS.SCREENER_QUANT,
+      config: SCREENER_CONFIG,
+      timestamp: new Date().toISOString()
+    })
   );
 
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -384,7 +386,7 @@ function _screener_lerOpcoesPUT(ss) {
 // ─── Utilitários ─────────────────────────────────────────────────────────────
 
 function _screener_garantirAba(ss) {
-  var nome  = SCREENER_CONFIG.SHEET_NAME;
+  var nome  = SYS_CONFIG.SHEETS.SCREENER_QUANT;
   var sheet = ss.getSheetByName(nome);
   if (!sheet) {
     sheet = ss.insertSheet(nome);
