@@ -199,7 +199,9 @@ function orquestrarScreener() {
     op.ivRank    = ivRankMap[op.ticker]           || 0;
     op.profitRate = profitRateMap[op.optionTicker] !== undefined
                     ? profitRateMap[op.optionTicker]
-                    : op.returnOnStrike * 100;
+                    : (op.returnOnStrike > 0
+                        ? op.returnOnStrike * 100
+                        : (op.strike > 0 ? parseFloat((op.premio / op.strike * 100).toFixed(4)) : 0));
     op.m9Value   = 'Alta';
     op.papel     = (op.ssr <= C.SSR_VENDA_MAX) ? 'VENDA' : 'COMPRA';
     if (!op.empresa && mapaVolumes[op.ticker]) op.empresa = mapaVolumes[op.ticker].empresa;
@@ -489,18 +491,36 @@ function _screener_lerOpcoesPUT(ss) {
       if (m) expiry = new Date(+m[3], +m[2] - 1, +m[1]);
     }
 
+    var dte    = parseFloat(row[colMap['DTE_CALENDAR']]) || 0;
+    var delta  = parseFloat(row[colMap['DELTA']]) || 0;
+    var theta  = parseFloat(row[colMap['THETA']]) || 0;
+
+    // Calcula THETA via Black-Scholes quando a coluna do SCANNER_OPCOES está zerada
+    if (theta === 0 && premio > 0 && spot > 0 && strike > 0 && dte > 0) {
+      try {
+        var cfg    = ConfigManager.get();
+        var selicS = String(cfg['Taxa_Selic_Anual'] || '0.1075').replace(',', '.');
+        var selic  = parseFloat(selicS) || 0.1075;
+        var T      = Math.max(dte, 1) / 252;
+        var iv     = OptionMath.estimateIV(spot, strike, T, selic, premio, 'p');
+        var bsGs   = OptionMath.calculate(spot, strike, T, selic, iv, 'p');
+        theta = bsGs.theta;
+        if (delta === 0) delta = bsGs.delta;
+      } catch (e) { /* opção sem mercado: mantém zeros */ }
+    }
+
     result.push({
       optionTicker:   opt,
       ticker:         String(row[colMap['TICKER']] || '').trim().toUpperCase(),
       expiry:         expiry,
-      dte:            parseFloat(row[colMap['DTE_CALENDAR']]) || 0,
+      dte:            dte,
       spot:           spot,
       strike:         strike,
       ssr:            ssr,
       premio:         premio,
       returnOnStrike: parseFloat(row[colMap['RETURN_ON_STRIKE']]) || 0,
-      delta:          parseFloat(row[colMap['DELTA']]) || 0,
-      theta:          parseFloat(row[colMap['THETA']]) || 0,
+      delta:          delta,
+      theta:          theta,
       volFin:         parseFloat(row[colMap['VOLUME_FIN']]) || 0,
       empresa:        String(row[colMap['COMPANY_NAME']] || ''),
       setor:          String(row[colMap['SECTOR']]       || '')
