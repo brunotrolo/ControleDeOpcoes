@@ -428,12 +428,11 @@ const app = createApp({
         // 'card-ticker-tape': { ativos: ativosDaHome.value },
         'card-radar':       { statsPreCalculados: cuboOlap.value, isMobile: isMobile.value },
         'card-notional':    { statsPreCalculados: cuboOlap.value, configGlobais: db.value.configGlobal || {}, isMobile: isMobile.value },
-        'strategies-book':  { statsPreCalculados: cuboOlap.value, isMobile: isMobile.value },
-        'card-vencimentos': { statsPreCalculados: cuboOlap.value, isMobile: isMobile.value },
-        // 'card-summary': { statsPreCalculados: cuboOlap.value },
-        'cockpit-decisao':  { statsPreCalculados: cuboOlap.value },
-        'carousel-ativas': { statsPreCalculados: cuboOlap.value },
-        'cockpit-table':   { statsPreCalculados: cuboOlap.value },
+        'card-strategies-book': { statsPreCalculados: cuboOlap.value, isMobile: isMobile.value },
+        'card-vencimentos':     { statsPreCalculados: cuboOlap.value, isMobile: isMobile.value },
+        'card-decisao':         { statsPreCalculados: cuboOlap.value },
+        'card-ativas':          { statsPreCalculados: cuboOlap.value },
+        'card-table':           { statsPreCalculados: cuboOlap.value },
 
         // =========================================================
         // 2. ANALISE & GESTAO
@@ -443,7 +442,7 @@ const app = createApp({
         // =========================================================
         // 3. COCKPIT SUMMARY
         // =========================================================
-        'cockpit-summary': { cockpit: db.value.cockpit || [] },
+        'card-summary': { cockpit: db.value.cockpit || [] },
 
         // =========================================================
         // 5. FERRAMENTAS
@@ -517,12 +516,12 @@ const COMPONENTES_V6 = [
   // 1. HOME & COCKPIT
   ['card-radar',             window.CardRadar],
   ['card-notional',          window.CardNotional],
-  ['strategies-book',        window.StrategiesBook],
+  ['card-strategies-book',   window.CardStrategiesBook],
   ['card-vencimentos',       window.CardVencimentos],
-  ['cockpit-decisao',        window.CockpitDecisao],
-  ['carousel-ativas',        window.CarouselAtivas],
-  ['cockpit-table',          window.CockpitTable],
-  ['cockpit-summary',        window.CockpitSummary],
+  ['card-decisao',           window.CardDecisao],
+  ['card-ativas',            window.CardAtivas],
+  ['card-table',             window.CardTable],
+  ['card-summary',           window.CardSummary],
 
   // 2. ANALISE & GESTAO
   ['comparativo-view',       window.ComparativoView],

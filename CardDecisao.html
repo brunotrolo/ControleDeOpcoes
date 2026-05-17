@@ -1,4 +1,4 @@
-<template id="cockpit-decisao-template">
+<template id="card-decisao-template">
   <div v-if="listaAtivas && listaAtivas.length > 0" class="premium-card" style="overflow:hidden;">
 
     <!-- Header clicável -->
@@ -160,8 +160,8 @@
 </template>
 
 <script>
-window.CockpitDecisao = {
-  template: '#cockpit-decisao-template',
+window.CardDecisao = {
+  template: '#card-decisao-template',
 
   props: {
     statsPreCalculados: { type: Object, default: function() { return {}; } },

@@ -1,4 +1,4 @@
-<template id="cockpit-summary-template">
+<template id="card-summary-template">
   <div style="display:flex;flex-direction:column;gap:1rem;width:100%;">
 
     <!-- ================================================================
@@ -525,8 +525,8 @@
 </template>
 
 <script>
-window.CockpitSummary = {
-  template: '#cockpit-summary-template',
+window.CardSummary = {
+  template: '#card-summary-template',
   props: {
     cockpit:  { type: Array,   default: function() { return []; } },
     isMobile: { type: Boolean, default: false }
