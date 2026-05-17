@@ -48,6 +48,11 @@ const CoreOrchestrator = {
         exec: () => orquestrarSyncCorrelIbov(),
         requer_token: true
       },
+      "ATUALIZAR_SCREENER": {
+        nome: "Screener Quantitativo (Trava de Alta PUT)",
+        exec: () => typeof orquestrarScreener !== 'undefined' ? orquestrarScreener() : console.warn("Motor 019 não carregado."),
+        requer_token: false
+      },
     };
   },
 
