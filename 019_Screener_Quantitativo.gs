@@ -22,7 +22,9 @@
  *   SCREENER_MAX_RESULTADOS    | 30    Cap total de linhas no output
  *   SCREENER_DTE_MIN           | 15    DTE mínimo (dias)
  *   SCREENER_DTE_MAX           | 45    DTE máximo (dias)
- *   SCREENER_SSR_MIN           | 1.01  Distância mínima OTM (1% acima do spot)
+ *   SCREENER_DIST_MIN_FAIXA1    | 5.0   Distância mín. % para SPOT < R$10
+ *   SCREENER_DIST_MIN_FAIXA2    | 4.0   Distância mín. % para R$10–R$35
+ *   SCREENER_DIST_MIN_FAIXA3    | 3.0   Distância mín. % para SPOT > R$35
  *   SCREENER_SSR_MAX           | 1.30  Distância máxima OTM
  *   SCREENER_SSR_VENDA_MAX     | 1.08  SSR ≤ este valor → VENDA | acima → COMPRA
  *   SCREENER_CORREL_MAX        | 0.70  Limiar correlação p/ dedup setorial
@@ -35,8 +37,7 @@ const SCREENER_CONFIG = {
   MAX_RESULTADOS: 30,   // mais alto pois mostramos múltiplas pernas por ticker
   DTE_MIN:        15,
   DTE_MAX:        45,
-  SSR_MIN:        1.01, // pelo menos 1% OTM para qualquer perna
-  SSR_MAX:        1.30, // no máximo 30% OTM
+  SSR_MAX:        1.30, // no máximo 30% OTM (distância mínima é dinâmica por faixa de SPOT)
   SSR_VENDA_MAX:  1.08, // ≤ 8% OTM → VENDA | > 8% OTM → COMPRA (proteção)
   CORREL_MAX:     0.70,
   // Pesos do score (usado para ordenar as pernas VENDA)
@@ -68,7 +69,6 @@ function _screener_lerConfig() {
     MAX_RESULTADOS: num('SCREENER_MAX_RESULTADOS', SCREENER_CONFIG.MAX_RESULTADOS),
     DTE_MIN:        num('SCREENER_DTE_MIN',        SCREENER_CONFIG.DTE_MIN),
     DTE_MAX:        num('SCREENER_DTE_MAX',        SCREENER_CONFIG.DTE_MAX),
-    SSR_MIN:        num('SCREENER_SSR_MIN',        SCREENER_CONFIG.SSR_MIN),
     SSR_MAX:        num('SCREENER_SSR_MAX',        SCREENER_CONFIG.SSR_MAX),
     SSR_VENDA_MAX:  num('SCREENER_SSR_VENDA_MAX',  SCREENER_CONFIG.SSR_VENDA_MAX),
     CORREL_MAX:     num('SCREENER_CORREL_MAX',     SCREENER_CONFIG.CORREL_MAX),
@@ -161,15 +161,17 @@ function orquestrarScreener() {
 
   var candidatas = todasPuts.filter(function(op) {
     if (!setElegivel.hasOwnProperty(op.ticker)) return false;
-    if (op.dte < C.DTE_MIN || op.dte > C.DTE_MAX)  return false;
-    if (op.ssr < C.SSR_MIN || op.ssr > C.SSR_MAX)   return false;
+    if (op.dte < C.DTE_MIN || op.dte > C.DTE_MAX) return false;
+    var distPct = (op.ssr - 1) * 100;
+    if (distPct < _screener_distMinPct(op.spot)) return false;  // mínimo dinâmico por faixa de SPOT
+    if (op.ssr > C.SSR_MAX) return false;
     return true;
   });
 
   SysLogger.log('Screener', 'INFO',
     'PORTA 4 — Pernas disponíveis: ' + candidatas.length +
     ' (de ' + todasPuts.length + ' PUTs totais | DTE ' + C.DTE_MIN + '-' + C.DTE_MAX +
-    ' | SSR ' + C.SSR_MIN + '-' + C.SSR_MAX + ')'
+    ' | DIST_MIN dinâmica 3-5% por faixa | SSR_MAX=' + C.SSR_MAX + ')'
   );
 
   if (candidatas.length === 0) {
@@ -401,31 +403,37 @@ function _screener_lerCorrelIbov(ss) {
 }
 
 function _screener_lerOpcoesPUT(ss) {
-  // Fonte primária: SCANNER_OPCOES (todas as PUTs — CLOSE, todas as COMPRAs profundas)
-  // Enriquecimento: BEST_RATES (IV_RANK, PROFIT_RATE_IF_EXERCISED reais) onde disponível.
-  // Isso garante IV_RANK para VENDAs relevantes (ex: PRIO3) e COMPRA para spreads.
-  var mapaEnrich = _screener_lerBestRatesMap(ss);
+  // Mapa CLOSE: OPTION_TICKER → preço real de mercado (SCANNER_OPCOES)
+  var closeMap = {};
+  var sheetScanner = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.SELECTION_OPT);
+  if (sheetScanner && sheetScanner.getLastRow() >= 2) {
+    var cmScanner    = DataUtils.getColMap(sheetScanner);
+    var dadosScanner = sheetScanner.getRange(2, 1, sheetScanner.getLastRow() - 1, sheetScanner.getLastColumn()).getValues();
+    dadosScanner.forEach(function(row) {
+      var opt = String(row[cmScanner['OPTION_TICKER']] || '').trim();
+      var cl  = parseFloat(row[cmScanner['CLOSE']]) || 0;
+      if (opt && cl > 0) closeMap[opt] = cl;
+    });
+  }
 
-  var sheet = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.SELECTION_OPT);
+  // Fonte primária: BEST_RATES — opções curadas pelo OPLab com IV_RANK e PROFIT_RATE reais
+  var sheet = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.BEST_RATES);
   if (!sheet || sheet.getLastRow() < 2) return [];
   var colMap = DataUtils.getColMap(sheet);
   var dados  = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
   var result = [];
   dados.forEach(function(row) {
     if (String(row[colMap['CATEGORY']] || '').trim().toUpperCase() !== 'PUT') return;
-    var spot   = parseFloat(row[colMap['SPOT']]) || parseFloat(row[colMap['SPOT_PRICE_API']]) || 0;
+    var spot   = parseFloat(row[colMap['SPOT']])   || 0;
     var strike = parseFloat(row[colMap['STRIKE']]) || 0;
     if (spot === 0 || strike === 0) return;
-    var ssr = parseFloat(row[colMap['MONEYNESS_RATIO']]) || (spot / strike);
+    var ssr       = parseFloat(row[colMap['SPOT_STRIKE_RATIO']]) || (spot / strike);
+    var optTicker = String(row[colMap['OPTION_TICKER']] || '').trim();
+    var veOverStr = parseFloat(row[colMap['VE_OVER_STRIKE']]) || 0;
+    // CLOSE de mercado via lookup; fallback VE_OVER_STRIKE×strike (válido para PUTs OTM)
+    var premio    = closeMap[optTicker] || (veOverStr * strike);
     var expiryRaw = row[colMap['EXPIRY']];
     var expiry = (expiryRaw instanceof Date && !isNaN(expiryRaw)) ? expiryRaw : null;
-    if (!expiry) {
-      var desc = String(row[colMap['CONTRACT_DESC']] || '');
-      var m = desc.match(/(\d{2})-(\d{2})-(\d{4})/);
-      if (m) expiry = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]));
-    }
-    var optTicker = String(row[colMap['OPTION_TICKER']] || '').trim();
-    var enrich    = mapaEnrich[optTicker] || {};
     result.push({
       optionTicker: optTicker,
       ticker:       String(row[colMap['TICKER']] || '').trim().toUpperCase(),
@@ -434,43 +442,29 @@ function _screener_lerOpcoesPUT(ss) {
       spot:         spot,
       strike:       strike,
       ssr:          ssr,
-      premio:       parseFloat(row[colMap['CLOSE']]) || 0,
-      // BEST_RATES tem PROFIT_RATE real e IV_RANK; Scanner tem RETURN_ON_STRIKE e IV_CALC
-      profitRate:   enrich.profitRate !== undefined ? enrich.profitRate
-                      : (parseFloat(row[colMap['RETURN_ON_STRIKE']]) || 0) * 100,
-      ivRank:       enrich.ivRank    !== undefined ? enrich.ivRank    : 0,
-      ivCurrent:    enrich.ivCurrent !== undefined ? enrich.ivCurrent
-                      : (parseFloat(row[colMap['IV_CALC']]) || 0),
+      premio:       premio,
+      profitRate:   parseFloat(row[colMap['PROFIT_RATE_IF_EXERCISED']]) || 0,
+      ivRank:       parseFloat(row[colMap['IV_RANK']])    || 0,
+      ivCurrent:    parseFloat(row[colMap['IV_CURRENT']]) || 0,
       volFin:       parseFloat(row[colMap['VOLUME_FIN']]) || 0,
-      empresa:      enrich.empresa || String(row[colMap['COMPANY_NAME']] || ''),
-      setor:        enrich.setor   || String(row[colMap['SECTOR']]       || '')
+      empresa:      String(row[colMap['COMPANY_NAME']] || ''),
+      setor:        String(row[colMap['SECTOR']]       || '')
     });
   });
   return result;
 }
 
-// Mapa de enriquecimento: optionTicker → {profitRate, ivRank, ivCurrent, empresa, setor}
-function _screener_lerBestRatesMap(ss) {
-  var sheet = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.BEST_RATES);
-  if (!sheet || sheet.getLastRow() < 2) return {};
-  var colMap = DataUtils.getColMap(sheet);
-  var dados  = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
-  var mapa   = {};
-  dados.forEach(function(row) {
-    var optTicker = String(row[colMap['OPTION_TICKER']] || '').trim();
-    if (!optTicker) return;
-    mapa[optTicker] = {
-      profitRate:  parseFloat(row[colMap['PROFIT_RATE_IF_EXERCISED']]) || 0,
-      ivRank:      parseFloat(row[colMap['IV_RANK']])    || 0,
-      ivCurrent:   parseFloat(row[colMap['IV_CURRENT']]) || 0,
-      empresa:     String(row[colMap['COMPANY_NAME']] || ''),
-      setor:       String(row[colMap['SECTOR']]       || '')
-    };
-  });
-  return mapa;
-}
-
 // ─── Utilitários ─────────────────────────────────────────────────────────────
+
+/**
+ * Distância mínima OTM (%) por faixa de preço do ativo.
+ * Ações baratas precisam de % maior pois centavos já são % relevante.
+ */
+function _screener_distMinPct(spot) {
+  if (spot < 10)  return 5.0;  // Abaixo de R$10: oscilação rápida em centavos
+  if (spot <= 35) return 4.0;  // Zona de ouro R$10–R$35: faixa padrão
+  return 3.0;                  // Pesos-pesados > R$35: R$2-3 de colchão é suficiente
+}
 
 function _screener_garantirAba(ss) {
   var nome  = SYS_CONFIG.SHEETS.SCREENER_QUANT;
@@ -495,7 +489,8 @@ function testScreenerQuantitativo() {
   var C  = _screener_lerConfig();
 
   console.log('Config: TOP=' + C.TOP_VOLUME + ' DTE=' + C.DTE_MIN + '-' + C.DTE_MAX +
-    ' SSR=' + C.SSR_MIN + '-' + C.SSR_MAX + ' SSR_VENDA_MAX=' + C.SSR_VENDA_MAX);
+    ' SSR_MAX=' + C.SSR_MAX + ' SSR_VENDA_MAX=' + C.SSR_VENDA_MAX +
+    ' DIST_MIN=dinâmica(3%/>R$35 | 4%/R$10-35 | 5%/<R$10)');
 
   var mapaVol  = _screener_lerMaioresVolumes(ss);
   var mapaM9   = _screener_lerM9M21Alta(ss);
@@ -517,9 +512,10 @@ function testScreenerQuantitativo() {
   aposCorr.forEach(function(tk) { setElig[tk] = mapaM9[tk]; });
 
   var cands = puts.filter(function(op) {
-    return setElig.hasOwnProperty(op.ticker) &&
-           op.dte >= C.DTE_MIN && op.dte <= C.DTE_MAX &&
-           op.ssr >= C.SSR_MIN && op.ssr <= C.SSR_MAX;
+    if (!setElig.hasOwnProperty(op.ticker)) return false;
+    if (op.dte < C.DTE_MIN || op.dte > C.DTE_MAX) return false;
+    var distPct = (op.ssr - 1) * 100;
+    return distPct >= _screener_distMinPct(op.spot) && op.ssr <= C.SSR_MAX;
   });
 
   var vendas  = cands.filter(function(op) { return op.ssr <= C.SSR_VENDA_MAX; });
