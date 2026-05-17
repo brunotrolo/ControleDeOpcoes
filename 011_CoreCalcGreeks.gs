@@ -118,14 +118,15 @@ const GreeksCalculator = {
       const assetsMap  = DataUtils.getDynamicMap(abaAssets, "TICKER");
 
       const idToRowMap = {};
-      if (abaCalc.getLastRow() > 1) {
-        const ids = abaCalc.getRange(2, colC.ID_TRADE + 1, abaCalc.getLastRow() - 1, 1).getValues();
+      const lastRowCalc = abaCalc.getLastRow();
+      if (lastRowCalc > 1) {
+        const ids = abaCalc.getRange(2, colC.ID_TRADE + 1, lastRowCalc - 1, 1).getValues();
         ids.forEach((l, i) => { if (l[0]) idToRowMap[String(l[0]).trim()] = i + 2; });
       }
 
       // SAQUE ÚNICO: lê toda a matriz de cálculo antes do loop
       const totalCols = abaCalc.getLastColumn();
-      const totalRows = abaCalc.getLastRow();
+      const totalRows = lastRowCalc;
       const matrizExistente = totalRows > 1
           ? abaCalc.getRange(2, 1, totalRows - 1, totalCols).getValues()
           : [];
