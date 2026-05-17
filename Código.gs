@@ -34,6 +34,8 @@ function onOpen(e) {
         .addItem('🔗 9. Ranking Correlação IBOV',             'SyncCorrelIbovRanking_Menu')
         .addSeparator()
         .addItem('🎯 10. Screener Quantitativo (Trava de Alta PUT)', 'ScreenerQuantitativo_Menu')
+        .addSeparator()
+        .addItem('🤖 Scanner Completo (Sequência OPLab)', 'executarSequenciaScanner')
         .addToUi();
   } catch (err) {
     console.warn("[onOpen] Interface indisponível.");
