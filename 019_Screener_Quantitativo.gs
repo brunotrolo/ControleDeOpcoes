@@ -439,6 +439,9 @@ function _screener_garantirAba(ss) {
     sheet = ss.insertSheet(nome);
     SysLogger.log('Screener', 'INFO', 'Aba "' + nome + '" criada automaticamente.');
   }
+  // Limpa linha de cabeçalho inteira antes de regravar para evitar colunas órfãs de versões anteriores
+  var lastCol = sheet.getLastColumn();
+  if (lastCol > 0) sheet.getRange(1, 1, 1, lastCol).clearContent();
   sheet.getRange(1, 1, 1, SCREENER_HEADERS.length).setValues([SCREENER_HEADERS]);
   return sheet;
 }
