@@ -286,6 +286,7 @@ function orquestrarScreener() {
  */
 function _screener_agruparPorTicker(vendas, compras, maxResultados) {
   var MAX_COMPRA_POR_GRUPO = 3; // limita pernas de proteção por grupo ticker+DTE para não engolir outros tickers
+  var MAX_VENDA_POR_GRUPO  = 4; // limita pernas de venda por grupo ticker+DTE (idem)
   var grupos = {};
 
   var adicionar = function(op) {
@@ -309,7 +310,7 @@ function _screener_agruparPorTicker(vendas, compras, maxResultados) {
   var resultado = [];
   chaves.forEach(function(chave) {
     var g = grupos[chave];
-    g.vendas.forEach(function(op)  { resultado.push(op); });
+    g.vendas.slice(0, MAX_VENDA_POR_GRUPO).forEach(function(op)  { resultado.push(op); });
     // Limita COMPRAs às mais próximas do spot (já ordenadas por SSR asc = proteção mais próxima primeiro)
     g.compras.slice(0, MAX_COMPRA_POR_GRUPO).forEach(function(op) { resultado.push(op); });
   });
