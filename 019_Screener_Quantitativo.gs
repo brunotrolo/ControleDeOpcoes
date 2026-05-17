@@ -175,9 +175,18 @@ function orquestrarScreener() {
   var candidatas = todasPuts.filter(function(op) {
     if (!setElegivel.hasOwnProperty(op.ticker)) return false;
     if (op.dte < C.DTE_MIN || op.dte > C.DTE_MAX) return false;
+
     var distPct = (op.ssr - 1) * 100;
     if (distPct < _screener_distMinPct(op.spot)) return false;
     if (op.ssr > C.SSR_MAX) return false;
+
+    // >>> AJUSTE DA MESA DE RISCO: CORTE ANTI-CEMITÉRIO PARA VENDAS <<<
+    var papelTemp = (op.ssr <= C.SSR_VENDA_MAX) ? 'VENDA' : 'COMPRA';
+    if (papelTemp === 'VENDA' && (op.volFin || 0) < 50000) {
+      return false; // Rejeita sumariamente Vendas sem liquidez
+    }
+    // >>> ========================================================== <<<
+
     return true;
   });
 
@@ -322,10 +331,23 @@ function _screener_agruparPorTicker(vendas, compras, maxResultados) {
   var resultado = [];
   chaves.forEach(function(chave) {
     var g = grupos[chave];
-    // Spread completo obrigatório: ao menos 1 VENDA + 1 COMPRA do mesmo ativo+DTE
+    // Spread completo obrigatório: ao menos 1 VENDA + 1 COMPRA
     if (g.vendas.length === 0 || g.compras.length === 0) return;
-    g.vendas.slice(0, MAX_VENDA_POR_GRUPO).forEach(function(op)  { resultado.push(op); });
-    g.compras.slice(0, MAX_COMPRA_POR_GRUPO).forEach(function(op) { resultado.push(op); });
+
+    // Pega as melhores Vendas limitadas pelo MAX_VENDA
+    var melhoresVendas = g.vendas.slice(0, MAX_VENDA_POR_GRUPO);
+
+    // Filtra as compras garantindo um spread mínimo de R$ 0,50 do Strike da melhor Venda
+    var melhorVendaStrike = melhoresVendas[0].strike;
+    var comprasSeguras = g.compras.filter(function(compra) {
+      return (melhorVendaStrike - compra.strike) >= 0.50;
+    });
+
+    // Se após exigir 50 centavos de largura, não sobrar compra, descarta o grupo
+    if (comprasSeguras.length === 0) return;
+
+    melhoresVendas.forEach(function(op)  { resultado.push(op); });
+    comprasSeguras.slice(0, MAX_COMPRA_POR_GRUPO).forEach(function(op) { resultado.push(op); });
   });
 
   return resultado.slice(0, maxResultados);
