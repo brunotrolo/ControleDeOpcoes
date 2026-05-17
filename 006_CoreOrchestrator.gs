@@ -87,20 +87,21 @@ const CoreOrchestrator = {
 /**
    * Lê a aba Config_Global e extrai a sequência de funções a serem executadas.
    */
-  getSequenciaDinamica() {
+  getSequenciaDinamica(chave) {
+    chave = chave || "Orquestrador_Sequencia_Padrao";
     try {
       const ss = SpreadsheetApp.getActiveSpreadsheet();
       const abaConfig = ss.getSheetByName(SYS_CONFIG.SHEETS.CONFIG);
-      
+
       if (!abaConfig) {
         throw new Error("Aba 'Config_Global' não encontrada.");
       }
 
       // Lê as duas primeiras colunas (Chave e Valor) da aba de configuração
       const data = abaConfig.getDataRange().getValues();
-      
+
       for (let i = 0; i < data.length; i++) {
-        if (String(data[i][0]).trim() === "Orquestrador_Sequencia_Padrao") {
+        if (String(data[i][0]).trim() === chave) {
           const sequenciaRaw = String(data[i][1]).trim();
           
           if (!sequenciaRaw) return [];
@@ -195,6 +196,46 @@ const CoreOrchestrator = {
     UIHandler.alert("Fluxo Concluído", "Sincronização global concluída!\nPassos executados: " + (sequencia.join(", ")));
   },
 
+  /**
+   * SEQUÊNCIA SCANNER: Lê 'Orquestrador_Sequencia_Scanner' e executa em cascata.
+   */
+  runFluxoScanner() {
+    const sequencia = this.getSequenciaDinamica("Orquestrador_Sequencia_Scanner");
+
+    if (sequencia.length === 0) {
+      UIHandler.alert("Orquestrador", "Nenhuma sequência definida na chave 'Orquestrador_Sequencia_Scanner' da aba Config_Global.");
+      return;
+    }
+
+    SysLogger.log(this._serviceName, "START", ">>> INICIANDO SEQUÊNCIA SCANNER <<<", JSON.stringify({ sequencia_encontrada: sequencia }));
+
+    const contextoGlobal = (function() { return this; })();
+
+    for (let i = 0; i < sequencia.length; i++) {
+      const nomeFuncao = sequencia[i];
+      UIHandler.notify("Scanner " + (i+1) + "/" + sequencia.length + ": " + nomeFuncao + "...", "Scanner");
+      try {
+        const funcaoAlvo = contextoGlobal[nomeFuncao];
+        if (typeof funcaoAlvo === 'function') {
+          SysLogger.log(this._serviceName, "INFO", "Invocando: " + nomeFuncao, "");
+          funcaoAlvo();
+          SysLogger.flush();
+        } else {
+          throw new Error("Função '" + nomeFuncao + "' não existe no código.");
+        }
+      } catch (e) {
+        SysLogger.log(this._serviceName, "ERRO", "Scanner interrompido em: " + nomeFuncao, String(e.message));
+        SysLogger.flush();
+        UIHandler.alert("Scanner Interrompido", "Falha em \"" + nomeFuncao + "\".\n\nErro: " + e.message + "\n\nProcesso parado por segurança.");
+        return;
+      }
+    }
+
+    SysLogger.log(this._serviceName, "FINISH", ">>> SEQUÊNCIA SCANNER CONCLUÍDA <<<", JSON.stringify({ total_passos: sequencia.length }));
+    SysLogger.flush();
+    UIHandler.alert("Scanner Concluído", "Sequência concluída!\nPassos: " + sequencia.join(", "));
+  },
+
 };
 
 // ============================================================================
@@ -202,7 +243,12 @@ const CoreOrchestrator = {
 // ============================================================================
 
 /** Função acionada pelo menu para rodar tudo na sequência correta */
-function executarFluxoSequencial() { 
-  CoreOrchestrator.runFluxoMestre(); 
+function executarFluxoSequencial() {
+  CoreOrchestrator.runFluxoMestre();
+}
+
+/** Roda a sequência definida em Orquestrador_Sequencia_Scanner no Config_Global */
+function executarSequenciaScanner() {
+  CoreOrchestrator.runFluxoScanner();
 }
 

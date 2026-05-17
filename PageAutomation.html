@@ -17,7 +17,13 @@
           style="display:flex;align-items:center;gap:0.75rem;background:var(--brand-indigo);border:1px solid var(--brand-indigo);padding:0.75rem 1.5rem;border-radius:var(--radius-full);cursor:pointer;"
           onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
           <i data-lucide="play" style="width:14px;height:14px;color:#fff;fill:#fff;display:block;"></i>
-          <span class="t-label-sm" style="font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#fff;">Rodar Fluxo Mestre</span>
+          <span class="t-label-sm" style="font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#fff;">Fluxo Mestre</span>
+        </button>
+        <button @click="run('executarSequenciaScanner')"
+          style="display:flex;align-items:center;gap:0.75rem;background:var(--brand-emerald);border:1px solid var(--brand-emerald);padding:0.75rem 1.5rem;border-radius:var(--radius-full);cursor:pointer;"
+          onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+          <i data-lucide="scan-search" style="width:14px;height:14px;color:#fff;display:block;"></i>
+          <span class="t-label-sm" style="font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#fff;">Sequencia Scanner</span>
         </button>
       </div>
     </div>
@@ -36,6 +42,28 @@
           <button @click="run('AtualizarGregasAPI_Menu')"      class="auto-btn">4a. Gregas (API OPLab)</button>
           <button @click="run('CalcularGregasNativo_Menu')"   class="auto-btn">4b. Gregas (Nativo BS)</button>
           <button @click="run('AtualizarScannerOpcoes_Menu')" class="auto-btn">5. Scanner de Opcoes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEQUENCIA SCANNER (OPLab) -->
+    <div class="premium-card" style="padding:0.5rem;">
+      <div style="padding:1rem;display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;margin-bottom:1.25rem;padding-bottom:0.75rem;border-bottom:1px solid var(--border-subtle);">
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <i data-lucide="scan-search" style="width:18px;height:18px;color:var(--text-muted);flex-shrink:0;display:block;"></i>
+            <h3 class="t-label-sm" style="font-weight:700;text-transform:uppercase;letter-spacing:0.18em;color:var(--text-tertiary);">Sequencia Scanner — OPLab</h3>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0.5rem;">
+          <button @click="run('AtualizarScannerOpcoes_Menu')"          class="auto-btn">Scanner de Opcoes</button>
+          <button @click="run('SyncHighestOptionsVolume_Menu')"        class="auto-btn">Maiores Volumes (PUT/CALL)</button>
+          <button @click="run('SyncM9M21Ranking_Menu')"                class="auto-btn">Ranking Tendencia M9M21</button>
+          <button @click="run('SyncCorrelIbovRanking_Menu')"           class="auto-btn">Ranking Correlacao IBOV</button>
+          <button @click="run('SyncBestCoveredOptionsRates_Menu')"     class="auto-btn">Melhores Taxas Cobertas</button>
+          <button @click="run('ScreenerQuantitativo_Menu')"
+            style="border-color:var(--brand-emerald-muted);color:var(--brand-emerald);"
+            class="auto-btn">Screener Quantitativo (PUT)</button>
         </div>
       </div>
     </div>
@@ -77,6 +105,56 @@
                :style="exportandoCSV === 'SCANNER_OPCOES' ? 'animation:auto-spin 0.8s linear infinite;' : ''"
                style="width:13px;height:13px;flex-shrink:0;display:block;"></i>
             <span>{{ exportandoCSV === 'SCANNER_OPCOES' ? 'Exportando...' : 'Scanner de Opcoes' }}</span>
+          </button>
+
+          <button @click="exportarCSV('SELECAO_OPCOES_MAIORES_LUCROS', 'MelhoresTaxas')"
+            :disabled="!!exportandoCSV"
+            :style="exportandoCSV === 'SELECAO_OPCOES_MAIORES_LUCROS' ? 'color:var(--brand-indigo);border-color:var(--brand-indigo-muted);background:var(--brand-indigo-light);' : ''"
+            class="auto-btn" style="display:flex;align-items:center;gap:0.5rem;">
+            <i :data-lucide="exportandoCSV === 'SELECAO_OPCOES_MAIORES_LUCROS' ? 'loader-2' : 'file-down'"
+               :style="exportandoCSV === 'SELECAO_OPCOES_MAIORES_LUCROS' ? 'animation:auto-spin 0.8s linear infinite;' : ''"
+               style="width:13px;height:13px;flex-shrink:0;display:block;"></i>
+            <span>{{ exportandoCSV === 'SELECAO_OPCOES_MAIORES_LUCROS' ? 'Exportando...' : 'Melhores Taxas Cobertas' }}</span>
+          </button>
+
+          <button @click="exportarCSV('SELECAO_MAIORES_VOLUMES', 'MaioresVolumes')"
+            :disabled="!!exportandoCSV"
+            :style="exportandoCSV === 'SELECAO_MAIORES_VOLUMES' ? 'color:var(--brand-indigo);border-color:var(--brand-indigo-muted);background:var(--brand-indigo-light);' : ''"
+            class="auto-btn" style="display:flex;align-items:center;gap:0.5rem;">
+            <i :data-lucide="exportandoCSV === 'SELECAO_MAIORES_VOLUMES' ? 'loader-2' : 'file-down'"
+               :style="exportandoCSV === 'SELECAO_MAIORES_VOLUMES' ? 'animation:auto-spin 0.8s linear infinite;' : ''"
+               style="width:13px;height:13px;flex-shrink:0;display:block;"></i>
+            <span>{{ exportandoCSV === 'SELECAO_MAIORES_VOLUMES' ? 'Exportando...' : 'Maiores Volumes' }}</span>
+          </button>
+
+          <button @click="exportarCSV('RANKING_TENDENCIA_M9M21', 'RankingM9M21')"
+            :disabled="!!exportandoCSV"
+            :style="exportandoCSV === 'RANKING_TENDENCIA_M9M21' ? 'color:var(--brand-indigo);border-color:var(--brand-indigo-muted);background:var(--brand-indigo-light);' : ''"
+            class="auto-btn" style="display:flex;align-items:center;gap:0.5rem;">
+            <i :data-lucide="exportandoCSV === 'RANKING_TENDENCIA_M9M21' ? 'loader-2' : 'file-down'"
+               :style="exportandoCSV === 'RANKING_TENDENCIA_M9M21' ? 'animation:auto-spin 0.8s linear infinite;' : ''"
+               style="width:13px;height:13px;flex-shrink:0;display:block;"></i>
+            <span>{{ exportandoCSV === 'RANKING_TENDENCIA_M9M21' ? 'Exportando...' : 'Ranking M9M21' }}</span>
+          </button>
+
+          <button @click="exportarCSV('RANKING_CORREL_IBOV', 'CorrelIBOV')"
+            :disabled="!!exportandoCSV"
+            :style="exportandoCSV === 'RANKING_CORREL_IBOV' ? 'color:var(--brand-indigo);border-color:var(--brand-indigo-muted);background:var(--brand-indigo-light);' : ''"
+            class="auto-btn" style="display:flex;align-items:center;gap:0.5rem;">
+            <i :data-lucide="exportandoCSV === 'RANKING_CORREL_IBOV' ? 'loader-2' : 'file-down'"
+               :style="exportandoCSV === 'RANKING_CORREL_IBOV' ? 'animation:auto-spin 0.8s linear infinite;' : ''"
+               style="width:13px;height:13px;flex-shrink:0;display:block;"></i>
+            <span>{{ exportandoCSV === 'RANKING_CORREL_IBOV' ? 'Exportando...' : 'Correlacao IBOV' }}</span>
+          </button>
+
+          <button @click="exportarCSV('SCREENER_QUANTITATIVO', 'ScreenerPUT')"
+            :disabled="!!exportandoCSV"
+            :style="exportandoCSV === 'SCREENER_QUANTITATIVO' ? 'color:var(--brand-emerald);border-color:var(--brand-emerald);background:var(--brand-emerald-light);' : ''"
+            class="auto-btn" style="display:flex;align-items:center;gap:0.5rem;">
+            <i :data-lucide="exportandoCSV === 'SCREENER_QUANTITATIVO' ? 'loader-2' : 'file-down'"
+               :style="exportandoCSV === 'SCREENER_QUANTITATIVO' ? 'animation:auto-spin 0.8s linear infinite;' : ''"
+               style="width:13px;height:13px;flex-shrink:0;display:block;"></i>
+            <span>{{ exportandoCSV === 'SCREENER_QUANTITATIVO' ? 'Exportando...' : 'Screener PUT' }}</span>
           </button>
 
         </div>
