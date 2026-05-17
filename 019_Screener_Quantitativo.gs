@@ -521,9 +521,10 @@ function _screener_lerOpcoesPUT(ss) {
     var delta  = parseFloat(row[colMap['DELTA']]) || 0;
     var theta  = parseFloat(row[colMap['THETA']]) || 0;
 
-    // Calcula THETA via Black-Scholes quando zerado OU quando o valor da planilha é
-    // fisicamente impossível (|theta| > premio significa decaimento diário > prêmio total)
-    if ((theta === 0 || Math.abs(theta) > premio) && premio > 0 && spot > 0 && strike > 0 && dte > 0) {
+    // Recalcula THETA quando zerado OU quando a razão |theta|/premio > 10% por dia
+    // (ex: -0.47 em prêmio R$2.06 = 22%/dia — fisicamente impossível, dado corrompido)
+    var thetaRatio = premio > 0 ? Math.abs(theta) / premio : 0;
+    if ((theta === 0 || thetaRatio > 0.10) && premio > 0 && spot > 0 && strike > 0 && dte > 0) {
       try {
         var cfg    = ConfigManager.get();
         var selicS = String(cfg['Taxa_Selic_Anual'] || '0.1075').replace(',', '.');
