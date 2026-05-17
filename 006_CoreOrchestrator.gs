@@ -65,7 +65,7 @@ const CoreOrchestrator = {
   getSequenciaDinamica() {
     try {
       const ss = SpreadsheetApp.getActiveSpreadsheet();
-      const abaConfig = ss.getSheetByName("Config_Global");
+      const abaConfig = ss.getSheetByName(SYS_CONFIG.SHEETS.CONFIG);
       
       if (!abaConfig) {
         throw new Error("Aba 'Config_Global' não encontrada.");

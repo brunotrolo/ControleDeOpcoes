@@ -277,12 +277,8 @@ function limparPassadoDetalhes() {
             valorNormalizado = d;
           } 
           else if (alvo.tipo === "epoch") {
-              let num = Number(val);
-              if (typeof num === 'number' && num < 1577836800000) {
-                  val = ""; 
-              } else {
-                  val = new Date(num);
-              }
+              const num = Number(valorBruto);
+              valorNormalizado = (num >= 1577836800000) ? new Date(num) : "";
           }
 
           data[r][colIndex] = valorNormalizado;
