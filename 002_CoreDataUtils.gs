@@ -52,18 +52,3 @@ const DataUtils = {
 
 };
 
-// ============================================================================
-// TESTES DE INTEGRAÇÃO DOS UTILITÁRIOS
-// ============================================================================
-
-function testSuiteDataUtilsV2() {
-  console.log("=== TESTANDO UNIFICAÇÃO DATA UTILS v2.0 ===");
-
-  // Teste Data (Vários formatos)
-  const d1 = DataUtils.formatDateBR("2026-03-08");
-  const d2 = DataUtils.formatDateBR(new Date(2026, 2, 8));
-  console.log(`[TEST] Data ISO: ${d1 === "08/03/2026" ? "✅" : "❌ ("+d1+")"}`);
-  console.log(`[TEST] Data Obj: ${d2 === "08/03/2026" ? "✅" : "❌ ("+d2+")"}`);
-
-  console.log("=== FIM DOS TESTES ===");
-}

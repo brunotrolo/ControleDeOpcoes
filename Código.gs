@@ -63,31 +63,3 @@ function include(filename) {
     return ``;
   }
 }
-
-// ============================================================================
-// UTILITÁRIOS E TESTES DE INTEGRIDADE
-// ============================================================================
-
-/**
- * Verifica se a fundação (000 a 005) está conectada e se comunicando.
- */
-function testeFinalIntegridade() {
-  console.log("--- INICIANDO TESTE FINAL DE ARQUITETURA ---");
-  
-  try {
-    // 1. Testa Base de Configuração (001)
-    console.log(`🔍 Configuração (001): Aba COCKPIT definida como '${SYS_CONFIG.SHEETS.COCKPIT}'`);
-    
-    // 2. Testa Logger (003)
-    SysLogger.log("SISTEMA", "INFO", "Teste de integridade do Menu", "Sucesso");
-    console.log("✅ Logger (003) operacional.");
-
-    // 3. Testa Orquestrador (005)
-    const servicos = Object.keys(CoreOrchestrator.REGISTRY);
-    console.log(`✅ Orquestrador (005) operacional. Serviços mapeados: ${servicos.length} (${servicos.join(", ")})`);
-
-    console.log("--- SISTEMA SAUDÁVEL E TOTALMENTE CONECTADO ---");
-  } catch (e) {
-    console.error("❌ ERRO DE INTEGRIDADE: " + e.message);
-  }
-}

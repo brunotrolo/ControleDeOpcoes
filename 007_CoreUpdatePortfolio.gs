@@ -185,13 +185,3 @@ function atualizarNecton() {
   PortfolioUpdater.syncPortfolioData(); 
 }
 
-// ============================================================================
-// SUÍTE DE HOMOLOGAÇÃO
-// ============================================================================
-
-function testSuitePortfolio006() {
-  console.log("=== INICIANDO HOMOLOGAÇÃO MOTOR 006 (v4.2.1) ===");
-  const ticker = "PETRC425"; 
-  const dados = PortfolioUpdater._fetchOptionData(ticker);
-  if (dados) console.log("✅ Parser Puro OK:", dados);
-}

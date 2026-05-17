@@ -122,24 +122,3 @@ const ConfigManager = {
     this._memoryCache = null;
   }
 };
-
-// ============================================================================
-// TESTES DE INTEGRAÇÃO (001)
-// ============================================================================
-
-function testConfigArchitectureV5() {
-  ConfigManager.clearCache();
-  const cfg = ConfigManager.get();
-  const dudSize = Object.keys(SYS_CONFIG.DUD).length;
-  
-  console.log("=== HOMOLOGAÇÃO ARQUITETURA DE DADOS v5.0 ===");
-  console.log("Abas Mapeadas: " + (Object.keys(SYS_CONFIG.SHEETS).length));
-  console.log("Dicionário DUD: " + (dudSize) + " definições.");
-  console.log("Chave SPOT: " + (SYS_CONFIG.DUD["SPOT"])); // Deve retornar "spot"
-  
-  if(dudSize > 0) {
-    console.log("Status: ✅ DUD Integrado e Pronto para o Web App.");
-  } else {
-    console.error("Status: ❌ Erro na carga do Dicionário.");
-  }
-}
