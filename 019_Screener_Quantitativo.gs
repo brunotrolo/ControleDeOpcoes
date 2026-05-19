@@ -13,7 +13,7 @@
  *   PORTA 5 — Scoring:     Matriz Quantamental 0–100 por 3 Pilares:
  *             Técnico (40): distância OTM + força de tendência.
  *             Derivativos (40): eficiência de capital + IV_RANK.
- *             Sentimento (20): placeholder p/ API de notícias (padrão 15).
+ *             Liquidez (20): volume financeiro relativo ao maior entre candidatas.
  *             VENDAs ordenadas por NOTA_QUANTAMENTAL desc; COMPRAs por
  *             distância asc (proteção mais próxima primeiro).
  *   PORTA 6 — Agrupamento: Só exibe spreads completos (VENDA + COMPRA,
@@ -25,36 +25,30 @@
  *   Enrichment→ BEST_RATES (IV_RANK por ticker; "OPLab Top" tag por opção)
  *   Fallback  → DADOS_ATIVOS (IV_RANK para tickers do portfólio)
  *
- * CHAVES CONFIG_GLOBAL (prefixo SCREENER_):
- *   SCREENER_TOP_VOLUME           | 20      Top N ativos — Porta 1
- *   SCREENER_MAX_RESULTADOS       | 60      Cap total de linhas no output
- *   SCREENER_DTE_MIN              | 15      DTE mínimo (dias)
- *   SCREENER_DTE_MAX              | 45      DTE máximo (dias)
- *   SCREENER_VOL_FIN_MIN_VENDA    | 15000   Vol. mín. para pernas de VENDA
- *   SCREENER_SSR_MAX              | 1.30    Distância máxima OTM
- *   SCREENER_SSR_VENDA_MAX        | 1.08    SSR ≤ este valor → VENDA
- *   SCREENER_CORREL_MAX           | 0.75    Limiar correlação setorial
- *   SCREENER_PESO_PILAR_TECNICO   | 40      Peso máx. Pilar Técnico
- *   SCREENER_PESO_PILAR_DERIVAT   | 40      Peso máx. Pilar Derivativos
- *   SCREENER_PESO_PILAR_SENTIM    | 20      Peso máx. Pilar Sentimento
+ * CHAVES CONFIG_GLOBAL (prefixo SCREENER_ — apenas 5 ajustáveis):
+ *   SCREENER_TOP_VOLUME        | 20     Quantos ativos analisar (Porta 1)
+ *   SCREENER_DTE_MAX           | 45     Vencimento máximo em dias
+ *   SCREENER_SSR_MAX           | 1.30   Distância máxima OTM aceita
+ *   SCREENER_VOL_FIN_MIN_VENDA | 5000   Piso anti-fantasma de liquidez
+ *   SCREENER_MAX_RESULTADOS    | 60     Linhas máximas no output
  * ═══════════════════════════════════════════════════════════════
  */
 
 // ─── Defaults ────────────────────────────────────────────────────────────────
 var SCREENER_CONFIG = {
-  TOP_VOLUME:            20,     // Porta 1
-  MAX_RESULTADOS:        60,     // Limite de linhas na planilha
-  DTE_MIN:               15,     // Dias mínimos
-  DTE_MAX:               45,     // Dias máximos
-  VOL_FIN_MIN_VENDA:     15000,  // Filtro anti-fantasma largo
-  SSR_MAX:               1.30,   // Corte máximo de distância
-  SSR_VENDA_MAX:         1.08,   // Fronteira entre Venda/Compra (Spot/Strike)
-  CORREL_MAX:            0.75,   // Limite de dedup setorial afrouxado
+  TOP_VOLUME:            20,    // Porta 1 — quantos ativos analisar
+  MAX_RESULTADOS:        60,    // Cap total de linhas no output
+  DTE_MIN:               15,    // Dias mínimos até vencimento (hardcoded)
+  DTE_MAX:               45,    // Dias máximos até vencimento
+  VOL_FIN_MIN_VENDA:     5000,  // Piso anti-fantasma (liquidez real avaliada na nota)
+  SSR_MAX:               1.30,  // Distância máxima OTM aceita
+  SSR_VENDA_MAX:         1.08,  // Fronteira VENDA/COMPRA (hardcoded)
+  CORREL_MAX:            0.75,  // Dedup setorial (hardcoded)
 
-  // Pesos da Matriz Quantamental
-  PESO_PILAR_TECNICO:    40,
-  PESO_PILAR_DERIVAT:    40,
-  PESO_PILAR_SENTIM:     20
+  // Pesos dos 3 Pilares Quantamentais (hardcoded — total = 100)
+  PESO_PILAR_TECNICO:    40,    // Distância OTM + tendência
+  PESO_PILAR_DERIVAT:    40,    // IV_RANK + eficiência de capital
+  PESO_PILAR_LIQUIDEZ:   20     // Volume financeiro relativo (antes: Sentimento placeholder)
 };
 
 var SCREENER_HEADERS = [
@@ -74,18 +68,20 @@ function _screener_lerConfig() {
     var v = cfg[key];
     return (v !== undefined && v !== '' && !isNaN(Number(v))) ? Number(v) : fallback;
   }
+  // Apenas 5 chaves ajustáveis pelo Config_Global — o restante é hardcoded
   return {
-    TOP_VOLUME:         num('SCREENER_TOP_VOLUME',          SCREENER_CONFIG.TOP_VOLUME),
-    MAX_RESULTADOS:     num('SCREENER_MAX_RESULTADOS',      SCREENER_CONFIG.MAX_RESULTADOS),
-    DTE_MIN:            num('SCREENER_DTE_MIN',             SCREENER_CONFIG.DTE_MIN),
-    DTE_MAX:            num('SCREENER_DTE_MAX',             SCREENER_CONFIG.DTE_MAX),
-    VOL_FIN_MIN_VENDA:  num('SCREENER_VOL_FIN_MIN_VENDA',   SCREENER_CONFIG.VOL_FIN_MIN_VENDA),
-    SSR_MAX:            num('SCREENER_SSR_MAX',             SCREENER_CONFIG.SSR_MAX),
-    SSR_VENDA_MAX:      num('SCREENER_SSR_VENDA_MAX',       SCREENER_CONFIG.SSR_VENDA_MAX),
-    CORREL_MAX:         num('SCREENER_CORREL_MAX',          SCREENER_CONFIG.CORREL_MAX),
-    PESO_PILAR_TECNICO: num('SCREENER_PESO_PILAR_TECNICO',  SCREENER_CONFIG.PESO_PILAR_TECNICO),
-    PESO_PILAR_DERIVAT: num('SCREENER_PESO_PILAR_DERIVAT',  SCREENER_CONFIG.PESO_PILAR_DERIVAT),
-    PESO_PILAR_SENTIM:  num('SCREENER_PESO_PILAR_SENTIM',   SCREENER_CONFIG.PESO_PILAR_SENTIM),
+    TOP_VOLUME:          num('SCREENER_TOP_VOLUME',       SCREENER_CONFIG.TOP_VOLUME),
+    MAX_RESULTADOS:      num('SCREENER_MAX_RESULTADOS',   SCREENER_CONFIG.MAX_RESULTADOS),
+    DTE_MAX:             num('SCREENER_DTE_MAX',          SCREENER_CONFIG.DTE_MAX),
+    VOL_FIN_MIN_VENDA:   num('SCREENER_VOL_FIN_MIN_VENDA', SCREENER_CONFIG.VOL_FIN_MIN_VENDA),
+    SSR_MAX:             num('SCREENER_SSR_MAX',          SCREENER_CONFIG.SSR_MAX),
+    // Hardcoded — não expostos no Config_Global
+    DTE_MIN:             SCREENER_CONFIG.DTE_MIN,
+    SSR_VENDA_MAX:       SCREENER_CONFIG.SSR_VENDA_MAX,
+    CORREL_MAX:          SCREENER_CONFIG.CORREL_MAX,
+    PESO_PILAR_TECNICO:  SCREENER_CONFIG.PESO_PILAR_TECNICO,
+    PESO_PILAR_DERIVAT:  SCREENER_CONFIG.PESO_PILAR_DERIVAT,
+    PESO_PILAR_LIQUIDEZ: SCREENER_CONFIG.PESO_PILAR_LIQUIDEZ,
   };
 }
 
@@ -212,6 +208,9 @@ function orquestrarScreener() {
   }
 
   // ── 4. PORTA 5: Enrichment + Matriz Quantamental ──────────────────────────
+  // maxVolFin calculado uma vez para normalizar o Pilar Liquidez (min-max relativo)
+  var maxVolFin = Math.max.apply(null, candidatas.map(function(o) { return o.volFin || 0; })) || 1;
+
   candidatas.forEach(function(op) {
     op.ivRank     = ivRankMap[op.ticker] || 0;
     var oplabRate = profitRateMap[op.optionTicker];
@@ -223,7 +222,7 @@ function orquestrarScreener() {
     if (!op.empresa && mapaVolumes[op.ticker]) op.empresa = mapaVolumes[op.ticker].empresa;
     if (!op.setor   && mapaVolumes[op.ticker]) op.setor   = mapaVolumes[op.ticker].setor;
 
-    op.notaQuantamental = _screener_calcularNotaQuantamental(op, C);
+    op.notaQuantamental = _screener_calcularNotaQuantamental(op, C, maxVolFin);
   });
 
   var vendas  = candidatas.filter(function(op) { return op.papel === 'VENDA'; });
@@ -304,7 +303,7 @@ function orquestrarScreener() {
 
 // ─── Motor de Pontuação Quantamental (0–100) ──────────────────────────────────
 /**
- * Calcula a nota quantamental de uma opção candidata.
+ * Calcula a nota quantamental de uma opção candidata (0–100).
  *
  * PILAR TÉCNICO (max C.PESO_PILAR_TECNICO pts):
  *   70% → distância OTM: penalização elástica se abaixo da dist. ideal por SPOT.
@@ -314,12 +313,17 @@ function orquestrarScreener() {
  *   50% → eficiência de capital: premio/strike; 5% = nota máxima do sub-pilar.
  *   50% → IV_RANK: maior volatilidade implícita = venda mais vantajosa.
  *
- * PILAR SENTIMENTO (max C.PESO_PILAR_SENTIM pts):
- *   Placeholder para API de notícias. Padrão: 75% do pilar (nota neutra).
+ * PILAR LIQUIDEZ (max C.PESO_PILAR_LIQUIDEZ pts):
+ *   Volume financeiro relativo ao maior volume entre as candidatas (min-max).
+ *   Substitui o antigo Pilar Sentimento (que era constante e não diferenciava).
+ *
+ * @param {object} op         - Opção candidata com volFin, profitRate, ivRank, ssr, spot
+ * @param {object} C          - Config carregado por _screener_lerConfig()
+ * @param {number} maxVolFin  - Maior volFin entre todas as candidatas (para normalização)
  */
-function _screener_calcularNotaQuantamental(op, C) {
+function _screener_calcularNotaQuantamental(op, C, maxVolFin) {
   // ── Pilar Técnico ────────────────────────────────────────────────────────
-  var maxTecnico  = C.PESO_PILAR_TECNICO;
+  var maxTecnico   = C.PESO_PILAR_TECNICO;
   var maxDistancia = maxTecnico * 0.70;
   var maxTendencia = maxTecnico * 0.30;
 
@@ -334,24 +338,25 @@ function _screener_calcularNotaQuantamental(op, C) {
   var notaTecnica = notaDist + notaTendencia;
 
   // ── Pilar Derivativos ────────────────────────────────────────────────────
-  var maxDeriv   = C.PESO_PILAR_DERIVAT;
-  var maxEfic    = maxDeriv * 0.50;
-  var maxIvRank  = maxDeriv * 0.50;
+  var maxDeriv  = C.PESO_PILAR_DERIVAT;
+  var maxEfic   = maxDeriv * 0.50;
+  var maxIvRank = maxDeriv * 0.50;
 
   // Eficiência: 5% de retorno sobre strike = nota máxima; proporcional abaixo
-  var notaEfic   = Math.min(op.profitRate / 5.0, 1.0) * maxEfic;
+  var notaEfic  = Math.min(op.profitRate / 5.0, 1.0) * maxEfic;
 
   // IV_RANK: 0–100 → escala linear
-  var notaIv     = (op.ivRank / 100) * maxIvRank;
+  var notaIv    = (op.ivRank / 100) * maxIvRank;
 
-  var notaDeriv  = notaEfic + notaIv;
+  var notaDeriv = notaEfic + notaIv;
 
-  // ── Pilar Sentimento ─────────────────────────────────────────────────────
-  // Placeholder: 75% do peso máximo como score neutro.
-  // Integrar API de sentimento aqui quando disponível.
-  var notaSentimento = C.PESO_PILAR_SENTIM * 0.75;
+  // ── Pilar Liquidez ───────────────────────────────────────────────────────
+  // Volume relativo ao maior volume entre as candidatas — diferencia realmente.
+  var notaLiquidez = (maxVolFin > 0)
+    ? ((op.volFin || 0) / maxVolFin) * C.PESO_PILAR_LIQUIDEZ
+    : 0;
 
-  return parseFloat((notaTecnica + notaDeriv + notaSentimento).toFixed(1));
+  return parseFloat((notaTecnica + notaDeriv + notaLiquidez).toFixed(1));
 }
 
 // ─── Agrupamento por ticker+DTE — spreads completos, grupos por nota ──────────
@@ -383,10 +388,11 @@ function _screener_agruparPorTicker(vendas, compras, maxResultados) {
 
     var melhoresVendas = g.vendas.slice(0, MAX_VENDA_POR_GRUPO);
 
-    // Spread mínimo de R$0,50 entre strike da melhor venda e strike da compra
+    // Spread mínimo relativo: 1,5% do strike da VENDA (justo para ações baratas e caras)
     var melhorVendaStrike = melhoresVendas[0].strike;
+    var spreadMin = melhorVendaStrike * 0.015;
     var comprasSeguras = g.compras.filter(function(compra) {
-      return (melhorVendaStrike - compra.strike) >= 0.50;
+      return (melhorVendaStrike - compra.strike) >= spreadMin;
     });
 
     if (comprasSeguras.length === 0) return;
@@ -642,7 +648,7 @@ function testScreenerQuantitativo() {
 
   console.log('Config: TOP=' + C.TOP_VOLUME + ' | DTE=' + C.DTE_MIN + '–' + C.DTE_MAX +
     ' | VOL_MIN_VENDA=R$' + C.VOL_FIN_MIN_VENDA +
-    ' | Pilares: T=' + C.PESO_PILAR_TECNICO + ' D=' + C.PESO_PILAR_DERIVAT + ' S=' + C.PESO_PILAR_SENTIM);
+    ' | Pilares: T=' + C.PESO_PILAR_TECNICO + ' D=' + C.PESO_PILAR_DERIVAT + ' L=' + C.PESO_PILAR_LIQUIDEZ);
 
   var mapaVol  = _screener_lerMaioresVolumes(ss);
   var mapaM9   = _screener_lerM9M21Alta(ss);
@@ -676,13 +682,15 @@ function testScreenerQuantitativo() {
     return true;
   });
 
+  var maxVolFinTest = Math.max.apply(null, cands.map(function(o) { return o.volFin || 0; })) || 1;
+
   cands.forEach(function(op) {
     var papel  = op.ssr <= C.SSR_VENDA_MAX ? 'VENDA' : 'COMPRA';
     op.ivRank    = enrich.ivRankMap[op.ticker] || 0;
     op.profitRate = enrich.profitRateMap[op.optionTicker] !== undefined
                     ? enrich.profitRateMap[op.optionTicker]
                     : (op.strike > 0 ? parseFloat((op.premio / op.strike * 100).toFixed(2)) : 0);
-    var nota   = _screener_calcularNotaQuantamental(op, C);
+    var nota   = _screener_calcularNotaQuantamental(op, C, maxVolFinTest);
     console.log('  [' + papel + '] ' + op.optionTicker + ' | ' + op.ticker +
       ' | dist=' + ((op.ssr-1)*100).toFixed(1) + '%' +
       ' | premio=R$' + (op.premio||0).toFixed(2) +
