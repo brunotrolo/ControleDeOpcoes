@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#0f172a"/>
+  <rect x="72"  y="192" width="368" height="40" rx="20" fill="#3b82f6"/>
+  <rect x="72"  y="280" width="270" height="40" rx="20" fill="#10b981"/>
+  <text x="256" y="160" text-anchor="middle"
+    font-family="-apple-system,sans-serif" font-size="60" font-weight="800" fill="#f1f5f9">PUT</text>
+  <text x="256" y="400" text-anchor="middle"
+    font-family="-apple-system,sans-serif" font-size="34" font-weight="600" fill="#94a3b8">OPÇÕES B3</text>
+</svg>

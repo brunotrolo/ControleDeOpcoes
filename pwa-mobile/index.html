@@ -6,733 +6,158 @@
   <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Travas PUT">
+  <meta name="apple-mobile-web-app-title" content="Controle de Opções">
   <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icon-512.svg">
-  <title>Travas de Alta — PUT Spreads</title>
+  <link rel="apple-touch-icon" href="icon.svg">
+  <title>Controle de Opções</title>
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg:       #0f172a;
-      --surface:  #1e293b;
-      --border:   #334155;
-      --venda:    #3b82f6;
-      --compra:   #10b981;
-      --warn:     #f59e0b;
-      --text:     #f1f5f9;
-      --muted:    #94a3b8;
-      --radius:   14px;
-      --safe-top: env(safe-area-inset-top, 0px);
-      --safe-bot: env(safe-area-inset-bottom, 0px);
+      --bg:     #0f172a;
+      --card:   #1e293b;
+      --border: #334155;
+      --accent: #3b82f6;
+      --text:   #f1f5f9;
+      --muted:  #94a3b8;
     }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100dvh;
-      overscroll-behavior-y: contain;
-    }
-
-    /* ─── HEADER ──────────────────────────────────────────────────────── */
-    header {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: rgba(15, 23, 42, 0.92);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      padding: calc(var(--safe-top) + 12px) 16px 12px;
-      border-bottom: 1px solid var(--border);
-    }
-    .header-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-    .header-title {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .header-logo {
-      width: 36px;
-      height: 36px;
-      background: linear-gradient(135deg, var(--venda), var(--compra));
-      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
-      flex-shrink: 0;
+      padding: 24px;
     }
-    .header-title h1 { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
-    .header-title p  { font-size: 11px; color: var(--muted); margin-top: 1px; }
-    .btn-refresh {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      color: var(--text);
-      padding: 8px 14px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
+
+    /* ── Tela de abertura ── */
+    #splash {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 6px;
-      transition: opacity .15s;
-      flex-shrink: 0;
+      gap: 20px;
+      text-align: center;
+      animation: fadein .4s ease;
     }
-    .btn-refresh:active { opacity: .7; }
-    .btn-refresh.loading .ico { animation: spin .8s linear infinite; }
+    @keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; } }
+
+    .logo {
+      width: 80px; height: 80px;
+      background: linear-gradient(135deg, #3b82f6, #10b981);
+      border-radius: 22px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 40px;
+    }
+    h1 { font-size: 22px; font-weight: 800; letter-spacing: -.4px; }
+    .sub { font-size: 14px; color: var(--muted); }
+
+    /* Spinner */
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ─── FILTER BAR ──────────────────────────────────────────────────── */
-    .filter-bar {
-      padding: 10px 16px;
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      scrollbar-width: none;
-      border-bottom: 1px solid var(--border);
-    }
-    .filter-bar::-webkit-scrollbar { display: none; }
-    .chip {
-      flex-shrink: 0;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      color: var(--muted);
-      padding: 5px 14px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all .15s;
-      white-space: nowrap;
-    }
-    .chip.active { background: var(--venda); border-color: var(--venda); color: #fff; }
-    .chip.active.compra { background: var(--compra); border-color: var(--compra); }
-    .chip.active.sort   { background: #7c3aed; border-color: #7c3aed; }
-
-    /* ─── STATES ──────────────────────────────────────────────────────── */
-    .state-box {
-      display: flex;
+    /* ── Tela de setup (primeira vez) ── */
+    #setup {
+      display: none;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      padding: 64px 24px;
-      text-align: center;
+      gap: 16px;
+      width: 100%;
+      max-width: 380px;
     }
-    .state-box .ico { font-size: 48px; }
-    .state-box h2   { font-size: 18px; font-weight: 700; }
-    .state-box p    { font-size: 14px; color: var(--muted); line-height: 1.5; max-width: 320px; }
-    .state-box code {
-      background: var(--surface);
+    #setup h2 { font-size: 18px; font-weight: 700; }
+    #setup p  { font-size: 13px; color: var(--muted); line-height: 1.6; }
+    input[type=url] {
+      width: 100%;
+      background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 12px;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 14px;
+      color: var(--text);
       font-family: monospace;
-      color: var(--warn);
-      word-break: break-all;
-      text-align: left;
+    }
+    input[type=url]:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
+    input[type=url]::placeholder { color: var(--muted); }
+    button {
       width: 100%;
-      max-width: 340px;
-    }
-    .skeleton {
-      background: linear-gradient(90deg, var(--surface) 25%, var(--border) 50%, var(--surface) 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.4s infinite;
-      border-radius: 8px;
-    }
-    @keyframes shimmer { to { background-position: -200% 0; } }
-
-    /* ─── CARD LIST ───────────────────────────────────────────────────── */
-    main {
-      padding: 12px 12px calc(var(--safe-bot) + 24px);
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    /* ─── SPREAD CARD ─────────────────────────────────────────────────── */
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-    }
-    .card-header {
-      padding: 12px 14px 10px;
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 10px;
-    }
-    .card-ticker { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
-    .card-empresa { font-size: 11px; color: var(--muted); margin-top: 2px; }
-    .card-tags { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
-    .tag {
-      font-size: 10px;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .tag-dte   { background: rgba(124, 58, 237, .2); color: #a78bfa; }
-    .tag-setor { background: rgba(148, 163, 184, .15); color: var(--muted); }
-
-    /* Nota circular */
-    .nota-badge {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      flex-shrink: 0;
-    }
-    .nota-circle {
-      position: relative;
-      width: 48px;
-      height: 48px;
-    }
-    .nota-circle svg { transform: rotate(-90deg); }
-    .nota-circle .val {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: 800;
-      transform: none;
-    }
-    .nota-label { font-size: 9px; color: var(--muted); margin-top: 2px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
-
-    /* Pernas VENDA / COMPRA */
-    .perna {
-      padding: 10px 14px;
-      border-top: 1px solid var(--border);
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 0 12px;
-      align-items: start;
-    }
-    .perna-label {
-      font-size: 10px;
-      font-weight: 800;
-      letter-spacing: .8px;
-      padding: 2px 8px;
-      border-radius: 6px;
-      text-transform: uppercase;
-      margin-top: 2px;
-    }
-    .perna-label.venda { background: rgba(59, 130, 246, .2); color: var(--venda); }
-    .perna-label.compra { background: rgba(16, 185, 129, .2); color: var(--compra); }
-    .perna-ticker { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
-    .perna-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 4px 8px;
-    }
-    .perna-metric { }
-    .perna-metric .lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
-    .perna-metric .val { font-size: 13px; font-weight: 700; margin-top: 1px; }
-    .perna-metric .val.green  { color: var(--compra); }
-    .perna-metric .val.blue   { color: var(--venda); }
-    .perna-metric .val.yellow { color: var(--warn); }
-    .perna-obs {
-      font-size: 10px;
-      color: var(--muted);
-      margin-top: 6px;
-      padding-top: 6px;
-      border-top: 1px solid var(--border);
-      grid-column: 1 / -1;
-    }
-
-    /* ─── FOOTER INFO ─────────────────────────────────────────────────── */
-    .footer-info {
-      text-align: center;
-      font-size: 11px;
-      color: var(--muted);
-      padding: 4px 16px;
-    }
-
-    /* ─── SETUP MODAL ─────────────────────────────────────────────────── */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.7);
-      backdrop-filter: blur(4px);
-      z-index: 200;
-      display: flex;
-      align-items: flex-end;
-    }
-    .modal-sheet {
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      border-radius: 20px 20px 0 0;
-      padding: 24px 20px calc(var(--safe-bot) + 32px);
-      width: 100%;
-      max-height: 80dvh;
-      overflow-y: auto;
-    }
-    .modal-handle {
-      width: 40px;
-      height: 4px;
-      background: var(--border);
-      border-radius: 2px;
-      margin: 0 auto 20px;
-    }
-    .modal-sheet h2 { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
-    .modal-sheet p  { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 12px; }
-    .step { display: flex; gap: 12px; margin-bottom: 16px; }
-    .step-num {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: var(--venda);
-      color: #fff;
-      font-size: 13px;
-      font-weight: 800;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .step-text { font-size: 13px; color: var(--muted); line-height: 1.5; padding-top: 4px; }
-    .step-text strong { color: var(--text); }
-    .btn-primary {
-      width: 100%;
-      background: var(--venda);
+      background: var(--accent);
       color: #fff;
       border: none;
       border-radius: 12px;
-      padding: 14px;
+      padding: 15px;
       font-size: 15px;
       font-weight: 700;
       cursor: pointer;
-      margin-top: 8px;
     }
-    .btn-primary:active { opacity: .85; }
-    .url-input {
-      width: 100%;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px 14px;
-      font-size: 13px;
-      color: var(--text);
-      margin-top: 8px;
-      margin-bottom: 12px;
-      font-family: monospace;
-    }
-    .url-input:focus { outline: 1px solid var(--venda); border-color: var(--venda); }
-    .url-input::placeholder { color: var(--muted); }
-
-    /* Contador de resultados */
-    .results-count {
-      font-size: 12px;
+    button:active { opacity: .85; }
+    .hint {
+      font-size: 11px;
       color: var(--muted);
-      padding: 4px 12px 8px;
+      text-align: center;
+      line-height: 1.6;
     }
   </style>
 </head>
 <body>
 
-<div id="app">
-  <header>
-    <div class="header-row">
-      <div class="header-title">
-        <div class="header-logo">📊</div>
-        <div>
-          <h1>Travas de Alta</h1>
-          <p id="last-update">PUT Spread Screener</p>
-        </div>
-      </div>
-      <button class="btn-refresh" id="btn-refresh" onclick="App.refresh()">
-        <span class="ico">↻</span> Atualizar
-      </button>
+  <!-- Splash: aparece enquanto redireciona -->
+  <div id="splash">
+    <div class="logo">📊</div>
+    <div>
+      <h1>Controle de Opções</h1>
+      <div class="sub">Abrindo o painel...</div>
     </div>
-  </header>
-
-  <div class="filter-bar" id="filter-bar">
-    <div class="chip active" data-filter="ALL"    onclick="App.setFilter('ALL')">Todos</div>
-    <div class="chip"        data-filter="VENDA"  onclick="App.setFilter('VENDA')">Só Venda</div>
-    <div class="chip compra" data-filter="COMPRA" onclick="App.setFilter('COMPRA')">Só Compra</div>
-    <div class="chip sort active" data-sort="NOTA"    onclick="App.setSort('NOTA')">↓ Nota</div>
-    <div class="chip sort"        data-sort="DTE"     onclick="App.setSort('DTE')">↓ DTE</div>
-    <div class="chip sort"        data-sort="RETORNO" onclick="App.setSort('RETORNO')">↓ Retorno</div>
+    <div class="spinner"></div>
   </div>
 
-  <div class="results-count" id="results-count"></div>
-  <main id="content"></main>
-</div>
-
-<!-- Setup Modal -->
-<div class="modal-overlay" id="setup-modal" style="display:none">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <h2>⚙️ Configurar URL do GAS</h2>
-    <p>Cole a URL do seu Google Apps Script WebApp publicado:</p>
-    <input type="url" class="url-input" id="url-input"
+  <!-- Setup: aparece apenas na primeira vez -->
+  <div id="setup">
+    <div class="logo">📊</div>
+    <div>
+      <h2>Configure a URL do app</h2>
+      <p>Cole abaixo a URL do seu WebApp do Google Apps Script:</p>
+    </div>
+    <input type="url" id="url-input"
       placeholder="https://script.google.com/macros/s/.../exec">
-    <div class="step">
-      <div class="step-num">1</div>
-      <div class="step-text">No GAS: <strong>Implantar → Novo implantação → App da Web</strong></div>
-    </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <div class="step-text">Configure: <strong>Executar como: Eu</strong> · <strong>Acesso: Qualquer pessoa</strong></div>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <div class="step-text">Copie a <strong>URL do app da Web</strong> e cole acima</div>
-    </div>
-    <button class="btn-primary" onclick="App.saveUrl()">Salvar e Carregar</button>
+    <button onclick="salvar()">Abrir o App</button>
+    <p class="hint">
+      No GAS Editor: <strong>Implantar → Gerenciar implantações</strong><br>
+      Copie a <strong>URL do app da web</strong> e cole acima.
+    </p>
   </div>
-</div>
 
 <script>
-// ─────────────────────────────────────────────────────────────────────────────
-// CONFIGURAÇÃO — substitua pela sua URL do WebApp GAS (ou configure via modal)
-// ─────────────────────────────────────────────────────────────────────────────
-const GAS_URL_DEFAULT = 'COLE_AQUI_A_URL_DO_WEBAPP_GAS';
+  const KEY = 'gas_webapp_url';
 
-// ─────────────────────────────────────────────────────────────────────────────
-const CACHE_KEY  = 'pwa_spreads_v1';
-const URL_KEY    = 'pwa_gas_url';
-const CACHE_TTL  = 30 * 60 * 1000; // 30 min
-
-const state = {
-  groups:   [],
-  displayed:[],
-  loading:  false,
-  error:    null,
-  lastTs:   null,
-  filter:   'ALL',
-  sort:     'NOTA',
-};
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-function n(v, d = 0) {
-  const x = parseFloat(v);
-  return isNaN(x) ? 0 : x;
-}
-function fmt(v, dec = 2) {
-  return n(v).toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
-}
-function fmtVol(v) {
-  const x = n(v);
-  if (x >= 1e6) return 'R$' + (x / 1e6).toFixed(1) + 'M';
-  if (x >= 1e3) return 'R$' + (x / 1e3).toFixed(0) + 'k';
-  return 'R$' + x.toFixed(0);
-}
-function notaColor(v) {
-  if (v >= 70) return '#10b981';
-  if (v >= 50) return '#f59e0b';
-  return '#ef4444';
-}
-function notaCircle(nota) {
-  const r  = 20, c = 24, stroke = 5;
-  const circ = 2 * Math.PI * r;
-  const pct  = Math.min(Math.max(n(nota), 0), 100) / 100;
-  const dash = pct * circ;
-  const col  = notaColor(nota);
-  return `
-    <div class="nota-circle">
-      <svg width="48" height="48" viewBox="0 0 48 48">
-        <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="#334155" stroke-width="${stroke}"/>
-        <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${col}" stroke-width="${stroke}"
-          stroke-dasharray="${dash} ${circ}" stroke-linecap="round"/>
-      </svg>
-      <div class="val" style="color:${col}">${Math.round(nota)}</div>
-    </div>
-    <div class="nota-label">Nota</div>`;
-}
-
-// ─── Agrupamento ─────────────────────────────────────────────────────────────
-function groupRows(rows) {
-  const map = {};
-  rows.forEach(row => {
-    const key = (row['TICKER'] || '') + '|' + (row['DTE'] || '');
-    if (!map[key]) {
-      map[key] = {
-        ticker:  String(row['TICKER']  || '').trim(),
-        empresa: String(row['EMPRESA'] || '').trim(),
-        setor:   String(row['SETOR']   || '').trim(),
-        dte:     n(row['DTE']),
-        nota:    0,
-        vencimento: String(row['VENCIMENTO'] || ''),
-        vendas:  [],
-        compras: [],
-      };
-    }
-    const g = map[key];
-    if (String(row['PAPEL']) === 'VENDA') {
-      g.vendas.push(row);
-      g.nota = Math.max(g.nota, n(row['NOTA_QUANTAMENTAL']));
-    } else {
-      g.compras.push(row);
-    }
-  });
-  return Object.values(map).filter(g => g.ticker);
-}
-
-function sortGroups(groups) {
-  return [...groups].sort((a, b) => {
-    if (state.sort === 'DTE')     return a.dte - b.dte;
-    if (state.sort === 'RETORNO') {
-      const ra = a.vendas.length ? n(a.vendas[0]['PROFIT_RATE']) : 0;
-      const rb = b.vendas.length ? n(b.vendas[0]['PROFIT_RATE']) : 0;
-      return rb - ra;
-    }
-    return b.nota - a.nota; // NOTA (default)
-  });
-}
-
-// ─── Render ───────────────────────────────────────────────────────────────────
-function renderPerna(row, tipo) {
-  const isVenda = tipo === 'VENDA';
-  const delta = n(row['DELTA']);
-  const theta = n(row['THETA']);
-  const obs   = String(row['OBSERVACAO'] || '');
-  return `
-    <div class="perna">
-      <div>
-        <div class="perna-label ${isVenda ? 'venda' : 'compra'}">${tipo}</div>
-      </div>
-      <div>
-        <div class="perna-ticker">${row['OPTION_TICKER'] || ''}</div>
-        <div class="perna-grid">
-          <div class="perna-metric">
-            <div class="lbl">Strike</div>
-            <div class="val">R$${fmt(row['STRIKE'])}</div>
-          </div>
-          <div class="perna-metric">
-            <div class="lbl">Prêmio</div>
-            <div class="val ${isVenda ? 'blue' : 'green'}">R$${fmt(row['PREMIO'])}</div>
-          </div>
-          <div class="perna-metric">
-            <div class="lbl">${isVenda ? 'Retorno' : 'Dist.'}</div>
-            <div class="val ${isVenda ? 'green' : ''}">${fmt(isVenda ? row['PROFIT_RATE'] : row['DIST_SPOT_PCT'])}%</div>
-          </div>
-          <div class="perna-metric">
-            <div class="lbl">Delta</div>
-            <div class="val">${delta.toFixed(3)}</div>
-          </div>
-          <div class="perna-metric">
-            <div class="lbl">Theta</div>
-            <div class="val">${theta.toFixed(4)}</div>
-          </div>
-          <div class="perna-metric">
-            <div class="lbl">${isVenda ? 'IV Rank' : 'Volume'}</div>
-            <div class="val ${isVenda && n(row['IV_RANK']) >= 60 ? 'yellow' : ''}">${
-              isVenda ? fmt(row['IV_RANK'], 0) : fmtVol(row['VOL_FIN_OPCAO'])
-            }</div>
-          </div>
-        </div>
-        ${obs ? `<div class="perna-obs">${obs}</div>` : ''}
-      </div>
-    </div>`;
-}
-
-function renderGroup(g) {
-  const showVendas  = state.filter !== 'COMPRA';
-  const showCompras = state.filter !== 'VENDA';
-  const vendas  = showVendas  ? g.vendas  : [];
-  const compras = showCompras ? g.compras : [];
-  if (vendas.length === 0 && compras.length === 0) return '';
-
-  const pernas = [
-    ...vendas.map(r  => renderPerna(r, 'VENDA')),
-    ...compras.map(r => renderPerna(r, 'COMPRA')),
-  ].join('');
-
-  const spot = g.vendas[0] ? n(g.vendas[0]['SPOT']) : 0;
-
-  return `
-    <div class="card">
-      <div class="card-header">
-        <div>
-          <div class="card-ticker">${g.ticker}</div>
-          <div class="card-empresa">${g.empresa || '—'}</div>
-          ${spot > 0 ? `<div class="card-empresa">Spot: R$${fmt(spot)}</div>` : ''}
-          <div class="card-tags">
-            <span class="tag tag-dte">⏱ ${g.dte}d · ${g.vencimento}</span>
-            ${g.setor ? `<span class="tag tag-setor">${g.setor}</span>` : ''}
-          </div>
-        </div>
-        <div class="nota-badge">${notaCircle(g.nota)}</div>
-      </div>
-      ${pernas}
-    </div>`;
-}
-
-function renderLoading() {
-  return Array(3).fill(0).map(() => `
-    <div class="card" style="padding:16px;gap:10px;display:flex;flex-direction:column">
-      <div class="skeleton" style="height:20px;width:40%"></div>
-      <div class="skeleton" style="height:14px;width:70%"></div>
-      <div class="skeleton" style="height:60px;width:100%"></div>
-      <div class="skeleton" style="height:60px;width:100%"></div>
-    </div>`).join('');
-}
-
-function render() {
-  const content = document.getElementById('content');
-  const count   = document.getElementById('results-count');
-  const btn     = document.getElementById('btn-refresh');
-  const upd     = document.getElementById('last-update');
-
-  btn.classList.toggle('loading', state.loading);
-
-  if (state.lastTs) {
-    const d = new Date(state.lastTs);
-    const s = d.toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
-    upd.textContent = 'Atualizado ' + s;
+  function abrir(url) {
+    // Redireciona para o WebApp GAS preservando o comportamento de app
+    window.location.replace(url);
   }
 
-  if (state.loading && state.groups.length === 0) {
-    content.innerHTML = renderLoading();
-    count.textContent = '';
-    return;
-  }
-
-  if (state.error && state.groups.length === 0) {
-    content.innerHTML = `
-      <div class="state-box">
-        <div class="ico">⚠️</div>
-        <h2>Erro ao carregar</h2>
-        <p>${state.error}</p>
-        <p>Verifique a URL do WebApp e as permissões de acesso.</p>
-      </div>`;
-    count.textContent = '';
-    return;
-  }
-
-  const sorted  = sortGroups(state.groups);
-  const visible = sorted.map(g => renderGroup(g)).filter(h => h);
-
-  if (visible.length === 0) {
-    content.innerHTML = `
-      <div class="state-box">
-        <div class="ico">🔍</div>
-        <h2>Nenhum resultado</h2>
-        <p>Não há spreads disponíveis para o filtro selecionado. Execute o Screener no GAS e atualize.</p>
-      </div>`;
-    count.textContent = '';
-    return;
-  }
-
-  content.innerHTML = visible.join('');
-  const total = sorted.reduce((s, g) => s + g.vendas.length + g.compras.length, 0);
-  const nv = sorted.reduce((s, g) => s + g.vendas.length, 0);
-  const nc = sorted.reduce((s, g) => s + g.compras.length, 0);
-  count.textContent = `${sorted.length} grupos · ${nv} venda${nv !== 1 ? 's' : ''} · ${nc} compra${nc !== 1 ? 's' : ''}`;
-}
-
-// ─── Fetch ────────────────────────────────────────────────────────────────────
-async function fetchData(url) {
-  state.loading = true;
-  state.error   = null;
-  render();
-
-  try {
-    const res  = await fetch(url + '?action=screener_json', { cache: 'no-store' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    const rows = data.rows || [];
-    if (rows.length === 0) throw new Error('A aba SCREENER_QUANTITATIVO está vazia. Execute o Screener no GAS primeiro.');
-    state.groups = groupRows(rows);
-    state.lastTs = data.ts || new Date().toISOString();
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ rows, ts: state.lastTs }));
-  } catch (e) {
-    state.error = e.message;
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (cached) {
-      try {
-        const { rows, ts } = JSON.parse(cached);
-        state.groups = groupRows(rows);
-        state.lastTs = ts;
-        state.error  = '⚡ Dados em cache (offline). ' + e.message;
-      } catch (_) {}
-    }
-  } finally {
-    state.loading = false;
-    render();
-  }
-}
-
-// ─── App ──────────────────────────────────────────────────────────────────────
-const App = {
-  getUrl() {
-    return localStorage.getItem(URL_KEY) || GAS_URL_DEFAULT;
-  },
-  setFilter(f) {
-    state.filter = f;
-    document.querySelectorAll('.chip[data-filter]').forEach(el => {
-      el.classList.toggle('active', el.dataset.filter === f);
-    });
-    render();
-  },
-  setSort(s) {
-    state.sort = s;
-    document.querySelectorAll('.chip[data-sort]').forEach(el => {
-      el.classList.toggle('active', el.dataset.sort === s);
-    });
-    render();
-  },
-  refresh() {
-    const url = this.getUrl();
-    if (!url || url.includes('COLE_AQUI')) {
-      document.getElementById('setup-modal').style.display = 'flex';
-      return;
-    }
-    fetchData(url);
-  },
-  saveUrl() {
-    const val = document.getElementById('url-input').value.trim();
-    if (!val || !val.startsWith('https://')) {
+  function salvar() {
+    const url = document.getElementById('url-input').value.trim();
+    if (!url.startsWith('https://')) {
       alert('URL inválida. Deve começar com https://');
       return;
     }
-    localStorage.setItem(URL_KEY, val);
-    document.getElementById('setup-modal').style.display = 'none';
-    fetchData(val);
-  },
-  init() {
-    // Register service worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
-    }
-    // Close modal on overlay click
-    document.getElementById('setup-modal').addEventListener('click', e => {
-      if (e.target === e.currentTarget)
-        e.currentTarget.style.display = 'none';
-    });
-    // Auto-load
-    const url = this.getUrl();
-    if (!url || url.includes('COLE_AQUI')) {
-      document.getElementById('setup-modal').style.display = 'flex';
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (cached) {
-        try {
-          const { rows, ts } = JSON.parse(cached);
-          state.groups = groupRows(rows);
-          state.lastTs = ts;
-        } catch (_) {}
-      }
-      render();
-    } else {
-      fetchData(url);
-    }
+    localStorage.setItem(KEY, url);
+    abrir(url);
   }
-};
 
-App.init();
+  // Inicialização
+  const url = localStorage.getItem(KEY);
+  if (url) {
+    abrir(url);
+  } else {
+    document.getElementById('splash').style.display = 'none';
+    document.getElementById('setup').style.display  = 'flex';
+  }
 </script>
 </body>
 </html>
