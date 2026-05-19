@@ -1,41 +1,58 @@
 /**
- * @fileoverview 019_Screener_Quantitativo.gs - v6.0
+ * @fileoverview 019_Screener_Quantitativo.gs - v7.0 (Caminho 4 — Modelo Adaptativo)
  * ═══════════════════════════════════════════════════════════════
- * FUNIL QUANTITATIVO — Trava de Alta com PUT
+ * FUNIL QUANTAMENTAL — Trava de Alta com PUT
  *
  * ESTEIRA DE 6 PORTAS:
  *   PORTA 1 — Liquidez:    Top N ativos por vol. financeiro de PUT
  *   PORTA 2 — Tendência:   M9M21_TREND = 1 (média 9m acima da 21m)
  *   PORTA 3 — Correlação:  Dedup setorial via RANKING_CORREL_IBOV
- *   PORTA 4 — Opções:      Todas as PUTs dos elegíveis no SCANNER_OPCOES,
- *             classificadas VENDA ou COMPRA por distância dinâmica do spot.
- *             IV_RANK e PROFIT_RATE enriquecidos via BEST_RATES/DADOS_ATIVOS.
- *   PORTA 5 — Ordenação:   VENDA por score (IV_RANK 40%+PROFIT 35%+VOL 25%);
- *             COMPRA por distância ascendente (proteção mais próxima 1ª).
- *   PORTA 6 — Agrupamento: Só exibe grupos com VENDA + COMPRA do mesmo
- *             ticker+DTE (spreads completos).
+ *   PORTA 4 — Opções:      Filtro largo (sem exclusão por distância).
+ *             VENDAs exigem volFin ≥ VOL_FIN_MIN_VENDA (anti-cemitério).
+ *             Classificadas VENDA ou COMPRA por SSR_VENDA_MAX.
+ *   PORTA 5 — Scoring:     Matriz Quantamental 0–100 por 3 Pilares:
+ *             Técnico (40): distância OTM + força de tendência.
+ *             Derivativos (40): eficiência de capital + IV_RANK.
+ *             Sentimento (20): placeholder p/ API de notícias (padrão 15).
+ *             VENDAs ordenadas por NOTA_QUANTAMENTAL desc; COMPRAs por
+ *             distância asc (proteção mais próxima primeiro).
+ *   PORTA 6 — Agrupamento: Só exibe spreads completos (VENDA + COMPRA,
+ *             spread ≥ R$0,50 entre strikes). Grupos ordenados pela nota
+ *             da melhor VENDA do grupo.
  *
  * FONTES DE DADOS:
  *   Opções    → SCANNER_OPCOES (única fonte: CLOSE, DELTA, THETA, volume)
- *   Enrichment→ BEST_RATES (IV_RANK por ticker, PROFIT_RATE por opção)
+ *   Enrichment→ BEST_RATES (IV_RANK por ticker; "OPLab Top" tag por opção)
  *   Fallback  → DADOS_ATIVOS (IV_RANK para tickers do portfólio)
  *
  * CHAVES CONFIG_GLOBAL (prefixo SCREENER_):
- *   SCREENER_TOP_VOLUME        | 20    Top N ativos — Porta 1
- *   SCREENER_MAX_RESULTADOS    | 60    Cap total de linhas no output
- *   SCREENER_DTE_MIN           | 15    DTE mínimo (dias)
- *   SCREENER_DTE_MAX           | 45    DTE máximo (dias)
- *   SCREENER_SSR_MAX           | 1.30  Distância máxima OTM
- *   SCREENER_SSR_VENDA_MAX     | 1.08  SSR ≤ este valor → VENDA | acima → COMPRA
- *   SCREENER_CORREL_MAX        | 0.70  Limiar correlação p/ dedup setorial
- *   SCREENER_DIST_MIN_FAIXA1   | 5.0   Dist. mín. % para SPOT < R$10
- *   SCREENER_DIST_MIN_FAIXA2   | 4.0   Dist. mín. % para R$10–R$35
- *   SCREENER_DIST_MIN_FAIXA3   | 3.0   Dist. mín. % para SPOT > R$35
+ *   SCREENER_TOP_VOLUME           | 20      Top N ativos — Porta 1
+ *   SCREENER_MAX_RESULTADOS       | 60      Cap total de linhas no output
+ *   SCREENER_DTE_MIN              | 15      DTE mínimo (dias)
+ *   SCREENER_DTE_MAX              | 45      DTE máximo (dias)
+ *   SCREENER_VOL_FIN_MIN_VENDA    | 15000   Vol. mín. para pernas de VENDA
+ *   SCREENER_SSR_MAX              | 1.30    Distância máxima OTM
+ *   SCREENER_SSR_VENDA_MAX        | 1.08    SSR ≤ este valor → VENDA
+ *   SCREENER_CORREL_MAX           | 0.75    Limiar correlação setorial
+ *   SCREENER_PESO_PILAR_TECNICO   | 40      Peso máx. Pilar Técnico
+ *   SCREENER_PESO_PILAR_DERIVAT   | 40      Peso máx. Pilar Derivativos
+ *   SCREENER_PESO_PILAR_SENTIM    | 20      Peso máx. Pilar Sentimento
  * ═══════════════════════════════════════════════════════════════
  */
 
 // ─── Defaults ────────────────────────────────────────────────────────────────
 var SCREENER_CONFIG = {
+  TOP_VOLUME:            20,
+  MAX_RESULTADOS:        60,
+  DTE_MIN:               15,
+  DTE_MAX:               45,
+  VOL_FIN_MIN_VENDA:     15000,
+  SSR_MAX:               1.30,
+  SSR_VENDA_MAX:         1.08,
+  CORREL_MAX:            0.75,
+  PESO_PILAR_TECNICO:    40,
+  PESO_PILAR_DERIVAT:    40,
+  PESO_PILAR_SENTIM:     20,
   TOP_VOLUME:       40,
   MAX_RESULTADOS:   80,
   DTE_MIN:          15,
@@ -55,7 +72,7 @@ var SCREENER_HEADERS = [
   'VENCIMENTO', 'DTE', 'SPOT', 'STRIKE', 'DIST_SPOT_PCT',
   'PREMIO', 'PROFIT_RATE', 'IV_RANK',
   'DELTA', 'THETA',
-  'M9M21_VALUE', 'VOL_FIN_OPCAO',
+  'NOTA_QUANTAMENTAL', 'VOL_FIN_OPCAO',
   'OBSERVACAO', 'ATUALIZADO_EM'
 ];
 
@@ -67,17 +84,17 @@ function _screener_lerConfig() {
     return (v !== undefined && v !== '' && !isNaN(Number(v))) ? Number(v) : fallback;
   }
   return {
-    TOP_VOLUME:       num('SCREENER_TOP_VOLUME',       SCREENER_CONFIG.TOP_VOLUME),
-    MAX_RESULTADOS:   num('SCREENER_MAX_RESULTADOS',   SCREENER_CONFIG.MAX_RESULTADOS),
-    DTE_MIN:          num('SCREENER_DTE_MIN',          SCREENER_CONFIG.DTE_MIN),
-    DTE_MAX:          num('SCREENER_DTE_MAX',          SCREENER_CONFIG.DTE_MAX),
-    SSR_MAX:          num('SCREENER_SSR_MAX',          SCREENER_CONFIG.SSR_MAX),
-    SSR_VENDA_MAX:    num('SCREENER_SSR_VENDA_MAX',    SCREENER_CONFIG.SSR_VENDA_MAX),
-    CORREL_MAX:       num('SCREENER_CORREL_MAX',       SCREENER_CONFIG.CORREL_MAX),
-    PESO_IV_RANK:     num('SCREENER_PESO_IV_RANK',     SCREENER_CONFIG.PESO_IV_RANK),
-    PESO_PROFIT:      num('SCREENER_PESO_PROFIT',      SCREENER_CONFIG.PESO_PROFIT),
-    PESO_VOLUME:      num('SCREENER_PESO_VOLUME',      SCREENER_CONFIG.PESO_VOLUME),
-    TAG_IV_RANK_ALTO: num('SCREENER_TAG_IV_RANK_ALTO', SCREENER_CONFIG.TAG_IV_RANK_ALTO),
+    TOP_VOLUME:         num('SCREENER_TOP_VOLUME',          SCREENER_CONFIG.TOP_VOLUME),
+    MAX_RESULTADOS:     num('SCREENER_MAX_RESULTADOS',      SCREENER_CONFIG.MAX_RESULTADOS),
+    DTE_MIN:            num('SCREENER_DTE_MIN',             SCREENER_CONFIG.DTE_MIN),
+    DTE_MAX:            num('SCREENER_DTE_MAX',             SCREENER_CONFIG.DTE_MAX),
+    VOL_FIN_MIN_VENDA:  num('SCREENER_VOL_FIN_MIN_VENDA',   SCREENER_CONFIG.VOL_FIN_MIN_VENDA),
+    SSR_MAX:            num('SCREENER_SSR_MAX',             SCREENER_CONFIG.SSR_MAX),
+    SSR_VENDA_MAX:      num('SCREENER_SSR_VENDA_MAX',       SCREENER_CONFIG.SSR_VENDA_MAX),
+    CORREL_MAX:         num('SCREENER_CORREL_MAX',          SCREENER_CONFIG.CORREL_MAX),
+    PESO_PILAR_TECNICO: num('SCREENER_PESO_PILAR_TECNICO',  SCREENER_CONFIG.PESO_PILAR_TECNICO),
+    PESO_PILAR_DERIVAT: num('SCREENER_PESO_PILAR_DERIVAT',  SCREENER_CONFIG.PESO_PILAR_DERIVAT),
+    PESO_PILAR_SENTIM:  num('SCREENER_PESO_PILAR_SENTIM',   SCREENER_CONFIG.PESO_PILAR_SENTIM),
   };
 }
 
@@ -93,7 +110,7 @@ function orquestrarScreener() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
   SysLogger.log('Screener', 'START',
-    '>>> SCREENER QUANTITATIVO v6.0 — TRAVA DE ALTA COM PUT <<<',
+    '>>> SCREENER QUANTITATIVO v7.0 — MODELO ADAPTATIVO (CAMINHO 4) <<<',
     JSON.stringify({ config: C, ts: new Date().toISOString() })
   );
 
@@ -149,16 +166,16 @@ function orquestrarScreener() {
   aposCorrel.forEach(function(tk) { setElegivel[tk] = mapaM9Alta[tk]; });
 
   // ── 2. Enrichment maps (BEST_RATES + DADOS_ATIVOS) ────────────────────────
-  var enrichment = _screener_lerEnrichmentMaps(ss);
+  var enrichment   = _screener_lerEnrichmentMaps(ss);
   var ivRankMap    = enrichment.ivRankMap;
   var profitRateMap = enrichment.profitRateMap;
 
   SysLogger.log('Screener', 'INFO',
     'Enrichment: ' + Object.keys(ivRankMap).length + ' tickers com IV_RANK | ' +
-    Object.keys(profitRateMap).length + ' opções com PROFIT_RATE'
+    Object.keys(profitRateMap).length + ' opções OPLab Top'
   );
 
-  // ── 3. PORTA 4: Opções (SCANNER_OPCOES) ───────────────────────────────────
+  // ── 3. PORTA 4: Opções (filtro largo — sem exclusão por distância) ─────────
   var todasPuts = _screener_lerOpcoesPUT(ss);
 
   SysLogger.log('Screener', 'INFO',
@@ -171,28 +188,25 @@ function orquestrarScreener() {
     return;
   }
 
-  // Filtra por ticker elegível + DTE + distância dinâmica
   var candidatas = todasPuts.filter(function(op) {
     if (!setElegivel.hasOwnProperty(op.ticker)) return false;
     if (op.dte < C.DTE_MIN || op.dte > C.DTE_MAX) return false;
-
-    var distPct = (op.ssr - 1) * 100;
-    if (distPct < _screener_distMinPct(op.spot)) return false;
     if (op.ssr > C.SSR_MAX) return false;
 
-    // >>> AJUSTE DA MESA DE RISCO: CORTE ANTI-CEMITÉRIO PARA VENDAS <<<
+    // Corte anti-cemitério: apenas VENDAs sem liquidez mínima são eliminadas.
+    // Distância não exclui mais — opções próximas do dinheiro passam para ser
+    // avaliadas pelo score (Pilar Técnico penaliza elasticamente a proximidade).
     var papelTemp = (op.ssr <= C.SSR_VENDA_MAX) ? 'VENDA' : 'COMPRA';
-    if (papelTemp === 'VENDA' && (op.volFin || 0) < 50000) {
-      return false; // Rejeita sumariamente Vendas sem liquidez
-    }
-    // >>> ========================================================== <<<
+    if (papelTemp === 'VENDA' && (op.volFin || 0) < C.VOL_FIN_MIN_VENDA) return false;
 
     return true;
   });
 
   SysLogger.log('Screener', 'INFO',
-    'Candidatas após filtro DTE/distância: ' + candidatas.length +
-    ' (DTE ' + C.DTE_MIN + '–' + C.DTE_MAX + ' | dist.mín. dinâmica | SSR_MAX=' + C.SSR_MAX + ')'
+    'Candidatas após Porta 4 (filtro largo): ' + candidatas.length +
+    ' (DTE ' + C.DTE_MIN + '–' + C.DTE_MAX +
+    ' | VOL_MIN_VENDA=R$' + C.VOL_FIN_MIN_VENDA.toLocaleString() +
+    ' | SSR_MAX=' + C.SSR_MAX + ')'
   );
 
   if (candidatas.length === 0) {
@@ -203,49 +217,34 @@ function orquestrarScreener() {
     return;
   }
 
-  // Enriquece e classifica cada candidata
+  // ── 4. PORTA 5: Enrichment + Matriz Quantamental ──────────────────────────
   candidatas.forEach(function(op) {
-    op.ivRank = ivRankMap[op.ticker] || 0;
-    // PROFIT_RATE calculado diretamente de premio/strike × 100 (métrica bruta consistente).
-    // BEST_RATES e RETURN_ON_STRIKE são descartados aqui: ambos usam bases diferentes
-    // por ativo (raw vs. anualizado por OPLab), gerando valores incomparáveis entre opções.
+    op.ivRank    = ivRankMap[op.ticker] || 0;
     op.profitRate = op.strike > 0 ? parseFloat((op.premio / op.strike * 100).toFixed(2)) : 0;
-    op.m9Value   = 'Alta';
     op.papel     = (op.ssr <= C.SSR_VENDA_MAX) ? 'VENDA' : 'COMPRA';
     if (!op.empresa && mapaVolumes[op.ticker]) op.empresa = mapaVolumes[op.ticker].empresa;
     if (!op.setor   && mapaVolumes[op.ticker]) op.setor   = mapaVolumes[op.ticker].setor;
+
+    op.notaQuantamental = _screener_calcularNotaQuantamental(op, C);
   });
 
-  // ── 4. PORTA 5: Ordena pernas ─────────────────────────────────────────────
   var vendas  = candidatas.filter(function(op) { return op.papel === 'VENDA'; });
   var compras = candidatas.filter(function(op) { return op.papel === 'COMPRA'; });
 
-  // Score para VENDAs: IV_RANK(40%) + PROFIT_RATE(35%) + VOL_FIN(25%)
-  if (vendas.length > 0) {
-    var maxIv     = Math.max.apply(null, vendas.map(function(o) { return o.ivRank    || 0; }));
-    var maxProfit = Math.max.apply(null, vendas.map(function(o) { return o.profitRate || 0; }));
-    var maxVol    = Math.max.apply(null, vendas.map(function(o) { return o.volFin     || 0; }));
-    vendas.forEach(function(op) {
-      var s = 0;
-      if (maxIv     > 0) s += (op.ivRank     / maxIv)     * C.PESO_IV_RANK;
-      if (maxProfit > 0) s += (op.profitRate  / maxProfit)  * C.PESO_PROFIT;
-      if (maxVol    > 0) s += (op.volFin      / maxVol)     * C.PESO_VOLUME;
-      op.score = parseFloat(s.toFixed(1));
-    });
-    vendas.sort(function(a, b) { return b.score - a.score; });
-  }
+  // VENDAs: maior nota primeiro
+  vendas.sort(function(a, b) { return b.notaQuantamental - a.notaQuantamental; });
 
-  // COMPRAs: mais próxima primeiro (SSR asc = menor custo de proteção)
+  // COMPRAs: proteção mais próxima primeiro (menor custo de hedge)
   compras.sort(function(a, b) { return a.ssr - b.ssr; });
 
-  // ── 5. PORTA 6: Agrupa por ticker+DTE (somente spreads completos) ─────────
+  // ── 5. PORTA 6: Agrupa por ticker+DTE — spreads completos, ordenados por nota
   var resultado = _screener_agruparPorTicker(vendas, compras, C.MAX_RESULTADOS);
 
   // Tags de observação
   resultado.forEach(function(op) {
     var tags = [];
     if (op.papel === 'VENDA') {
-      if (op.ivRank >= C.TAG_IV_RANK_ALTO) tags.push('IV Alto');
+      if (op.notaQuantamental >= 70) tags.push('Nota Alta');
       if (profitRateMap[op.optionTicker] !== undefined) tags.push('OPLab Top');
       tags.push('Tendência Alta');
     } else {
@@ -274,15 +273,15 @@ function orquestrarScreener() {
       op.spot,                                                                  // SPOT
       op.strike,                                                                // STRIKE
       parseFloat(((op.ssr - 1) * 100).toFixed(2)),                             // DIST_SPOT_PCT
-      parseFloat((op.premio    || 0).toFixed(2)),                              // PREMIO
-      parseFloat((op.profitRate || 0).toFixed(2)),                             // PROFIT_RATE
-      parseFloat((op.ivRank    || 0).toFixed(1)),                              // IV_RANK
-      parseFloat((op.delta     || 0).toFixed(4)),                              // DELTA
-      parseFloat((op.theta     || 0).toFixed(4)),                              // THETA
-      op.m9Value,                                                               // M9M21_VALUE
+      parseFloat((op.premio     || 0).toFixed(2)),                             // PREMIO
+      parseFloat((op.profitRate  || 0).toFixed(2)),                            // PROFIT_RATE
+      parseFloat((op.ivRank     || 0).toFixed(1)),                             // IV_RANK
+      parseFloat((op.delta      || 0).toFixed(4)),                             // DELTA
+      parseFloat((op.theta      || 0).toFixed(4)),                             // THETA
+      parseFloat((op.notaQuantamental || 0).toFixed(1)),                       // NOTA_QUANTAMENTAL
       Math.round(op.volFin || 0),                                              // VOL_FIN_OPCAO
       op.observacao,                                                            // OBSERVACAO
-      Utilities.formatDate(now, tz, 'dd/MM/yyyy HH:mm')                        // ATUALIZADO_EM
+      Utilities.formatDate(now, tz, 'dd/MM/yyyy HH:mm')                       // ATUALIZADO_EM
     ];
   });
 
@@ -304,7 +303,59 @@ function orquestrarScreener() {
   SysLogger.flush();
 }
 
-// ─── Agrupamento por ticker+DTE — somente spreads completos ──────────────────
+// ─── Motor de Pontuação Quantamental (0–100) ──────────────────────────────────
+/**
+ * Calcula a nota quantamental de uma opção candidata.
+ *
+ * PILAR TÉCNICO (max C.PESO_PILAR_TECNICO pts):
+ *   70% → distância OTM: penalização elástica se abaixo da dist. ideal por SPOT.
+ *   30% → força de tendência: M9M21_TREND=1 garante nota máxima do sub-pilar.
+ *
+ * PILAR DERIVATIVOS (max C.PESO_PILAR_DERIVAT pts):
+ *   50% → eficiência de capital: premio/strike; 5% = nota máxima do sub-pilar.
+ *   50% → IV_RANK: maior volatilidade implícita = venda mais vantajosa.
+ *
+ * PILAR SENTIMENTO (max C.PESO_PILAR_SENTIM pts):
+ *   Placeholder para API de notícias. Padrão: 75% do pilar (nota neutra).
+ */
+function _screener_calcularNotaQuantamental(op, C) {
+  // ── Pilar Técnico ────────────────────────────────────────────────────────
+  var maxTecnico  = C.PESO_PILAR_TECNICO;
+  var maxDistancia = maxTecnico * 0.70;
+  var maxTendencia = maxTecnico * 0.30;
+
+  var distIdeal = _screener_distMinPct(op.spot);
+  var distReal  = (op.ssr - 1) * 100;
+  var notaDist  = distReal >= distIdeal
+    ? maxDistancia
+    : Math.max(0, maxDistancia * (distReal / distIdeal));
+
+  var notaTendencia = maxTendencia; // todos passaram Porta 2 (M9M21_TREND=1)
+
+  var notaTecnica = notaDist + notaTendencia;
+
+  // ── Pilar Derivativos ────────────────────────────────────────────────────
+  var maxDeriv   = C.PESO_PILAR_DERIVAT;
+  var maxEfic    = maxDeriv * 0.50;
+  var maxIvRank  = maxDeriv * 0.50;
+
+  // Eficiência: 5% de retorno sobre strike = nota máxima; proporcional abaixo
+  var notaEfic   = Math.min(op.profitRate / 5.0, 1.0) * maxEfic;
+
+  // IV_RANK: 0–100 → escala linear
+  var notaIv     = (op.ivRank / 100) * maxIvRank;
+
+  var notaDeriv  = notaEfic + notaIv;
+
+  // ── Pilar Sentimento ─────────────────────────────────────────────────────
+  // Placeholder: 75% do peso máximo como score neutro.
+  // Integrar API de sentimento aqui quando disponível.
+  var notaSentimento = C.PESO_PILAR_SENTIM * 0.75;
+
+  return parseFloat((notaTecnica + notaDeriv + notaSentimento).toFixed(1));
+}
+
+// ─── Agrupamento por ticker+DTE — spreads completos, grupos por nota ──────────
 function _screener_agruparPorTicker(vendas, compras, maxResultados) {
   var MAX_VENDA_POR_GRUPO  = 3;
   var MAX_COMPRA_POR_GRUPO = 3;
@@ -319,33 +370,29 @@ function _screener_agruparPorTicker(vendas, compras, maxResultados) {
   vendas.forEach(adicionar);
   compras.forEach(adicionar);
 
-  // Ordena grupos: ticker alfabético, DTE crescente
+  // Ordena grupos pela NOTA_QUANTAMENTAL da melhor VENDA (maior nota = grupo prioritário)
   var chaves = Object.keys(grupos).sort(function(a, b) {
-    var ga = grupos[a], gb = grupos[b];
-    if (ga.ticker < gb.ticker) return -1;
-    if (ga.ticker > gb.ticker) return  1;
-    return ga.dte - gb.dte;
+    var notaA = grupos[a].vendas.length > 0 ? (grupos[a].vendas[0].notaQuantamental || 0) : 0;
+    var notaB = grupos[b].vendas.length > 0 ? (grupos[b].vendas[0].notaQuantamental || 0) : 0;
+    return notaB - notaA;
   });
 
   var resultado = [];
   chaves.forEach(function(chave) {
     var g = grupos[chave];
-    // Spread completo obrigatório: ao menos 1 VENDA + 1 COMPRA
     if (g.vendas.length === 0 || g.compras.length === 0) return;
 
-    // Pega as melhores Vendas limitadas pelo MAX_VENDA
     var melhoresVendas = g.vendas.slice(0, MAX_VENDA_POR_GRUPO);
 
-    // Filtra as compras garantindo um spread mínimo de R$ 0,50 do Strike da melhor Venda
+    // Spread mínimo de R$0,50 entre strike da melhor venda e strike da compra
     var melhorVendaStrike = melhoresVendas[0].strike;
     var comprasSeguras = g.compras.filter(function(compra) {
       return (melhorVendaStrike - compra.strike) >= 0.50;
     });
 
-    // Se após exigir 50 centavos de largura, não sobrar compra, descarta o grupo
     if (comprasSeguras.length === 0) return;
 
-    melhoresVendas.forEach(function(op)  { resultado.push(op); });
+    melhoresVendas.forEach(function(op) { resultado.push(op); });
     comprasSeguras.slice(0, MAX_COMPRA_POR_GRUPO).forEach(function(op) { resultado.push(op); });
   });
 
@@ -370,7 +417,6 @@ function _screener_filtrarCorrelacao(listaElegivel, mapaVolumes, mapaCorrel, cor
       return mapaCorrel[tk] && Math.abs(mapaCorrel[tk].correlValue) > correlMax;
     });
     if (!altaCorrel) { resultado = resultado.concat(grupo); return; }
-    // Mantém apenas o de maior volume de PUT
     grupo.sort(function(a, b) {
       return ((mapaVolumes[b] && mapaVolumes[b].volPut) || 0) -
              ((mapaVolumes[a] && mapaVolumes[a].volPut) || 0);
@@ -380,7 +426,7 @@ function _screener_filtrarCorrelacao(listaElegivel, mapaVolumes, mapaCorrel, cor
   return resultado;
 }
 
-// ─── Leitura de fontes ────────────────────────────────────────────────────────
+// ─── Leitura de fontes (todas com getLastRow() cacheado) ─────────────────────
 
 function _screener_lerMaioresVolumes(ss) {
   var sheet = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.HIGHEST_VOL);
@@ -395,7 +441,6 @@ function _screener_lerMaioresVolumes(ss) {
     var ticker = String(row[colMap['TICKER']] || '').trim().toUpperCase();
     var volPut = parseFloat(row[colMap['VOLUME_PUT']]) || 0;
     var setor  = String(row[colMap['SECTOR']] || '').trim();
-    // Exclui ETFs/índices sem setor definido (IBOV, BOVA11, etc.)
     if (ticker && volPut > 0 && setor) {
       mapa[ticker] = {
         volPut:  volPut,
@@ -444,15 +489,14 @@ function _screener_lerCorrelIbov(ss) {
 }
 
 /**
- * Lê BEST_RATES e DADOS_ATIVOS para construir dois mapas de enrichment:
- *   ivRankMap     : TICKER → ivRank (0–100)
- *   profitRateMap : OPTION_TICKER → profitRate (%)
+ * Lê BEST_RATES e DADOS_ATIVOS:
+ *   ivRankMap     : TICKER → ivRank (0–100) para Pilar Derivativos
+ *   profitRateMap : OPTION_TICKER → tag "OPLab Top" (opção curada pelo OPLab)
  */
 function _screener_lerEnrichmentMaps(ss) {
   var ivRankMap    = {};
   var profitRateMap = {};
 
-  // 1. BEST_RATES: IV_RANK por ticker + PROFIT_RATE por opção
   var sheetBR = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.BEST_RATES);
   if (sheetBR) {
     var lastRowBR = sheetBR.getLastRow();
@@ -470,7 +514,6 @@ function _screener_lerEnrichmentMaps(ss) {
     }
   }
 
-  // 2. DADOS_ATIVOS: complementa IV_RANK para tickers do portfólio não cobertos pelo BEST_RATES
   var sheetDA = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.ASSETS);
   if (sheetDA) {
     var lastRowDA = sheetDA.getLastRow();
@@ -480,10 +523,7 @@ function _screener_lerEnrichmentMaps(ss) {
       dadosDA.forEach(function(row) {
         var ticker = String(row[cmDA['TICKER']] || '').trim().toUpperCase();
         var ivRank = parseFloat(row[cmDA['IV_RANK']]) || 0;
-        // Só sobrescreve se BEST_RATES não cobriu este ticker
-        if (ticker && ivRank > 0 && !ivRankMap[ticker]) {
-          ivRankMap[ticker] = ivRank;
-        }
+        if (ticker && ivRank > 0 && !ivRankMap[ticker]) ivRankMap[ticker] = ivRank;
       });
     }
   }
@@ -493,8 +533,8 @@ function _screener_lerEnrichmentMaps(ss) {
 
 /**
  * Lê SCANNER_OPCOES — fonte única de opções.
- * PREMIO = CLOSE se > 0, senão MID_PRICE.
- * Inclui DELTA, THETA e RETURN_ON_STRIKE para scoring e output.
+ * PREMIO = CLOSE || MID_PRICE.
+ * THETA recalculado via Black-Scholes quando zerado ou corrompido (|theta|/premio > 10%/dia).
  */
 function _screener_lerOpcoesPUT(ss) {
   var sheet = getPlanilhaDinamica(ss, SYS_CONFIG.SHEETS.SELECTION_OPT);
@@ -504,7 +544,7 @@ function _screener_lerOpcoesPUT(ss) {
   var colMap = DataUtils.getColMap(sheet);
   var dados  = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
 
-  // Lê SELIC uma única vez fora do loop (evita sheet read por opção com theta corrompido)
+  // SELIC lida uma única vez fora do loop
   var cfgSelic = ConfigManager.get();
   var selicStr = String(cfgSelic['Taxa_Selic_Anual'] || '0.1075').replace(',', '.');
   var SELIC    = parseFloat(selicStr) || 0.1075;
@@ -522,22 +562,20 @@ function _screener_lerOpcoesPUT(ss) {
     var ssr    = parseFloat(row[colMap['MONEYNESS_RATIO']]) || (spot / strike);
     var close  = parseFloat(row[colMap['CLOSE']]) || 0;
     var mid    = parseFloat(row[colMap['MID_PRICE']]) || 0;
-    var premio = close > 0 ? close : mid;  // preço real; fallback spread médio
+    var premio = close > 0 ? close : mid;
 
     var expiryRaw = row[colMap['EXPIRY']];
     var expiry = (expiryRaw instanceof Date && !isNaN(expiryRaw)) ? expiryRaw : null;
     if (!expiry) {
-      // Fallback: extrai data do CONTRACT_DESC (ex: "PETR4 ON, R$ 32.00, 19-06-2026")
       var m = String(row[colMap['CONTRACT_DESC']] || '').match(/(\d{2})-(\d{2})-(\d{4})/);
       if (m) expiry = new Date(+m[3], +m[2] - 1, +m[1]);
     }
 
-    var dte    = parseFloat(row[colMap['DTE_CALENDAR']]) || 0;
-    var delta  = parseFloat(row[colMap['DELTA']]) || 0;
-    var theta  = parseFloat(row[colMap['THETA']]) || 0;
+    var dte   = parseFloat(row[colMap['DTE_CALENDAR']]) || 0;
+    var delta = parseFloat(row[colMap['DELTA']]) || 0;
+    var theta = parseFloat(row[colMap['THETA']]) || 0;
 
-    // Recalcula THETA quando zerado OU quando a razão |theta|/premio > 10% por dia
-    // (ex: -0.47 em prêmio R$2.06 = 22%/dia — fisicamente impossível, dado corrompido)
+    // Recalcula THETA quando zerado ou corrompido (|theta|/premio > 10%/dia)
     var thetaRatio = premio > 0 ? Math.abs(theta) / premio : 0;
     if ((theta === 0 || thetaRatio > 0.10) && premio > 0 && spot > 0 && strike > 0 && dte > 0) {
       try {
@@ -572,13 +610,13 @@ function _screener_lerOpcoesPUT(ss) {
 // ─── Utilitários ─────────────────────────────────────────────────────────────
 
 /**
- * Distância mínima OTM (%) por faixa de preço do ativo.
- * Ações baratas: centavos = % relevante → exige mais colchão.
+ * Distância mínima OTM ideal (%) por faixa de preço do ativo.
+ * Usada como referência no Pilar Técnico do scoring quantamental.
  */
 function _screener_distMinPct(spot) {
-  if (spot < 10)  return 5.0;  // SPOT < R$10
-  if (spot <= 35) return 4.0;  // R$10–R$35 (zona de ouro)
-  return 3.0;                  // SPOT > R$35 (pesos-pesados)
+  if (spot < 10)  return 5.0;
+  if (spot <= 35) return 4.0;
+  return 3.0;
 }
 
 function _screener_garantirAba(ss) {
@@ -588,26 +626,24 @@ function _screener_garantirAba(ss) {
     sheet = ss.insertSheet(nome);
     SysLogger.log('Screener', 'INFO', 'Aba "' + nome + '" criada.');
   }
-  // Limpa cabeçalho inteiro para não deixar colunas órfãs de versões anteriores
   var lastCol = sheet.getLastColumn();
   if (lastCol > 0) sheet.getRange(1, 1, 1, lastCol).clearContent();
   sheet.getRange(1, 1, 1, SCREENER_HEADERS.length).setValues([SCREENER_HEADERS]);
-  // Formata VOL_FIN_OPCAO (col 18) como inteiro
-  sheet.getRange(2, 18, sheet.getMaxRows() - 1, 1).setNumberFormat('#,##0');
+  sheet.getRange(2, 17, sheet.getMaxRows() - 1, 1).setNumberFormat('0.0');   // NOTA_QUANTAMENTAL
+  sheet.getRange(2, 18, sheet.getMaxRows() - 1, 1).setNumberFormat('#,##0'); // VOL_FIN_OPCAO
   return sheet;
 }
 
 // ─── Teste / Diagnóstico ─────────────────────────────────────────────────────
 function testScreenerQuantitativo() {
-  console.log('=== DIAGNÓSTICO 019_Screener_Quantitativo v6.0 ===');
+  console.log('=== DIAGNÓSTICO 019_Screener_Quantitativo v7.0 (Caminho 4) ===');
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var C  = _screener_lerConfig();
 
   console.log('Config: TOP=' + C.TOP_VOLUME + ' | DTE=' + C.DTE_MIN + '–' + C.DTE_MAX +
-    ' | SSR_VENDA_MAX=' + C.SSR_VENDA_MAX + ' | SSR_MAX=' + C.SSR_MAX +
-    ' | DIST_MIN dinâmica (5%/<R$10 | 4%/R$10–35 | 3%/>R$35)');
+    ' | VOL_MIN_VENDA=R$' + C.VOL_FIN_MIN_VENDA +
+    ' | Pilares: T=' + C.PESO_PILAR_TECNICO + ' D=' + C.PESO_PILAR_DERIVAT + ' S=' + C.PESO_PILAR_SENTIM);
 
-  // Pipeline de ativos
   var mapaVol  = _screener_lerMaioresVolumes(ss);
   var mapaM9   = _screener_lerM9M21Alta(ss);
   var mapaCorr = _screener_lerCorrelIbov(ss);
@@ -625,7 +661,7 @@ function testScreenerQuantitativo() {
   console.log('PORTA 2 (M9=Alta): ' + aposM9.join(', '));
   console.log('PORTA 3 (Correl<' + C.CORREL_MAX + '): ' + aposCorr.join(', '));
   console.log('Enrichment: IV_RANK para ' + Object.keys(enrich.ivRankMap).length +
-    ' tickers | PROFIT_RATE para ' + Object.keys(enrich.profitRateMap).length + ' opções');
+    ' tickers | ' + Object.keys(enrich.profitRateMap).length + ' opções OPLab Top');
   console.log('Total PUTs no SCANNER_OPCOES: ' + puts.length);
 
   var setElig = {};
@@ -634,28 +670,28 @@ function testScreenerQuantitativo() {
   var cands = puts.filter(function(op) {
     if (!setElig.hasOwnProperty(op.ticker)) return false;
     if (op.dte < C.DTE_MIN || op.dte > C.DTE_MAX) return false;
-    var dist = (op.ssr - 1) * 100;
-    return dist >= _screener_distMinPct(op.spot) && op.ssr <= C.SSR_MAX;
+    if (op.ssr > C.SSR_MAX) return false;
+    var papelTemp = (op.ssr <= C.SSR_VENDA_MAX) ? 'VENDA' : 'COMPRA';
+    if (papelTemp === 'VENDA' && (op.volFin || 0) < C.VOL_FIN_MIN_VENDA) return false;
+    return true;
   });
 
   cands.forEach(function(op) {
-    var papel    = op.ssr <= C.SSR_VENDA_MAX ? 'VENDA' : 'COMPRA';
-    var ivRank   = enrich.ivRankMap[op.ticker] || 0;
-    var profit   = enrich.profitRateMap[op.optionTicker] !== undefined
-                   ? enrich.profitRateMap[op.optionTicker]
-                   : op.returnOnStrike * 100;
+    var papel  = op.ssr <= C.SSR_VENDA_MAX ? 'VENDA' : 'COMPRA';
+    op.ivRank    = enrich.ivRankMap[op.ticker] || 0;
+    op.profitRate = op.strike > 0 ? parseFloat((op.premio / op.strike * 100).toFixed(2)) : 0;
+    var nota   = _screener_calcularNotaQuantamental(op, C);
     console.log('  [' + papel + '] ' + op.optionTicker + ' | ' + op.ticker +
-      ' | DTE=' + op.dte + ' | dist=' + ((op.ssr-1)*100).toFixed(1) + '%' +
+      ' | dist=' + ((op.ssr-1)*100).toFixed(1) + '%' +
       ' | premio=R$' + (op.premio||0).toFixed(2) +
-      ' | profit=' + profit.toFixed(2) + '%' +
-      ' | IV_RANK=' + ivRank.toFixed(1) +
-      ' | delta=' + (op.delta||0).toFixed(3) +
-      ' | theta=' + (op.theta||0).toFixed(3) +
+      ' | profit=' + (op.profitRate||0).toFixed(2) + '%' +
+      ' | IV_RANK=' + (op.ivRank||0).toFixed(1) +
+      ' | NOTA=' + nota.toFixed(1) +
       ' | vol=R$' + Math.round(op.volFin).toLocaleString('pt-BR'));
   });
 
-  var nVenda  = cands.filter(function(o) { return o.ssr <= C.SSR_VENDA_MAX; }).length;
-  var nCompra = cands.filter(function(o) { return o.ssr >  C.SSR_VENDA_MAX; }).length;
-  console.log('Candidatas: ' + cands.length + ' (' + nVenda + ' VENDA + ' + nCompra + ' COMPRA)');
+  var nV = cands.filter(function(o) { return o.ssr <= C.SSR_VENDA_MAX; }).length;
+  var nC = cands.filter(function(o) { return o.ssr >  C.SSR_VENDA_MAX; }).length;
+  console.log('Candidatas: ' + cands.length + ' (' + nV + ' VENDA + ' + nC + ' COMPRA)');
   console.log('=== FIM ===');
 }
