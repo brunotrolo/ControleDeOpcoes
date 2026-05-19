@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="42" fill="#0f172a"/>
+  <!-- Strike VENDA -->
+  <rect x="28" y="72" width="136" height="14" rx="7" fill="#3b82f6"/>
+  <!-- Strike COMPRA -->
+  <rect x="28" y="106" width="100" height="14" rx="7" fill="#10b981"/>
+  <!-- Seta entre as barras -->
+  <line x1="150" y1="86" x2="150" y2="106" stroke="#94a3b8" stroke-width="2" stroke-dasharray="3 2"/>
+  <!-- Label PUT -->
+  <text x="96" y="61" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="22" font-weight="800" fill="#f1f5f9">PUT</text>
+  <!-- Label TRAVA -->
+  <text x="96" y="148" text-anchor="middle" font-family="-apple-system,sans-serif" font-size="14" font-weight="600" fill="#94a3b8">TRAVA DE ALTA</text>
+</svg>
