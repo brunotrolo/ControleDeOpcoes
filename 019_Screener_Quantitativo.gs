@@ -110,13 +110,16 @@ function orquestrarScreener() {
   var mapaM9Alta  = _screener_lerM9M21Alta(ss);
   var mapaCorrel  = _screener_lerCorrelIbov(ss);
 
+  var nVol = Object.keys(mapaVolumes).length;
+  var nM9  = Object.keys(mapaM9Alta).length;
+
   SysLogger.log('Screener', 'INFO',
-    'Fontes de ativos: ' + Object.keys(mapaVolumes).length + ' (Volume) | ' +
-    Object.keys(mapaM9Alta).length + ' (M9=Alta) | ' +
+    'Fontes de ativos: ' + nVol + ' (Volume) | ' +
+    nM9 + ' (M9=Alta) | ' +
     Object.keys(mapaCorrel).length + ' (CorrelIbov)'
   );
 
-  if (Object.keys(mapaVolumes).length === 0 || Object.keys(mapaM9Alta).length === 0) {
+  if (nVol === 0 || nM9 === 0) {
     SysLogger.log('Screener', 'AVISO', 'Abas de ativos vazias. Execute módulos 016–018 antes.');
     SysLogger.flush();
     return;
@@ -210,11 +213,13 @@ function orquestrarScreener() {
 
   // ── 4. PORTA 5: Enrichment + Matriz Quantamental ──────────────────────────
   candidatas.forEach(function(op) {
-    op.ivRank    = ivRankMap[op.ticker] || 0;
-    op.profitRate = profitRateMap[op.optionTicker] !== undefined
-                    ? profitRateMap[op.optionTicker]
+    op.ivRank     = ivRankMap[op.ticker] || 0;
+    var oplabRate = profitRateMap[op.optionTicker];
+    op.isOplabTop = oplabRate !== undefined;
+    op.profitRate = op.isOplabTop
+                    ? oplabRate
                     : (op.strike > 0 ? parseFloat((op.premio / op.strike * 100).toFixed(2)) : 0);
-    op.papel     = (op.ssr <= C.SSR_VENDA_MAX) ? 'VENDA' : 'COMPRA';
+    op.papel      = (op.ssr <= C.SSR_VENDA_MAX) ? 'VENDA' : 'COMPRA';
     if (!op.empresa && mapaVolumes[op.ticker]) op.empresa = mapaVolumes[op.ticker].empresa;
     if (!op.setor   && mapaVolumes[op.ticker]) op.setor   = mapaVolumes[op.ticker].setor;
 
@@ -233,14 +238,17 @@ function orquestrarScreener() {
   // ── 5. PORTA 6: Agrupa por ticker+DTE — spreads completos, ordenados por nota
   var resultado = _screener_agruparPorTicker(vendas, compras, C.MAX_RESULTADOS);
 
-  // Tags de observação
+  // Tags de observação + contadores para o log final
+  var nVenda = 0, nCompra = 0;
   resultado.forEach(function(op) {
     var tags = [];
     if (op.papel === 'VENDA') {
+      nVenda++;
       if (op.notaQuantamental >= 70) tags.push('Nota Alta');
-      if (profitRateMap[op.optionTicker] !== undefined) tags.push('OPLab Top');
+      if (op.isOplabTop) tags.push('OPLab Top');
       tags.push('Tendência Alta');
     } else {
+      nCompra++;
       tags.push('Proteção');
     }
     op.observacao = tags.join(' | ');
@@ -249,7 +257,7 @@ function orquestrarScreener() {
   // ── 6. Grava resultado ────────────────────────────────────────────────────
   var sheet = _screener_garantirAba(ss);
   var ultimaLinha = sheet.getLastRow();
-  if (ultimaLinha > 1) sheet.getRange(2, 1, ultimaLinha - 1, sheet.getLastColumn()).clearContent();
+  if (ultimaLinha > 1) sheet.getRange(2, 1, ultimaLinha - 1, SCREENER_HEADERS.length).clearContent();
 
   var now = new Date();
   var tz  = Session.getScriptTimeZone();
@@ -281,8 +289,6 @@ function orquestrarScreener() {
   if (linhas.length > 0) sheet.getRange(2, 1, linhas.length, SCREENER_HEADERS.length).setValues(linhas);
   SpreadsheetApp.flush();
 
-  var nVenda  = resultado.filter(function(o) { return o.papel === 'VENDA';  }).length;
-  var nCompra = resultado.filter(function(o) { return o.papel === 'COMPRA'; }).length;
   var duracao = ((Date.now() - tInicio) / 1000).toFixed(1);
 
   SysLogger.log('Screener', 'FINISH',
@@ -622,8 +628,9 @@ function _screener_garantirAba(ss) {
   var lastCol = sheet.getLastColumn();
   if (lastCol > 0) sheet.getRange(1, 1, 1, lastCol).clearContent();
   sheet.getRange(1, 1, 1, SCREENER_HEADERS.length).setValues([SCREENER_HEADERS]);
-  sheet.getRange(2, 17, sheet.getMaxRows() - 1, 1).setNumberFormat('0.0');   // NOTA_QUANTAMENTAL
-  sheet.getRange(2, 18, sheet.getMaxRows() - 1, 1).setNumberFormat('#,##0'); // VOL_FIN_OPCAO
+  var maxLinhas = SCREENER_CONFIG.MAX_RESULTADOS + 2;
+  sheet.getRange(2, 17, maxLinhas, 1).setNumberFormat('0.0');   // NOTA_QUANTAMENTAL
+  sheet.getRange(2, 18, maxLinhas, 1).setNumberFormat('#,##0'); // VOL_FIN_OPCAO
   return sheet;
 }
 
