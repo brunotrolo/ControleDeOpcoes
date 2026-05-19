@@ -1,7 +1,7 @@
 {
-  "name": "Travas de Alta com PUT",
-  "short_name": "Travas PUT",
-  "description": "Screener de PUT Spreads para Trava de Alta — B3",
+  "name": "Controle de Opções",
+  "short_name": "Opções",
+  "description": "Painel de gestão de opções da B3",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -9,19 +9,12 @@
   "theme_color": "#0f172a",
   "orientation": "portrait-primary",
   "lang": "pt-BR",
-  "categories": ["finance"],
   "icons": [
     {
-      "src": "icon-192.svg",
-      "sizes": "192x192",
+      "src": "icon.svg",
+      "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "icon-512.svg",
-      "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ]
 }
