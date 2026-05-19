@@ -18,6 +18,7 @@ function onOpen(e) {
     const ui = SpreadsheetApp.getUi();
     ui.createMenu('⚙️ Automação')
         .addItem('🚀 Rodar Fluxo Mestre (Planilha)', 'executarFluxoSequencial')
+        .addItem('🤖 Scanner Completo (Sequência OPLab)', 'executarSequenciaScanner')
         .addSeparator()
         .addItem('📥 1. Atualizar Necton (Portfólio)', 'AtualizarNecton_Menu')
         .addItem('📈 2. Atualizar Dados Ativos (Ações)', 'AtualizarDadosAtivos_Menu')
@@ -34,8 +35,6 @@ function onOpen(e) {
         .addItem('🔗 9. Ranking Correlação IBOV',             'SyncCorrelIbovRanking_Menu')
         .addSeparator()
         .addItem('🎯 10. Screener Quantitativo (Trava de Alta PUT)', 'ScreenerQuantitativo_Menu')
-        .addSeparator()
-        .addItem('🤖 Scanner Completo (Sequência OPLab)', 'executarSequenciaScanner')
         .addToUi();
   } catch (err) {
     console.warn("[onOpen] Interface indisponível.");

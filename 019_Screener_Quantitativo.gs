@@ -53,6 +53,17 @@ var SCREENER_CONFIG = {
   PESO_PILAR_TECNICO:    40,
   PESO_PILAR_DERIVAT:    40,
   PESO_PILAR_SENTIM:     20,
+  TOP_VOLUME:       40,
+  MAX_RESULTADOS:   80,
+  DTE_MIN:          15,
+  DTE_MAX:          60,
+  SSR_MAX:          1.30,
+  SSR_VENDA_MAX:    1.08,
+  CORREL_MAX:       0.70,
+  PESO_IV_RANK:     40,
+  PESO_PROFIT:      35,
+  PESO_VOLUME:      25,
+  TAG_IV_RANK_ALTO: 60,
 };
 
 var SCREENER_HEADERS = [
