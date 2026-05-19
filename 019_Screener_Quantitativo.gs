@@ -42,28 +42,19 @@
 
 // ─── Defaults ────────────────────────────────────────────────────────────────
 var SCREENER_CONFIG = {
-  TOP_VOLUME:            20,
-  MAX_RESULTADOS:        60,
-  DTE_MIN:               15,
-  DTE_MAX:               45,
-  VOL_FIN_MIN_VENDA:     15000,
-  SSR_MAX:               1.30,
-  SSR_VENDA_MAX:         1.08,
-  CORREL_MAX:            0.75,
+  TOP_VOLUME:            20,     // Porta 1
+  MAX_RESULTADOS:        60,     // Limite de linhas na planilha
+  DTE_MIN:               15,     // Dias mínimos
+  DTE_MAX:               45,     // Dias máximos
+  VOL_FIN_MIN_VENDA:     15000,  // Filtro anti-fantasma largo
+  SSR_MAX:               1.30,   // Corte máximo de distância
+  SSR_VENDA_MAX:         1.08,   // Fronteira entre Venda/Compra (Spot/Strike)
+  CORREL_MAX:            0.75,   // Limite de dedup setorial afrouxado
+
+  // Pesos da Matriz Quantamental
   PESO_PILAR_TECNICO:    40,
   PESO_PILAR_DERIVAT:    40,
-  PESO_PILAR_SENTIM:     20,
-  TOP_VOLUME:       40,
-  MAX_RESULTADOS:   80,
-  DTE_MIN:          15,
-  DTE_MAX:          60,
-  SSR_MAX:          1.30,
-  SSR_VENDA_MAX:    1.08,
-  CORREL_MAX:       0.70,
-  PESO_IV_RANK:     40,
-  PESO_PROFIT:      35,
-  PESO_VOLUME:      25,
-  TAG_IV_RANK_ALTO: 60,
+  PESO_PILAR_SENTIM:     20
 };
 
 var SCREENER_HEADERS = [
@@ -220,7 +211,9 @@ function orquestrarScreener() {
   // ── 4. PORTA 5: Enrichment + Matriz Quantamental ──────────────────────────
   candidatas.forEach(function(op) {
     op.ivRank    = ivRankMap[op.ticker] || 0;
-    op.profitRate = op.strike > 0 ? parseFloat((op.premio / op.strike * 100).toFixed(2)) : 0;
+    op.profitRate = profitRateMap[op.optionTicker] !== undefined
+                    ? profitRateMap[op.optionTicker]
+                    : (op.strike > 0 ? parseFloat((op.premio / op.strike * 100).toFixed(2)) : 0);
     op.papel     = (op.ssr <= C.SSR_VENDA_MAX) ? 'VENDA' : 'COMPRA';
     if (!op.empresa && mapaVolumes[op.ticker]) op.empresa = mapaVolumes[op.ticker].empresa;
     if (!op.setor   && mapaVolumes[op.ticker]) op.setor   = mapaVolumes[op.ticker].setor;
@@ -679,7 +672,9 @@ function testScreenerQuantitativo() {
   cands.forEach(function(op) {
     var papel  = op.ssr <= C.SSR_VENDA_MAX ? 'VENDA' : 'COMPRA';
     op.ivRank    = enrich.ivRankMap[op.ticker] || 0;
-    op.profitRate = op.strike > 0 ? parseFloat((op.premio / op.strike * 100).toFixed(2)) : 0;
+    op.profitRate = enrich.profitRateMap[op.optionTicker] !== undefined
+                    ? enrich.profitRateMap[op.optionTicker]
+                    : (op.strike > 0 ? parseFloat((op.premio / op.strike * 100).toFixed(2)) : 0);
     var nota   = _screener_calcularNotaQuantamental(op, C);
     console.log('  [' + papel + '] ' + op.optionTicker + ' | ' + op.ticker +
       ' | dist=' + ((op.ssr-1)*100).toFixed(1) + '%' +
