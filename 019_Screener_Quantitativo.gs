@@ -1,36 +1,7 @@
 /**
- * @fileoverview 019_Screener_Quantitativo.gs - v7.0 (Caminho 4 — Modelo Adaptativo)
+ * @fileoverview 019_Screener_Quantitativo.gs - v7.0
  * ═══════════════════════════════════════════════════════════════
  * FUNIL QUANTAMENTAL — Trava de Alta com PUT
- *
- * ESTEIRA DE 6 PORTAS:
- *   PORTA 1 — Liquidez:    Top N ativos por vol. financeiro de PUT
- *   PORTA 2 — Tendência:   M9M21_TREND = 1 (média 9m acima da 21m)
- *   PORTA 3 — Correlação:  Dedup setorial via RANKING_CORREL_IBOV
- *   PORTA 4 — Opções:      Filtro largo (sem exclusão por distância).
- *             VENDAs exigem volFin ≥ VOL_FIN_MIN_VENDA (anti-cemitério).
- *             Classificadas VENDA ou COMPRA por SSR_VENDA_MAX.
- *   PORTA 5 — Scoring:     Matriz Quantamental 0–100 por 3 Pilares:
- *             Técnico (40): distância OTM + força de tendência.
- *             Derivativos (40): eficiência de capital + IV_RANK.
- *             Liquidez (20): volume financeiro relativo ao maior entre candidatas.
- *             VENDAs ordenadas por NOTA_QUANTAMENTAL desc; COMPRAs por
- *             distância asc (proteção mais próxima primeiro).
- *   PORTA 6 — Agrupamento: Só exibe spreads completos (VENDA + COMPRA,
- *             spread ≥ R$0,50 entre strikes). Grupos ordenados pela nota
- *             da melhor VENDA do grupo.
- *
- * FONTES DE DADOS:
- *   Opções    → SCANNER_OPCOES (única fonte: CLOSE, DELTA, THETA, volume)
- *   Enrichment→ BEST_RATES (IV_RANK por ticker; "OPLab Top" tag por opção)
- *   Fallback  → DADOS_ATIVOS (IV_RANK para tickers do portfólio)
- *
- * CHAVES CONFIG_GLOBAL (prefixo SCREENER_ — apenas 5 ajustáveis):
- *   SCREENER_TOP_VOLUME        | 20     Quantos ativos analisar (Porta 1)
- *   SCREENER_DTE_MAX           | 45     Vencimento máximo em dias
- *   SCREENER_SSR_MAX           | 1.30   Distância máxima OTM aceita
- *   SCREENER_VOL_FIN_MIN_VENDA | 5000   Piso anti-fantasma de liquidez
- *   SCREENER_MAX_RESULTADOS    | 60     Linhas máximas no output
  * ═══════════════════════════════════════════════════════════════
  */
 
