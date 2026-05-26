@@ -452,17 +452,31 @@ window.CardCarouselAtivas = {
   computed: {
     activeTrades: function() {
       var lista = (this.statsPreCalculados && this.statsPreCalculados.listaAtivas) ? this.statsPreCalculados.listaAtivas : [];
+
+      function vencTs(op) {
+        var d = op.dataVencimento;
+        if (!d) return 9999999999999;
+        var dt = (d instanceof Date) ? d : new Date(d);
+        if (isNaN(dt.getTime())) return 9999999999999;
+        // Normaliza para meia-noite para garantir agrupamento correto
+        return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).getTime();
+      }
+
       function moneynessOrdem(op) {
         var m = String(op.moneynessCode || '').toUpperCase();
         if (m.indexOf('ITM') >= 0) return 0;
         if (m.indexOf('ATM') >= 0) return 1;
         return 2; // OTM ou desconhecido
       }
+
       return lista.slice().sort(function(a, b) {
-        var dteDiff = (a.dteCorridos || 999) - (b.dteCorridos || 999);
-        if (dteDiff !== 0) return dteDiff;
+        // 1º: vencimento mais próximo (por data real, não DTE)
+        var dateDiff = vencTs(a) - vencTs(b);
+        if (dateDiff !== 0) return dateDiff;
+        // 2º: ITM → ATM → OTM
         var mDiff = moneynessOrdem(a) - moneynessOrdem(b);
         if (mDiff !== 0) return mDiff;
+        // 3º: ticker alfabético
         return (a.tickerAtivo || '').localeCompare(b.tickerAtivo || '');
       });
     },
