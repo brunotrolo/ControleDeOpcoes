@@ -479,11 +479,12 @@
                      style="display: flex; align-items: center; justify-content: space-between;
                             padding: 0.5rem 0.625rem; background: #fef2f2;
                             border: 1px solid #fca5a5; border-radius: var(--radius-md);">
-                  <span class="t-label-sm" style="color: #dc2626; text-transform: uppercase; font-weight: 700;">
-                    VENDA {{ formatMoney(card.venda.api.strike) }}
-                  </span>
+                  <div style="display: flex; flex-direction: column; gap: 0.125rem;">
+                    <span class="t-label-sm" style="color: #dc2626; text-transform: uppercase; font-weight: 700;">VENDA {{ formatMoney(card.venda.api.strike) }}</span>
+                    <span v-if="card.venda.api.delta != null" style="font-size: 9px; font-weight: 600; color: #b91c1c; font-family: 'JetBrains Mono', monospace;" :style="isMobile ? 'font-size: 13px;' : ''">Δ {{ formatDelta(card.venda.api.delta) }}</span>
+                  </div>
                   <div style="display: flex; align-items: center; gap: 0.375rem;">
-                    <button @click="ajustarPremioTrava(card.venda, -0.01)"
+                    <button @click="ajustarPremioTrava(card.venda.api, -0.01)"
                             style="display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);
                                    background: white; border: 1px solid #fca5a5; color: #dc2626; cursor: pointer; font-weight: 700;"
                             :style="isMobile ? 'width: 2.5rem; height: 2.5rem; font-size: 1.25rem;' : 'width: 1.5rem; height: 1.5rem; font-size: 0.875rem;'">−</button>
@@ -491,7 +492,7 @@
                           :style="isMobile ? 'font-size: 2rem;' : 'font-size: 1.125rem;'">
                       {{ formatMoney(card.venda.api.premioAtual).replace('R$ ', '').replace('R$ ', '') }}
                     </span>
-                    <button @click="ajustarPremioTrava(card.venda, 0.01)"
+                    <button @click="ajustarPremioTrava(card.venda.api, 0.01)"
                             style="display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);
                                    background: white; border: 1px solid #fca5a5; color: #dc2626; cursor: pointer; font-weight: 700;"
                             :style="isMobile ? 'width: 2.5rem; height: 2.5rem; font-size: 1.25rem;' : 'width: 1.5rem; height: 1.5rem; font-size: 0.875rem;'">+</button>
@@ -503,11 +504,12 @@
                      style="display: flex; align-items: center; justify-content: space-between;
                             padding: 0.5rem 0.625rem; background: #f0fdf4;
                             border: 1px solid #86efac; border-radius: var(--radius-md);">
-                  <span class="t-label-sm" style="color: #16a34a; text-transform: uppercase; font-weight: 700;">
-                    COMPRA {{ formatMoney(card.compra.api.strike) }}
-                  </span>
+                  <div style="display: flex; flex-direction: column; gap: 0.125rem;">
+                    <span class="t-label-sm" style="color: #16a34a; text-transform: uppercase; font-weight: 700;">COMPRA {{ formatMoney(card.compra.api.strike) }}</span>
+                    <span v-if="card.compra.api.delta != null" style="font-size: 9px; font-weight: 600; color: #15803d; font-family: 'JetBrains Mono', monospace;" :style="isMobile ? 'font-size: 13px;' : ''">Δ {{ formatDelta(card.compra.api.delta) }}</span>
+                  </div>
                   <div style="display: flex; align-items: center; gap: 0.375rem;">
-                    <button @click="ajustarPremioTrava(card.compra, -0.01)"
+                    <button @click="ajustarPremioTrava(card.compra.api, -0.01)"
                             style="display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);
                                    background: white; border: 1px solid #86efac; color: #16a34a; cursor: pointer; font-weight: 700;"
                             :style="isMobile ? 'width: 2.5rem; height: 2.5rem; font-size: 1.25rem;' : 'width: 1.5rem; height: 1.5rem; font-size: 0.875rem;'">−</button>
@@ -515,7 +517,7 @@
                           :style="isMobile ? 'font-size: 2rem;' : 'font-size: 1.125rem;'">
                       {{ formatMoney(card.compra.api.premioAtual).replace('R$ ', '').replace('R$ ', '') }}
                     </span>
-                    <button @click="ajustarPremioTrava(card.compra, 0.01)"
+                    <button @click="ajustarPremioTrava(card.compra.api, 0.01)"
                             style="display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);
                                    background: white; border: 1px solid #86efac; color: #16a34a; cursor: pointer; font-weight: 700;"
                             :style="isMobile ? 'width: 2.5rem; height: 2.5rem; font-size: 1.25rem;' : 'width: 1.5rem; height: 1.5rem; font-size: 0.875rem;'">+</button>
@@ -564,14 +566,28 @@
                     </span>
                   </div>
                   <div style="padding: 0.5rem; background: var(--surface-overlay); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
-                    <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.125rem;">ROC Bruto</span>
+                    <span class="comp-tip t-label-sm" style="color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.125rem;"
+                          data-tip="Crédito Líquido ÷ Largura × 100 — retorno sobre a garantia total do spread">ROC Bruto</span>
                     <span class="font-mono-data" style="font-weight: 700; color: var(--brand-emerald);"
                           :style="isMobile ? 'font-size: 1.75rem;' : 'font-size: 1rem;'">{{ formatPct(calcRocTrava(card)) }}</span>
                   </div>
                   <div style="padding: 0.5rem; background: var(--surface-overlay); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
-                    <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.125rem;">R/R</span>
+                    <span class="comp-tip t-label-sm" style="color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.125rem;"
+                          data-tip="Crédito ÷ (Largura − Crédito) — retorno por R$1 de risco. Ex: 0,40 = ganho 40¢ por real arriscado">R/R</span>
                     <span class="font-mono-data" style="font-weight: 700; color: #d97706;"
                           :style="isMobile ? 'font-size: 1.75rem;' : 'font-size: 1rem;'">{{ calcRR(card).toFixed(2) }}</span>
+                  </div>
+                  <div v-if="card.venda.api.delta != null && card.compra.api.delta != null"
+                       style="padding: 0.5rem; background: var(--surface-overlay); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); grid-column: span 2;">
+                    <span class="comp-tip t-label-sm" style="color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.125rem;"
+                          data-tip="Delta líquido do spread: −Δ(venda) + Δ(compra). Positivo = estrutura se beneficia de alta do ativo">Δ Delta Spread</span>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                      <span class="font-mono-data" style="font-weight: 700; color: var(--brand-indigo);"
+                            :style="isMobile ? 'font-size: 1.75rem;' : 'font-size: 1rem;'">{{ formatDelta(calcDeltaConsolidado(card)) }}</span>
+                      <span style="font-size: 9px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;" :style="isMobile ? 'font-size: 12px;' : ''">
+                        V: {{ formatDelta(card.venda.api.delta) }} / C: {{ formatDelta(card.compra.api.delta) }}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -579,7 +595,8 @@
                 <div style="display: flex; justify-content: space-between; align-items: center;
                              padding: 0.5rem 0.75rem; background: var(--brand-indigo-light);
                              border: 1px solid var(--brand-indigo-muted); border-radius: var(--radius-md);">
-                  <span class="t-label-sm" style="color: var(--brand-indigo); text-transform: uppercase; font-weight: 700;">ROC Anualizado</span>
+                  <span class="comp-tip t-label-sm" style="color: var(--brand-indigo); text-transform: uppercase; font-weight: 700;"
+                        data-tip="ROC Bruto ÷ DTE × 252 — projeta o retorno do spread para 1 ano de pregão (252 dias)">ROC Anualizado</span>
                   <span class="font-mono-data" style="font-weight: 700; color: var(--brand-indigo);"
                         :style="isMobile ? 'font-size: 2rem;' : 'font-size: 1.25rem;'">
                     {{ formatPct(calcRocAnualizadoTrava(card)) }} <span style="font-size: 0.6em; opacity: 0.7;">a.a.</span>
@@ -895,6 +912,19 @@
 
   .comp-toggle-desktop { font-size: 10px; }
   .comp-toggle-mobile  { font-size: 16px; }
+
+  /* Tooltip via data-tip */
+  .comp-tip { position: relative; cursor: help; text-decoration: underline dotted var(--text-muted); text-underline-offset: 3px; }
+  .comp-tip::after {
+    content: attr(data-tip);
+    position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+    background: #1e293b; color: #e2e8f0; font-size: 10px; line-height: 1.5;
+    padding: 5px 9px; border-radius: 6px; width: max-content; max-width: 220px; white-space: normal;
+    text-transform: none; letter-spacing: 0; font-weight: 400;
+    opacity: 0; pointer-events: none; transition: opacity 0.15s; z-index: 200;
+    border: 1px solid #334155; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+  .comp-tip:hover::after { opacity: 1; }
 
   @media (max-width: 480px) {
     .comp-delete-btn { opacity: 1 !important; }
@@ -1228,6 +1258,17 @@ window.ComparativoView = {
       const larg = this.calcLargura(c);
       const risco = larg - cred;
       return risco > 0 ? parseFloat((cred / risco).toFixed(2)) : 0;
+    },
+    // Delta líquido do spread: short PUT (flip sign) + long PUT
+    calcDeltaConsolidado(c) {
+      const dv = c.venda.api.delta || 0;  // negativo para PUT (ex: -0.35)
+      const dc = c.compra.api.delta || 0; // negativo para PUT (ex: -0.20)
+      return parseFloat((-dv + dc).toFixed(4)); // ex: 0.35 - 0.20 = +0.15
+    },
+    formatDelta(v) {
+      if (v == null || isNaN(v)) return '---';
+      const n = parseFloat(v);
+      return (n >= 0 ? '+' : '') + n.toFixed(2);
     },
     isTravaValida(c) {
       if (!c.venda.api.isValid || !c.compra.api.isValid) return false;

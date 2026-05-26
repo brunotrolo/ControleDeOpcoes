@@ -443,6 +443,26 @@ function apiIntegracaoOpLab(ticker) {
       SysLogger.log('apiIntegracaoOpLab', 'AVISO', 'Falha ao buscar IV de DADOS_ATIVOS: ' + eIV.message);
     }
 
+    // Calcula DELTA via Black-Scholes usando OptionMath (011_CoreCalcGreeks)
+    var delta = null;
+    try {
+      var S2     = parseFloat(data.spot_price || data.spot || 0);
+      var K2     = parseFloat(data.strike || 0);
+      var dte2   = parseInt(data.days_to_maturity || 0);
+      var T2     = Math.max(dte2, 1) / OptionMath.DIAS_ANO;
+      var r2     = taxaJuros / 100;
+      var flag2  = String(data.category || data.type || 'CALL').toUpperCase().indexOf('PUT') >= 0 ? 'p' : 'c';
+      var mktPrc = parseFloat(data.close > 0 ? data.close : (data.bid || 0));
+      var ivBS   = ivAtivo;
+      if (!ivBS && mktPrc > 0.01 && S2 > 0 && K2 > 0) {
+        ivBS = OptionMath.estimateIV(S2, K2, T2, r2, mktPrc, flag2);
+      }
+      if (ivBS > 0 && S2 > 0 && K2 > 0) {
+        var gk = OptionMath.calculate(S2, K2, T2, r2, ivBS, flag2);
+        delta = parseFloat((gk.delta || 0).toFixed(4));
+      }
+    } catch (eDelta) { /* silencioso */ }
+
     return {
       success: true,
       data: {
@@ -454,7 +474,8 @@ function apiIntegracaoOpLab(ticker) {
         dte:         parseInt(data.days_to_maturity    || 0),
         expiry:      expiry,
         taxaJuros:   taxaJuros,
-        ivAtivo:     ivAtivo       // null se nao encontrado -> frontend mostra campo manual
+        ivAtivo:     ivAtivo,
+        delta:       delta            // null se IV indisponivel
       }
     };
   } catch (e) {
