@@ -6,7 +6,9 @@
     <div class="premium-card"
          style="display: flex; flex-wrap: wrap; justify-content: space-between;
                 align-items: center; position: relative; z-index: 30;"
-         :style="isMobile ? 'padding: 1rem; gap: 1rem;' : 'padding: 1.5rem 2rem; gap: 1.5rem;'">
+         :style="isMobile ? 'padding: 1rem; gap: 1rem;' : 'padding: 1.5rem 2rem; gap: 1rem;'">
+
+      <!-- Título -->
       <div style="display: flex; align-items: center; gap: 1.25rem;">
         <div style="padding: 0.75rem; background: var(--brand-indigo-light); color: var(--brand-indigo);
                     border-radius: var(--radius-lg); border: 1px solid var(--brand-indigo-muted);">
@@ -25,6 +27,33 @@
         </div>
       </div>
 
+      <!-- Toggle de Modo -->
+      <div style="display: flex; gap: 0.25rem; padding: 0.25rem;
+                  background: var(--surface-base); border: 1px solid var(--border-default);
+                  border-radius: var(--radius-lg);"
+           :style="isMobile ? 'width: 100%;' : ''">
+        <button @click="setModo('PUT_SECO')"
+                :style="modo === 'PUT_SECO'
+                  ? 'background: var(--brand-indigo); color: #fff;'
+                  : 'background: transparent; color: var(--text-muted);'"
+                style="flex: 1; padding: 0.375rem 0.875rem; border: none; border-radius: var(--radius-md);
+                       font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer;
+                       transition: all 0.2s; white-space: nowrap;"
+                :class="isMobile ? 'comp-toggle-mobile' : 'comp-toggle-desktop'">
+          PUT Seco
+        </button>
+        <button @click="setModo('TRAVA_ALTA')"
+                :style="modo === 'TRAVA_ALTA'
+                  ? 'background: var(--brand-emerald); color: #fff;'
+                  : 'background: transparent; color: var(--text-muted);'"
+                style="flex: 1; padding: 0.375rem 0.875rem; border: none; border-radius: var(--radius-md);
+                       font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer;
+                       transition: all 0.2s; white-space: nowrap;"
+                :class="isMobile ? 'comp-toggle-mobile' : 'comp-toggle-desktop'">
+          Trava de Alta ↗
+        </button>
+      </div>
+
       <!-- Controles -->
       <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
                   background: var(--surface-overlay); border-radius: var(--radius-xl);
@@ -41,15 +70,22 @@
                          appearance: none; min-width: 140px; font-family: 'DM Sans', sans-serif;"
                   :style="isMobile ? 'font-size: 18px;' : 'font-size: 10px;'">
             <option value="padrao">Ordem Padrão</option>
-            <option value="lucro">💰 Maior Lucro %</option>
-            <option value="seguranca">🛡️ Maior Segurança</option>
-            <option value="premio">💵 Maior Prêmio</option>
+            <template v-if="modo === 'PUT_SECO'">
+              <option value="lucro">💰 Maior Lucro %</option>
+              <option value="seguranca">🛡️ Maior Segurança</option>
+              <option value="premio">💵 Maior Prêmio</option>
+            </template>
+            <template v-else>
+              <option value="roc">📈 Maior ROC a.a.</option>
+              <option value="seguranca">🛡️ Maior Segurança</option>
+              <option value="credito">💵 Maior Crédito</option>
+            </template>
           </select>
         </div>
 
         <div style="width: 1px; height: 1.5rem; background: var(--border-subtle);"></div>
 
-        <button @click="limparArena"
+        <button @click="modo === 'PUT_SECO' ? limparArena() : limparArenaTrava()"
                 style="padding: 0.5rem 0.75rem; background: var(--surface-base); border: 1px solid var(--border-default);
                        color: var(--text-muted); border-radius: var(--radius-md); cursor: pointer;"
                 title="Limpar Arena"
@@ -58,11 +94,11 @@
           <i data-lucide="eraser" style="width: 1rem; height: 1rem;"></i>
         </button>
 
-        <button @click="adicionarCard" class="btn-action btn-action-primary"
+        <button @click="modo === 'PUT_SECO' ? adicionarCard() : adicionarCardTrava()"
+                class="btn-action btn-action-primary"
                 style="padding: 0.5rem 1.25rem; border-radius: var(--radius-md);">
           <i data-lucide="plus" style="width: 1rem; height: 1rem;"></i>
-          <span style="margin-left: 0.25rem; font-weight: 700;
-                       text-transform: uppercase; letter-spacing: 0.12em;"
+          <span style="margin-left: 0.25rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em;"
                 :style="isMobile ? 'font-size: 18px;' : 'font-size: 10px;'">Adicionar</span>
         </button>
       </div>
@@ -76,326 +112,634 @@
              : 'flex-wrap: nowrap; overflow-x: auto; gap: 1.5rem; padding: 0.5rem 0.5rem 1.5rem; margin: 0 -0.5rem;'"
            class="log-scrollbar">
 
-        <!-- Skeleton -->
-        <template v-if="isLoading && cards.length === 0">
-          <div v-for="n in 3" :key="'skel-comp-'+n"
-               style="height: 500px; border-radius: var(--radius-xl);
-                      background: var(--surface-base); border: 1px solid var(--border-subtle);
-                      animation: comp-pulse 1.5s ease-in-out infinite;"
-               :style="isMobile ? 'width: 100%;' : 'width: 320px; flex-shrink: 0;'"></div>
+        <!-- ── PUT SECO ── -->
+        <template v-if="modo === 'PUT_SECO'">
+
+          <!-- Skeleton -->
+          <template v-if="isLoading && cards.length === 0">
+            <div v-for="n in 3" :key="'skel-comp-'+n"
+                 style="height: 500px; border-radius: var(--radius-xl);
+                        background: var(--surface-base); border: 1px solid var(--border-subtle);
+                        animation: comp-pulse 1.5s ease-in-out infinite;"
+                 :style="isMobile ? 'width: 100%;' : 'width: 320px; flex-shrink: 0;'"></div>
+          </template>
+
+          <!-- Cards PUT Seco -->
+          <div v-for="(card, index) in cards" :key="card.id"
+               style="border-radius: var(--radius-xl); box-shadow: var(--shadow-sm);
+                      display: flex; flex-direction: column; overflow: hidden; position: relative;
+                      transition: box-shadow 0.3s, border-color 0.3s;"
+               :style="(isMobile ? 'width: 100%; ' : 'width: 320px; flex-shrink: 0; ') + getCardBorderStyle(card)"
+               onmouseover="this.style.boxShadow='var(--shadow-md)'"
+               onmouseout="this.style.boxShadow='var(--shadow-sm)'">
+
+            <!-- Badge -->
+            <div v-if="mostrarResultados && rankingRentabilidade.id === card.id && rankingSeguranca.id === card.id"
+                 style="background: linear-gradient(to right, var(--brand-emerald), var(--brand-indigo));
+                        color: #fff; font-weight: 700; text-transform: uppercase;
+                        padding: 0.375rem; text-align: center; letter-spacing: 0.12em;"
+                 :style="isMobile ? 'font-size: 18px; padding: 0.5rem;' : 'font-size: 9px;'">
+              🏆 MAIOR LUCRO E 🛡️ MAIS SEGURA
+            </div>
+            <div v-else-if="mostrarResultados && rankingRentabilidade.id === card.id"
+                 style="background: var(--brand-emerald); color: #fff; font-weight: 700;
+                        text-transform: uppercase; padding: 0.375rem; text-align: center; letter-spacing: 0.12em;"
+                 :style="isMobile ? 'font-size: 18px; padding: 0.5rem;' : 'font-size: 9px;'">
+              🏆 OPÇÃO MAIS RENTÁVEL
+            </div>
+            <div v-else-if="mostrarResultados && rankingSeguranca.id === card.id"
+                 style="background: var(--brand-indigo); color: #fff; font-weight: 700;
+                        text-transform: uppercase; padding: 0.375rem; text-align: center; letter-spacing: 0.12em;"
+                 :style="isMobile ? 'font-size: 18px; padding: 0.5rem;' : 'font-size: 9px;'">
+              🛡️ OPÇÃO MAIS SEGURA
+            </div>
+
+            <!-- Botão remover -->
+            <button @click.stop="removerCard(card.id)" v-if="cards.length > 2"
+                    class="comp-delete-btn"
+                    style="position: absolute; top: 0.5rem; right: 0.5rem; z-index: 40;
+                           padding: 0.25rem; background: var(--surface-base); color: var(--text-muted);
+                           border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);
+                           cursor: pointer; opacity: 0; transition: opacity 0.2s;"
+                    onmouseover="this.style.background='var(--brand-rose-light)'; this.style.color='var(--brand-rose)'"
+                    onmouseout="this.style.background='var(--surface-base)'; this.style.color='var(--text-muted)'">
+              <i data-lucide="x" style="width: 0.875rem; height: 0.875rem;"></i>
+            </button>
+
+            <!-- Input ticker -->
+            <div style="padding: 1rem; background: var(--surface-overlay);
+                        border-bottom: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 0.75rem;">
+              <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                <label class="t-label-sm" style="color: var(--brand-indigo); text-transform: uppercase;
+                                                 letter-spacing: 0.16em; margin-left: 0.25rem;">Código do Ativo</label>
+                <div style="position: relative;">
+                  <input v-model="card.ticker" @change="buscarDadosAPI(card)" @keyup.enter="buscarDadosAPI(card)"
+                         type="text" placeholder="EX: PETRP280" inputmode="text" autocapitalize="characters"
+                         style="width: 100%; background: var(--surface-base); border: 1px solid var(--border-default);
+                                font-family: 'JetBrains Mono', monospace; font-weight: 700;
+                                border-radius: var(--radius-md); padding: 0.5rem 0.75rem; text-transform: uppercase;
+                                color: var(--text-primary); outline: none; transition: border-color 0.2s;"
+                         :style="isMobile ? 'font-size: 3rem;' : 'font-size: 1.5rem;'"
+                         onfocus="this.style.borderColor='var(--brand-indigo)'"
+                         onblur="this.style.borderColor='var(--border-default)'">
+                  <div v-if="card.loading"
+                       style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
+                              width: 1rem; height: 1rem; border-radius: 50%;
+                              border: 2px solid var(--brand-indigo-muted); border-top-color: var(--brand-indigo);
+                              animation: comp-spin 0.7s linear infinite;"></div>
+                </div>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;
+                          padding: 0.375rem 0.625rem; background: var(--surface-base);
+                          border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+                <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase;">Vencimento</span>
+                <span class="font-mono-data" style="font-weight: 700; color: var(--brand-indigo);"
+                      :style="isMobile ? 'font-size: 2rem;' : 'font-size: 1rem;'">
+                  {{ card.api.isValid ? card.api.dte + ' d' : '---' }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Corpo -->
+            <div style="padding: 1rem; flex: 1; display: flex; flex-direction: column; gap: 1rem; background: var(--surface-base);">
+              <div v-if="!card.api.isValid && !card.loading"
+                   style="padding: 2.5rem 1rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                <template v-if="card.error">
+                  <i data-lucide="alert-circle" style="width: 1.75rem; height: 1.75rem; color: var(--brand-rose); margin-bottom: 0.25rem;"></i>
+                  <p class="t-label-sm" style="color: var(--brand-rose); text-transform: uppercase; text-align: center; line-height: 1.5;"
+                     :style="isMobile ? 'font-size: 20px;' : 'font-size: 9px;'">{{ card.error }}</p>
+                </template>
+                <template v-else>
+                  <i data-lucide="search" style="width: 2rem; height: 2rem; color: var(--text-muted); opacity: 0.4; margin-bottom: 0.25rem;"></i>
+                  <p class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; text-align: center; line-height: 1.4; opacity: 0.4;">Aguardando<br>Dados</p>
+                </template>
+              </div>
+
+              <div v-else-if="card.api.isValid" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                  <div style="padding: 0.5rem; background: var(--surface-overlay); border-radius: var(--radius-md);
+                               border: 1px solid var(--border-subtle); text-align: center;">
+                    <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.25rem;">Spot</span>
+                    <span class="font-mono-data" style="font-weight: 700; line-height: 1; color: var(--text-primary);"
+                          :style="isMobile ? 'font-size: 32px;' : 'font-size: 15px;'">{{ formatMoney(card.api.spotPrice) }}</span>
+                  </div>
+                  <div style="padding: 0.5rem; background: var(--surface-overlay); border-radius: var(--radius-md);
+                               border: 1px solid var(--border-subtle); text-align: center;">
+                    <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.25rem;">Strike</span>
+                    <span class="font-mono-data" style="font-weight: 700; color: var(--text-primary); line-height: 1;"
+                          :style="isMobile ? 'font-size: 32px;' : 'font-size: 15px;'">{{ formatMoney(card.api.strike) }}</span>
+                  </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;
+                             padding: 0.5rem 0.75rem; background: var(--surface-overlay);
+                             border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                  <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">Margem de Segurança</span>
+                  <span class="font-mono-data" style="font-weight: 700; color: var(--brand-indigo);"
+                        :style="isMobile ? 'font-size: 30px;' : 'font-size: 13px;'">{{ getDistanciaBreakEven(card) }}</span>
+                </div>
+                <!-- Prêmio -->
+                <div style="display: flex; flex-direction: column; gap: 0.25rem; padding: 0.625rem 0.75rem;
+                             background: var(--brand-indigo-light); border: 1px solid var(--brand-indigo-muted); border-radius: var(--radius-md);">
+                  <span class="t-label-sm" style="color: var(--brand-indigo); text-transform: uppercase; letter-spacing: 0.1em; text-align: center;">Prêmio</span>
+                  <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <button @click="ajustarPremio(card, -0.01)"
+                            style="display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);
+                                   background: var(--surface-base); border: 1px solid var(--brand-indigo-muted);
+                                   color: var(--brand-indigo); cursor: pointer; font-weight: 700;"
+                            :style="isMobile ? 'width: 3rem; height: 3rem; font-size: 1.5rem;' : 'width: 1.75rem; height: 1.75rem; font-size: 1rem;'">−</button>
+                    <span class="font-mono-data" style="font-weight: 700; color: var(--brand-indigo);"
+                          :style="isMobile ? 'font-size: 3rem;' : 'font-size: 1.5rem;'">
+                      {{ formatMoney(card.api.premioAtual).replace('R$', '') }}
+                    </span>
+                    <button @click="ajustarPremio(card, 0.01)"
+                            style="display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);
+                                   background: var(--surface-base); border: 1px solid var(--brand-indigo-muted);
+                                   color: var(--brand-indigo); cursor: pointer; font-weight: 700;"
+                            :style="isMobile ? 'width: 3rem; height: 3rem; font-size: 1.5rem;' : 'width: 1.75rem; height: 1.75rem; font-size: 1rem;'">+</button>
+                  </div>
+                </div>
+                <!-- Lucro % -->
+                <div style="display: flex; justify-content: space-between; align-items: center;
+                             padding: 0.625rem 0.75rem; background: var(--brand-emerald-light);
+                             border: 1px solid var(--brand-emerald-muted); border-radius: var(--radius-md);">
+                  <span class="t-label-sm" style="color: var(--brand-emerald); text-transform: uppercase; font-weight: 700;">Lucro %</span>
+                  <span class="font-mono-data" style="font-weight: 700; color: var(--brand-emerald); line-height: 1;"
+                        :style="isMobile ? 'font-size: 2.5rem;' : 'font-size: 1.125rem;'">{{ formatPct(calcLucroPct(card)) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="padding: 1rem; background: var(--surface-overlay);
+                        border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 1rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">Lotes (100+)</span>
+                <div style="display: flex; align-items: center; background: var(--surface-base);
+                             border-radius: var(--radius-md); border: 1px solid var(--border-default);
+                             padding: 0.25rem; box-shadow: var(--shadow-sm);">
+                  <button @click="ajustarQtd(card, -100)"
+                          style="display: flex; align-items: center; justify-content: center; color: var(--text-muted);
+                                 cursor: pointer; border: none; background: transparent; font-weight: 700; border-radius: var(--radius-sm);"
+                          :style="isMobile ? 'width: 3rem; height: 3rem; font-size: 1.5rem;' : 'width: 1.75rem; height: 1.75rem; font-size: 1.25rem;'"
+                          onmouseover="this.style.color='var(--brand-indigo)'"
+                          onmouseout="this.style.color='var(--text-muted)'">−</button>
+                  <input v-model.number="card.qtd" type="number" inputmode="numeric"
+                         style="text-align: center; font-family: 'JetBrains Mono', monospace; font-weight: 700;
+                                color: var(--text-primary); outline: none; background: transparent; border: none; line-height: 1;"
+                         :style="isMobile ? 'font-size: 32px; width: 5.5rem;' : 'font-size: 16px; width: 4rem;'">
+                  <button @click="ajustarQtd(card, 100)"
+                          style="display: flex; align-items: center; justify-content: center; color: var(--text-muted);
+                                 cursor: pointer; border: none; background: transparent; font-weight: 700; border-radius: var(--radius-sm);"
+                          :style="isMobile ? 'width: 3rem; height: 3rem; font-size: 1.5rem;' : 'width: 1.75rem; height: 1.75rem; font-size: 1.25rem;'"
+                          onmouseover="this.style.color='var(--brand-indigo)'"
+                          onmouseout="this.style.color='var(--text-muted)'">+</button>
+                </div>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 0.5rem; border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">Notional</span>
+                  <span class="font-mono-data" style="font-weight: 700; color: var(--text-secondary);"
+                        :style="isMobile ? 'font-size: 30px;' : 'font-size: 14px;'">
+                    {{ card.api.isValid ? formatMoney(calcNotional(card)) : 'R$ 0,00' }}
+                  </span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span class="t-label-sm" style="color: var(--brand-emerald); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700;">Crédito</span>
+                  <span class="font-mono-data" style="font-weight: 700; color: var(--brand-emerald); line-height: 1;"
+                        :style="isMobile ? 'font-size: 3rem;' : 'font-size: 1.5rem;'">
+                    {{ card.api.isValid ? formatMoney(calcPremioTotal(card)) : 'R$ 0,00' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </template>
 
-        <!-- Cards de opção -->
-        <div v-for="(card, index) in cards" :key="card.id"
-             style="border-radius: var(--radius-xl); box-shadow: var(--shadow-sm);
-                    display: flex; flex-direction: column; overflow: hidden; position: relative;
-                    transition: box-shadow 0.3s, border-color 0.3s;"
-             :style="(isMobile ? 'width: 100%; ' : 'width: 320px; flex-shrink: 0; ') + getCardBorderStyle(card)"
-             onmouseover="this.style.boxShadow='var(--shadow-md)'"
-             onmouseout="this.style.boxShadow='var(--shadow-sm)'">
+        <!-- ── TRAVA DE ALTA ── -->
+        <template v-else>
 
-          <!-- Badge de destaque -->
-          <div v-if="mostrarResultados && rankingRentabilidade.id === card.id && rankingSeguranca.id === card.id"
-               style="background: linear-gradient(to right, var(--brand-emerald), var(--brand-indigo));
-                      color: #fff; font-weight: 700; text-transform: uppercase;
-                      padding: 0.375rem; text-align: center; letter-spacing: 0.12em;"
-               :style="isMobile ? 'font-size: 18px; padding: 0.5rem;' : 'font-size: 9px;'">
-            🏆 MAIOR LUCRO E 🛡️ MAIS SEGURA
-          </div>
-          <div v-else-if="mostrarResultados && rankingRentabilidade.id === card.id"
-               style="background: var(--brand-emerald); color: #fff; font-weight: 700;
-                      text-transform: uppercase; padding: 0.375rem; text-align: center; letter-spacing: 0.12em;"
-               :style="isMobile ? 'font-size: 18px; padding: 0.5rem;' : 'font-size: 9px;'">
-            🏆 OPÇÃO MAIS RENTÁVEL
-          </div>
-          <div v-else-if="mostrarResultados && rankingSeguranca.id === card.id"
-               style="background: var(--brand-indigo); color: #fff; font-weight: 700;
-                      text-transform: uppercase; padding: 0.375rem; text-align: center; letter-spacing: 0.12em;"
-               :style="isMobile ? 'font-size: 18px; padding: 0.5rem;' : 'font-size: 9px;'">
-            🛡️ OPÇÃO MAIS SEGURA
-          </div>
+          <!-- Skeleton -->
+          <template v-if="cardsTrava.length === 0">
+            <div v-for="n in 2" :key="'skel-trava-'+n"
+                 style="height: 560px; border-radius: var(--radius-xl);
+                        background: var(--surface-base); border: 1px solid var(--border-subtle);
+                        animation: comp-pulse 1.5s ease-in-out infinite;"
+                 :style="isMobile ? 'width: 100%;' : 'width: 400px; flex-shrink: 0;'"></div>
+          </template>
 
-          <!-- Botão remover -->
-          <button @click.stop="removerCard(card.id)" v-if="cards.length > 2"
-                  class="comp-delete-btn"
-                  style="position: absolute; top: 0.5rem; right: 0.5rem; z-index: 40;
-                         padding: 0.25rem; background: var(--surface-base); color: var(--text-muted);
-                         border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);
-                         cursor: pointer; opacity: 0; transition: opacity 0.2s;"
-                  onmouseover="this.style.background='var(--brand-rose-light)'; this.style.color='var(--brand-rose)'"
-                  onmouseout="this.style.background='var(--surface-base)'; this.style.color='var(--text-muted)'">
-            <i data-lucide="x" style="width: 0.875rem; height: 0.875rem;"></i>
-          </button>
+          <!-- Cards Trava de Alta -->
+          <div v-for="(card, index) in cardsTrava" :key="'t-'+card.id"
+               style="border-radius: var(--radius-xl); box-shadow: var(--shadow-sm);
+                      display: flex; flex-direction: column; overflow: hidden; position: relative;
+                      transition: box-shadow 0.3s, border-color 0.3s;"
+               :style="(isMobile ? 'width: 100%; ' : 'width: 400px; flex-shrink: 0; ') + getCardBorderStyleTrava(card)"
+               onmouseover="this.style.boxShadow='var(--shadow-md)'"
+               onmouseout="this.style.boxShadow='var(--shadow-sm)'">
 
-          <!-- Input do ticker -->
-          <div style="padding: 1rem; background: var(--surface-overlay);
-                      border-bottom: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 0.75rem;">
-            <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-              <label class="t-label-sm" style="color: var(--brand-indigo); text-transform: uppercase;
-                                               letter-spacing: 0.16em; margin-left: 0.25rem;">Código do Ativo</label>
-              <div style="position: relative;">
-                <input v-model="card.ticker" @change="buscarDadosAPI(card)" @keyup.enter="buscarDadosAPI(card)" type="text"
-                       placeholder="EX: PETRP280" inputmode="text" autocapitalize="characters"
-                       style="width: 100%; background: var(--surface-base); border: 1px solid var(--border-default);
-                              font-family: 'JetBrains Mono', monospace; font-weight: 700;
-                              border-radius: var(--radius-md); padding: 0.5rem 0.75rem; text-transform: uppercase;
-                              color: var(--text-primary); outline: none; transition: border-color 0.2s;"
-                       :style="isMobile ? 'font-size: 3rem;' : 'font-size: 1.5rem;'"
-                       onfocus="this.style.borderColor='var(--brand-indigo)'"
-                       onblur="this.style.borderColor='var(--border-default)'">
-                <div v-if="card.loading"
-                     style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%);
-                            width: 1rem; height: 1rem; border-radius: 50%;
-                            border: 2px solid var(--brand-indigo-muted); border-top-color: var(--brand-indigo);
-                            animation: comp-spin 0.7s linear infinite;"></div>
-              </div>
+            <!-- Badges trava -->
+            <div v-if="mostrarResultadosTrava && rankingTravaRoc.id === card.id && rankingTravaSeguranca.id === card.id"
+                 style="background: linear-gradient(to right, var(--brand-emerald), var(--brand-indigo));
+                        color: #fff; font-weight: 700; text-transform: uppercase;
+                        padding: 0.375rem; text-align: center; letter-spacing: 0.12em;"
+                 :style="isMobile ? 'font-size: 18px; padding: 0.5rem;' : 'font-size: 9px;'">
+              🏆 MAIOR ROC E 🛡️ MAIS SEGURA
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center;
-                        padding: 0.375rem 0.625rem; background: var(--surface-base);
-                        border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
-              <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase;">Vencimento</span>
-              <span class="font-mono-data" style="font-weight: 700; color: var(--brand-indigo);"
-                    :style="isMobile ? 'font-size: 2rem;' : 'font-size: 1rem;'">
-                {{ card.api.isValid ? card.api.dte + ' d' : '---' }}
-              </span>
+            <div v-else-if="mostrarResultadosTrava && rankingTravaRoc.id === card.id"
+                 style="background: var(--brand-emerald); color: #fff; font-weight: 700;
+                        text-transform: uppercase; padding: 0.375rem; text-align: center; letter-spacing: 0.12em;"
+                 :style="isMobile ? 'font-size: 18px; padding: 0.5rem;' : 'font-size: 9px;'">
+              🏆 MAIOR ROC a.a.
             </div>
-          </div>
-
-          <!-- Corpo do card -->
-          <div style="padding: 1rem; flex: 1; display: flex; flex-direction: column; gap: 1rem;
-                      background: var(--surface-base);">
-
-            <!-- Empty state / erro -->
-            <div v-if="!card.api.isValid && !card.loading"
-                 style="padding: 2.5rem 1rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
-              <template v-if="card.error">
-                <i data-lucide="alert-circle" style="width: 1.75rem; height: 1.75rem; color: var(--brand-rose); margin-bottom: 0.25rem;"></i>
-                <p class="t-label-sm" style="color: var(--brand-rose); text-transform: uppercase;
-                                             text-align: center; line-height: 1.5;"
-                   :style="isMobile ? 'font-size: 20px;' : 'font-size: 9px;'">{{ card.error }}</p>
-              </template>
-              <template v-else>
-                <i data-lucide="search" style="width: 2rem; height: 2rem; color: var(--text-muted); opacity: 0.4; margin-bottom: 0.25rem;"></i>
-                <p class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase;
-                                             text-align: center; line-height: 1.4; opacity: 0.4;">Aguardando<br>Dados</p>
-              </template>
+            <div v-else-if="mostrarResultadosTrava && rankingTravaSeguranca.id === card.id"
+                 style="background: var(--brand-indigo); color: #fff; font-weight: 700;
+                        text-transform: uppercase; padding: 0.375rem; text-align: center; letter-spacing: 0.12em;"
+                 :style="isMobile ? 'font-size: 18px; padding: 0.5rem;' : 'font-size: 9px;'">
+              🛡️ MAIS SEGURA
+            </div>
+            <div v-else-if="mostrarResultadosTrava && rankingTravaRR.id === card.id"
+                 style="background: #d97706; color: #fff; font-weight: 700;
+                        text-transform: uppercase; padding: 0.375rem; text-align: center; letter-spacing: 0.12em;"
+                 :style="isMobile ? 'font-size: 18px; padding: 0.5rem;' : 'font-size: 9px;'">
+              ⚖️ MELHOR R/R
             </div>
 
-            <!-- Dados da opção -->
-            <div v-else-if="card.api.isValid" style="display: flex; flex-direction: column; gap: 0.75rem;">
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                <div style="padding: 0.5rem; background: var(--surface-overlay); border-radius: var(--radius-md);
-                             border: 1px solid var(--border-subtle); text-align: center;">
-                  <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase;
-                                                   display: block; margin-bottom: 0.25rem;">Spot</span>
-                  <span class="font-mono-data" style="font-weight: 700; line-height: 1; color: var(--text-primary);"
-                        :style="isMobile ? 'font-size: 32px;' : 'font-size: 15px;'">
-                    {{ formatMoney(card.api.spotPrice) }}
-                  </span>
+            <!-- Botão remover -->
+            <button @click.stop="removerCardTrava(card.id)" v-if="cardsTrava.length > 2"
+                    class="comp-delete-btn"
+                    style="position: absolute; top: 0.5rem; right: 0.5rem; z-index: 40;
+                           padding: 0.25rem; background: var(--surface-base); color: var(--text-muted);
+                           border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);
+                           cursor: pointer; opacity: 0; transition: opacity 0.2s;"
+                    onmouseover="this.style.background='var(--brand-rose-light)'; this.style.color='var(--brand-rose)'"
+                    onmouseout="this.style.background='var(--surface-base)'; this.style.color='var(--text-muted)'">
+              <i data-lucide="x" style="width: 0.875rem; height: 0.875rem;"></i>
+            </button>
+
+            <!-- Inputs das pernas -->
+            <div style="padding: 1rem; background: var(--surface-overlay);
+                        border-bottom: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 0.625rem;">
+
+              <!-- Perna VENDA -->
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="padding: 0.2rem 0.5rem; background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5;
+                              border-radius: var(--radius-sm); font-size: 9px; font-weight: 700;
+                              text-transform: uppercase; letter-spacing: 0.1em; white-space: nowrap; flex-shrink: 0;"
+                      :style="isMobile ? 'font-size: 14px; padding: 0.3rem 0.6rem;' : ''">VENDA</span>
+                <div style="flex: 1; position: relative;">
+                  <input v-model="card.venda.ticker" @change="buscarDadosVenda(card)" @keyup.enter="buscarDadosVenda(card)"
+                         type="text" placeholder="PETRP280" inputmode="text" autocapitalize="characters"
+                         style="width: 100%; background: var(--surface-base); border: 1px solid var(--border-default);
+                                font-family: 'JetBrains Mono', monospace; font-weight: 700;
+                                border-radius: var(--radius-md); padding: 0.375rem 0.625rem; text-transform: uppercase;
+                                color: var(--text-primary); outline: none; transition: border-color 0.2s;"
+                         :style="isMobile ? 'font-size: 2rem;' : 'font-size: 1.125rem;'"
+                         onfocus="this.style.borderColor='#dc2626'"
+                         onblur="this.style.borderColor='var(--border-default)'">
+                  <div v-if="card.venda.loading"
+                       style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%);
+                              width: 0.875rem; height: 0.875rem; border-radius: 50%;
+                              border: 2px solid #fca5a5; border-top-color: #dc2626;
+                              animation: comp-spin 0.7s linear infinite;"></div>
                 </div>
-                <div style="padding: 0.5rem; background: var(--surface-overlay); border-radius: var(--radius-md);
-                             border: 1px solid var(--border-subtle); text-align: center;">
-                  <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase;
-                                                   display: block; margin-bottom: 0.25rem;">Strike</span>
-                  <span class="font-mono-data" style="font-weight: 700; color: var(--text-primary); line-height: 1;"
-                        :style="isMobile ? 'font-size: 32px;' : 'font-size: 15px;'">
-                    {{ formatMoney(card.api.strike) }}
-                  </span>
-                </div>
-              </div>
-
-              <div style="display: flex; justify-content: space-between; align-items: center;
-                           padding: 0.5rem 0.75rem; background: var(--surface-overlay);
-                           border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
-                <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">
-                  Margem de Segurança
+                <span v-if="card.venda.api.isValid" class="font-mono-data"
+                      style="font-weight: 700; color: var(--text-secondary); white-space: nowrap; flex-shrink: 0;"
+                      :style="isMobile ? 'font-size: 1.5rem;' : 'font-size: 0.875rem;'">
+                  {{ formatMoney(card.venda.api.strike) }}
                 </span>
+              </div>
+              <p v-if="card.venda.error" class="t-label-sm"
+                 style="color: var(--brand-rose); text-transform: uppercase; padding-left: 0.25rem; margin: -0.25rem 0;"
+                 :style="isMobile ? 'font-size: 14px;' : 'font-size: 9px;'">{{ card.venda.error }}</p>
+
+              <!-- Perna COMPRA -->
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="padding: 0.2rem 0.5rem; background: #f0fdf4; color: #16a34a; border: 1px solid #86efac;
+                              border-radius: var(--radius-sm); font-size: 9px; font-weight: 700;
+                              text-transform: uppercase; letter-spacing: 0.1em; white-space: nowrap; flex-shrink: 0;"
+                      :style="isMobile ? 'font-size: 14px; padding: 0.3rem 0.6rem;' : ''">COMPRA</span>
+                <div style="flex: 1; position: relative;">
+                  <input v-model="card.compra.ticker" @change="buscarDadosCompra(card)" @keyup.enter="buscarDadosCompra(card)"
+                         type="text" placeholder="PETRP260" inputmode="text" autocapitalize="characters"
+                         style="width: 100%; background: var(--surface-base); border: 1px solid var(--border-default);
+                                font-family: 'JetBrains Mono', monospace; font-weight: 700;
+                                border-radius: var(--radius-md); padding: 0.375rem 0.625rem; text-transform: uppercase;
+                                color: var(--text-primary); outline: none; transition: border-color 0.2s;"
+                         :style="isMobile ? 'font-size: 2rem;' : 'font-size: 1.125rem;'"
+                         onfocus="this.style.borderColor='#16a34a'"
+                         onblur="this.style.borderColor='var(--border-default)'">
+                  <div v-if="card.compra.loading"
+                       style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%);
+                              width: 0.875rem; height: 0.875rem; border-radius: 50%;
+                              border: 2px solid #86efac; border-top-color: #16a34a;
+                              animation: comp-spin 0.7s linear infinite;"></div>
+                </div>
+                <span v-if="card.compra.api.isValid" class="font-mono-data"
+                      style="font-weight: 700; color: var(--text-secondary); white-space: nowrap; flex-shrink: 0;"
+                      :style="isMobile ? 'font-size: 1.5rem;' : 'font-size: 0.875rem;'">
+                  {{ formatMoney(card.compra.api.strike) }}
+                </span>
+              </div>
+              <p v-if="card.compra.error" class="t-label-sm"
+                 style="color: var(--brand-rose); text-transform: uppercase; padding-left: 0.25rem; margin: -0.25rem 0;"
+                 :style="isMobile ? 'font-size: 14px;' : 'font-size: 9px;'">{{ card.compra.error }}</p>
+
+              <!-- DTE -->
+              <div style="display: flex; justify-content: space-between; align-items: center;
+                          padding: 0.25rem 0.5rem; background: var(--surface-base);
+                          border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+                <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase;">Vencimento</span>
                 <span class="font-mono-data" style="font-weight: 700; color: var(--brand-indigo);"
-                      :style="isMobile ? 'font-size: 30px;' : 'font-size: 13px;'">
-                  {{ getDistanciaBreakEven(card) }}
+                      :style="isMobile ? 'font-size: 1.75rem;' : 'font-size: 0.875rem;'">
+                  {{ card.venda.api.isValid ? card.venda.api.dte + ' d' : '---' }}
+                  <template v-if="card.venda.api.isValid && card.compra.api.isValid && card.venda.api.dte !== card.compra.api.dte">
+                    <span style="color: #d97706;"> / {{ card.compra.api.dte }} d</span>
+                  </template>
                 </span>
               </div>
+            </div>
 
-              <!-- Prêmio com ajuste -->
-              <div style="display: flex; flex-direction: column; gap: 0.25rem; padding: 0.625rem 0.75rem;
-                           background: var(--brand-indigo-light); border: 1px solid var(--brand-indigo-muted);
-                           border-radius: var(--radius-md);">
-                <span class="t-label-sm" style="color: var(--brand-indigo); text-transform: uppercase;
-                                                 letter-spacing: 0.1em; text-align: center;">Prêmio</span>
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <button @click="ajustarPremio(card, -0.01)"
-                          style="display: flex; align-items: center;
-                                 justify-content: center; border-radius: var(--radius-sm);
-                                 background: var(--surface-base); border: 1px solid var(--brand-indigo-muted);
-                                 color: var(--brand-indigo); cursor: pointer; font-size: 1rem; font-weight: 700;"
-                          :style="isMobile ? 'width: 3rem; height: 3rem; font-size: 1.5rem;' : 'width: 1.75rem; height: 1.75rem;'">−</button>
-                  <span class="font-mono-data" style="font-weight: 700; color: var(--brand-indigo);"
-                        :style="isMobile ? 'font-size: 3rem;' : 'font-size: 1.5rem;'">
-                    {{ formatMoney(card.api.premioAtual).replace('R$', '') }}
+            <!-- Corpo da trava -->
+            <div style="padding: 1rem; flex: 1; display: flex; flex-direction: column; gap: 0.875rem; background: var(--surface-base);">
+
+              <!-- Empty state -->
+              <div v-if="!card.venda.api.isValid && !card.compra.api.isValid && !card.venda.loading && !card.compra.loading"
+                   style="padding: 2rem 1rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                <i data-lucide="git-branch" style="width: 2rem; height: 2rem; color: var(--text-muted); opacity: 0.4; margin-bottom: 0.25rem;"></i>
+                <p class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; text-align: center; line-height: 1.4; opacity: 0.4;">
+                  Digite os tickers<br>VENDA e COMPRA
+                </p>
+              </div>
+
+              <!-- Prêmios ajustáveis (quando pelo menos uma perna está carregada) -->
+              <div v-if="card.venda.api.isValid || card.compra.api.isValid"
+                   style="display: flex; flex-direction: column; gap: 0.375rem;">
+
+                <!-- Prêmio VENDA -->
+                <div v-if="card.venda.api.isValid"
+                     style="display: flex; align-items: center; justify-content: space-between;
+                            padding: 0.5rem 0.625rem; background: #fef2f2;
+                            border: 1px solid #fca5a5; border-radius: var(--radius-md);">
+                  <span class="t-label-sm" style="color: #dc2626; text-transform: uppercase; font-weight: 700;">
+                    VENDA {{ formatMoney(card.venda.api.strike) }}
                   </span>
-                  <button @click="ajustarPremio(card, 0.01)"
-                          style="display: flex; align-items: center;
-                                 justify-content: center; border-radius: var(--radius-sm);
-                                 background: var(--surface-base); border: 1px solid var(--brand-indigo-muted);
-                                 color: var(--brand-indigo); cursor: pointer; font-size: 1rem; font-weight: 700;"
-                          :style="isMobile ? 'width: 3rem; height: 3rem; font-size: 1.5rem;' : 'width: 1.75rem; height: 1.75rem;'">+</button>
+                  <div style="display: flex; align-items: center; gap: 0.375rem;">
+                    <button @click="ajustarPremioTrava(card.venda, -0.01)"
+                            style="display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);
+                                   background: white; border: 1px solid #fca5a5; color: #dc2626; cursor: pointer; font-weight: 700;"
+                            :style="isMobile ? 'width: 2.5rem; height: 2.5rem; font-size: 1.25rem;' : 'width: 1.5rem; height: 1.5rem; font-size: 0.875rem;'">−</button>
+                    <span class="font-mono-data" style="font-weight: 700; color: #dc2626; min-width: 3rem; text-align: center;"
+                          :style="isMobile ? 'font-size: 2rem;' : 'font-size: 1.125rem;'">
+                      {{ formatMoney(card.venda.api.premioAtual).replace('R$ ', '').replace('R$ ', '') }}
+                    </span>
+                    <button @click="ajustarPremioTrava(card.venda, 0.01)"
+                            style="display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);
+                                   background: white; border: 1px solid #fca5a5; color: #dc2626; cursor: pointer; font-weight: 700;"
+                            :style="isMobile ? 'width: 2.5rem; height: 2.5rem; font-size: 1.25rem;' : 'width: 1.5rem; height: 1.5rem; font-size: 0.875rem;'">+</button>
+                  </div>
+                </div>
+
+                <!-- Prêmio COMPRA -->
+                <div v-if="card.compra.api.isValid"
+                     style="display: flex; align-items: center; justify-content: space-between;
+                            padding: 0.5rem 0.625rem; background: #f0fdf4;
+                            border: 1px solid #86efac; border-radius: var(--radius-md);">
+                  <span class="t-label-sm" style="color: #16a34a; text-transform: uppercase; font-weight: 700;">
+                    COMPRA {{ formatMoney(card.compra.api.strike) }}
+                  </span>
+                  <div style="display: flex; align-items: center; gap: 0.375rem;">
+                    <button @click="ajustarPremioTrava(card.compra, -0.01)"
+                            style="display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);
+                                   background: white; border: 1px solid #86efac; color: #16a34a; cursor: pointer; font-weight: 700;"
+                            :style="isMobile ? 'width: 2.5rem; height: 2.5rem; font-size: 1.25rem;' : 'width: 1.5rem; height: 1.5rem; font-size: 0.875rem;'">−</button>
+                    <span class="font-mono-data" style="font-weight: 700; color: #16a34a; min-width: 3rem; text-align: center;"
+                          :style="isMobile ? 'font-size: 2rem;' : 'font-size: 1.125rem;'">
+                      {{ formatMoney(card.compra.api.premioAtual).replace('R$ ', '').replace('R$ ', '') }}
+                    </span>
+                    <button @click="ajustarPremioTrava(card.compra, 0.01)"
+                            style="display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);
+                                   background: white; border: 1px solid #86efac; color: #16a34a; cursor: pointer; font-weight: 700;"
+                            :style="isMobile ? 'width: 2.5rem; height: 2.5rem; font-size: 1.25rem;' : 'width: 1.5rem; height: 1.5rem; font-size: 0.875rem;'">+</button>
+                  </div>
                 </div>
               </div>
 
-              <!-- Lucro % -->
-              <div style="display: flex; justify-content: space-between; align-items: center;
-                           padding: 0.625rem 0.75rem; background: var(--brand-emerald-light);
-                           border: 1px solid var(--brand-emerald-muted); border-radius: var(--radius-md);">
-                <span class="t-label-sm" style="color: var(--brand-emerald); text-transform: uppercase; font-weight: 700;">Lucro %</span>
-                <span class="font-mono-data" style="font-weight: 700; color: var(--brand-emerald); line-height: 1;"
-                      :style="isMobile ? 'font-size: 2.5rem;' : 'font-size: 1.125rem;'">
-                  {{ formatPct(calcLucroPct(card)) }}
-                </span>
-              </div>
-            </div>
-          </div>
+              <!-- Métricas da trava (ambas pernas carregadas) -->
+              <template v-if="card.venda.api.isValid && card.compra.api.isValid">
 
-          <!-- Footer do card -->
-          <div style="padding: 1rem; background: var(--surface-overlay);
-                      border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 1rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">Lotes (100+)</span>
-              <div style="display: flex; align-items: center; background: var(--surface-base);
-                           border-radius: var(--radius-md); border: 1px solid var(--border-default);
-                           padding: 0.25rem; box-shadow: var(--shadow-sm);">
-                <button @click="ajustarQtd(card, -100)"
-                        style="display: flex; align-items: center; justify-content: center;
-                               color: var(--text-muted); cursor: pointer; border: none; background: transparent;
-                               font-size: 1.25rem; font-weight: 700; border-radius: var(--radius-sm);"
-                        :style="isMobile ? 'width: 3rem; height: 3rem; font-size: 1.5rem;' : 'width: 1.75rem; height: 1.75rem;'"
-                        onmouseover="this.style.color='var(--brand-indigo)'"
-                        onmouseout="this.style.color='var(--text-muted)'">−</button>
-                <input v-model.number="card.qtd" type="number" inputmode="numeric"
-                       style="width: 4rem; text-align: center; font-family: 'JetBrains Mono', monospace;
-                              font-weight: 700; color: var(--text-primary); outline: none;
-                              background: transparent; border: none; line-height: 1;"
-                       :style="isMobile ? 'font-size: 32px; width: 5.5rem;' : 'font-size: 16px;'">
-                <button @click="ajustarQtd(card, 100)"
-                        style="display: flex; align-items: center; justify-content: center;
-                               color: var(--text-muted); cursor: pointer; border: none; background: transparent;
-                               font-size: 1.25rem; font-weight: 700; border-radius: var(--radius-sm);"
-                        :style="isMobile ? 'width: 3rem; height: 3rem; font-size: 1.5rem;' : 'width: 1.75rem; height: 1.75rem;'"
-                        onmouseover="this.style.color='var(--brand-indigo)'"
-                        onmouseout="this.style.color='var(--text-muted)'">+</button>
-              </div>
+                <!-- Crédito Líquido destaque -->
+                <div style="display: flex; justify-content: space-between; align-items: center;
+                             padding: 0.625rem 0.75rem; background: var(--brand-emerald-light);
+                             border: 1px solid var(--brand-emerald-muted); border-radius: var(--radius-md);">
+                  <span class="t-label-sm" style="color: var(--brand-emerald); text-transform: uppercase; font-weight: 700; letter-spacing: 0.08em;">
+                    Crédito Líquido
+                  </span>
+                  <span class="font-mono-data" style="font-weight: 700; color: var(--brand-emerald);"
+                        :style="isMobile ? 'font-size: 2.25rem;' : 'font-size: 1.25rem;'">
+                    {{ formatMoney(calcCreditoLiquido(card)) }}
+                  </span>
+                </div>
+
+                <!-- Grid de métricas -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.375rem;">
+                  <div style="padding: 0.5rem; background: var(--surface-overlay); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                    <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.125rem;">Largura</span>
+                    <span class="font-mono-data" style="font-weight: 700; color: var(--text-primary);"
+                          :style="isMobile ? 'font-size: 1.75rem;' : 'font-size: 1rem;'">{{ formatMoney(calcLargura(card)) }}</span>
+                  </div>
+                  <div style="padding: 0.5rem; background: var(--surface-overlay); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                    <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.125rem;">Spot</span>
+                    <span class="font-mono-data" style="font-weight: 700; color: var(--text-primary);"
+                          :style="isMobile ? 'font-size: 1.75rem;' : 'font-size: 1rem;'">{{ formatMoney(card.venda.api.spotPrice) }}</span>
+                  </div>
+                  <div style="padding: 0.5rem; background: var(--surface-overlay); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                    <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.125rem;">Break-Even</span>
+                    <span class="font-mono-data" style="font-weight: 700; color: var(--brand-indigo);"
+                          :style="isMobile ? 'font-size: 1.75rem;' : 'font-size: 1rem;'">{{ formatMoney(calcBreakevenTrava(card)) }}</span>
+                  </div>
+                  <div style="padding: 0.5rem; background: var(--surface-overlay); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                    <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.125rem;">Margem de Queda</span>
+                    <span class="font-mono-data" :style="{ fontWeight: 700, fontSize: isMobile ? '1.75rem' : '1rem',
+                          color: calcMargemTrava(card) >= 5 ? 'var(--brand-emerald)' : calcMargemTrava(card) >= 2 ? '#d97706' : 'var(--brand-rose)' }">
+                      {{ formatPct(calcMargemTrava(card)) }}
+                    </span>
+                  </div>
+                  <div style="padding: 0.5rem; background: var(--surface-overlay); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                    <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.125rem;">ROC Bruto</span>
+                    <span class="font-mono-data" style="font-weight: 700; color: var(--brand-emerald);"
+                          :style="isMobile ? 'font-size: 1.75rem;' : 'font-size: 1rem;'">{{ formatPct(calcRocTrava(card)) }}</span>
+                  </div>
+                  <div style="padding: 0.5rem; background: var(--surface-overlay); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                    <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.125rem;">R/R</span>
+                    <span class="font-mono-data" style="font-weight: 700; color: #d97706;"
+                          :style="isMobile ? 'font-size: 1.75rem;' : 'font-size: 1rem;'">{{ calcRR(card).toFixed(2) }}</span>
+                  </div>
+                </div>
+
+                <!-- ROC a.a. -->
+                <div style="display: flex; justify-content: space-between; align-items: center;
+                             padding: 0.5rem 0.75rem; background: var(--brand-indigo-light);
+                             border: 1px solid var(--brand-indigo-muted); border-radius: var(--radius-md);">
+                  <span class="t-label-sm" style="color: var(--brand-indigo); text-transform: uppercase; font-weight: 700;">ROC Anualizado</span>
+                  <span class="font-mono-data" style="font-weight: 700; color: var(--brand-indigo);"
+                        :style="isMobile ? 'font-size: 2rem;' : 'font-size: 1.25rem;'">
+                    {{ formatPct(calcRocAnualizadoTrava(card)) }} <span style="font-size: 0.6em; opacity: 0.7;">a.a.</span>
+                  </span>
+                </div>
+
+                <!-- Warnings -->
+                <div v-for="w in getTravaWarnings(card)" :key="w"
+                     style="display: flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.625rem;
+                            background: #fef3c7; border: 1px solid #fde68a; border-radius: var(--radius-sm);">
+                  <i data-lucide="alert-triangle" style="width: 0.875rem; height: 0.875rem; color: #d97706; flex-shrink: 0;"></i>
+                  <span style="font-size: 10px; font-weight: 600; color: #92400e; text-transform: uppercase; letter-spacing: 0.08em;"
+                        :style="isMobile ? 'font-size: 14px;' : ''">{{ w }}</span>
+                </div>
+              </template>
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 0.5rem;
-                         border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+            <!-- Footer da trava -->
+            <div style="padding: 1rem; background: var(--surface-overlay);
+                        border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 0.875rem;">
+
+              <!-- Qtd -->
               <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">Notional</span>
-                <span class="font-mono-data" style="font-weight: 700; color: var(--text-secondary);"
-                      :style="isMobile ? 'font-size: 30px;' : 'font-size: 14px;'">
-                  {{ card.api.isValid ? formatMoney(calcNotional(card)) : 'R$ 0,00' }}
-                </span>
+                <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;">Contratos (100+)</span>
+                <div style="display: flex; align-items: center; background: var(--surface-base);
+                             border-radius: var(--radius-md); border: 1px solid var(--border-default);
+                             padding: 0.25rem; box-shadow: var(--shadow-sm);">
+                  <button @click="ajustarQtdTrava(card, -100)"
+                          style="display: flex; align-items: center; justify-content: center; color: var(--text-muted);
+                                 cursor: pointer; border: none; background: transparent; font-weight: 700; border-radius: var(--radius-sm);"
+                          :style="isMobile ? 'width: 3rem; height: 3rem; font-size: 1.5rem;' : 'width: 1.75rem; height: 1.75rem; font-size: 1.25rem;'"
+                          onmouseover="this.style.color='var(--brand-indigo)'"
+                          onmouseout="this.style.color='var(--text-muted)'">−</button>
+                  <input v-model.number="card.qtd" type="number" inputmode="numeric"
+                         style="text-align: center; font-family: 'JetBrains Mono', monospace; font-weight: 700;
+                                color: var(--text-primary); outline: none; background: transparent; border: none; line-height: 1;"
+                         :style="isMobile ? 'font-size: 32px; width: 5.5rem;' : 'font-size: 16px; width: 4rem;'">
+                  <button @click="ajustarQtdTrava(card, 100)"
+                          style="display: flex; align-items: center; justify-content: center; color: var(--text-muted);
+                                 cursor: pointer; border: none; background: transparent; font-weight: 700; border-radius: var(--radius-sm);"
+                          :style="isMobile ? 'width: 3rem; height: 3rem; font-size: 1.5rem;' : 'width: 1.75rem; height: 1.75rem; font-size: 1.25rem;'"
+                          onmouseover="this.style.color='var(--brand-indigo)'"
+                          onmouseout="this.style.color='var(--text-muted)'">+</button>
+                </div>
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span class="t-label-sm" style="color: var(--brand-emerald); text-transform: uppercase;
-                                                 letter-spacing: 0.1em; font-weight: 700;">Crédito</span>
-                <span class="font-mono-data" style="font-weight: 700; color: var(--brand-emerald); line-height: 1;"
-                      :style="isMobile ? 'font-size: 3rem;' : 'font-size: 1.5rem;'">
-                  {{ card.api.isValid ? formatMoney(calcPremioTotal(card)) : 'R$ 0,00' }}
-                </span>
+
+              <!-- Resumo financeiro -->
+              <div v-if="card.venda.api.isValid && card.compra.api.isValid"
+                   style="display: flex; flex-direction: column; gap: 0.5rem; border-top: 1px solid var(--border-subtle); padding-top: 0.875rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em;">Garantia</span>
+                  <span class="font-mono-data" style="font-weight: 700; color: var(--text-secondary);"
+                        :style="isMobile ? 'font-size: 1.75rem;' : 'font-size: 1rem;'">{{ formatMoney(calcGarantiaTrava(card)) }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span class="t-label-sm" style="color: var(--brand-rose); text-transform: uppercase; letter-spacing: 0.08em;">Risco Máximo</span>
+                  <span class="font-mono-data" style="font-weight: 700; color: var(--brand-rose);"
+                        :style="isMobile ? 'font-size: 1.75rem;' : 'font-size: 1rem;'">{{ formatMoney(calcRiscoMax(card)) }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span class="t-label-sm" style="color: var(--brand-emerald); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700;">Crédito Total</span>
+                  <span class="font-mono-data" style="font-weight: 700; color: var(--brand-emerald); line-height: 1;"
+                        :style="isMobile ? 'font-size: 2.5rem;' : 'font-size: 1.375rem;'">{{ formatMoney(calcCreditoLiquido(card) * (card.qtd || 0)) }}</span>
+                </div>
               </div>
             </div>
+
           </div>
-
-        </div>
+        </template>
       </div>
 
-      <!-- ══ BASKET AGREGADO ══ -->
-
-<div v-if="agregadoBasket"
-      style="width:100%;border-radius:var(--radius-xl);overflow:hidden;border:1px solid var(--border-subtle);box-shadow:var(--shadow-sm);background:var(--surface-base);">
-
-      <!-- Header da Cesta -->
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:0.875rem 1.5rem;border-bottom:1px solid var(--border-subtle);background:var(--surface-base);">
-        <div style="display:flex;align-items:center;gap:0.75rem;">
-          <div style="padding:0.5rem;background:var(--brand-indigo-light);color:var(--brand-indigo);border-radius:var(--radius-md);border:1px solid var(--brand-indigo-muted);">
-            <i data-lucide="layers" style="width:16px;height:16px;display:block;"></i>
+      <!-- ══ BASKET PUT SECO ══ -->
+      <div v-if="modo === 'PUT_SECO' && agregadoBasket"
+           style="width:100%;border-radius:var(--radius-xl);overflow:hidden;border:1px solid var(--border-subtle);box-shadow:var(--shadow-sm);background:var(--surface-base);">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.875rem 1.5rem;border-bottom:1px solid var(--border-subtle);background:var(--surface-base);">
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <div style="padding:0.5rem;background:var(--brand-indigo-light);color:var(--brand-indigo);border-radius:var(--radius-md);border:1px solid var(--brand-indigo-muted);">
+              <i data-lucide="layers" style="width:16px;height:16px;display:block;"></i>
+            </div>
+            <span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);">Cesta</span>
+            <span style="font-size:0.75rem;font-weight:700;padding:2px 10px;border-radius:99px;background:var(--brand-indigo-light);color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);">
+              {{ agregadoBasket.qtdCards }} opções
+            </span>
           </div>
-          <span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-muted);">Cesta</span>
-          <span style="font-size:0.75rem;font-weight:700;padding:2px 10px;border-radius:99px;background:var(--brand-indigo-light);color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);">
-            {{ agregadoBasket.qtdCards }} opções
-          </span>
+          <button @click="processarComparacao"
+            style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem 1.25rem;background:var(--brand-indigo);color:#fff;border:none;border-radius:var(--radius-full);font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;cursor:pointer;transition:opacity 0.15s;"
+            onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+            <i data-lucide="zap" style="width:14px;height:14px;display:block;"></i>
+            Iniciar Batalha
+          </button>
         </div>
-        <button @click="processarComparacao"
-          style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem 1.25rem;background:var(--brand-indigo);color:#fff;border:none;border-radius:var(--radius-full);font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;cursor:pointer;transition:opacity 0.15s;"
-          onmouseover="this.style.opacity='0.85'"
-          onmouseout="this.style.opacity='1'">
-          <i data-lucide="zap" style="width:14px;height:14px;display:block;"></i>
-          Iniciar Batalha
-        </button>
+        <div style="display:flex;flex-direction:row;overflow-x:auto;background:var(--border-subtle);gap:1px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--border-default) transparent;">
+          <div v-for="(item, i) in basketItems" :key="i"
+            style="flex:1 1 0%;min-width:140px;padding:1.125rem 1.25rem;background:var(--surface-base);display:flex;flex-direction:column;gap:0.5rem;">
+            <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);white-space:nowrap;">{{ item.label }}</span>
+            <span class="font-mono-data"
+              :style="item.color ? `color:${item.color};font-size:1.375rem;font-weight:700;line-height:1;` : 'color:var(--text-primary);font-size:1.375rem;font-weight:700;line-height:1;'">
+              {{ item.value }}
+            </span>
+            <span v-if="item.sub" style="font-size:0.72rem;font-weight:600;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">{{ item.sub }}</span>
+          </div>
+        </div>
       </div>
 
-      <!-- Strip de KPIs — scroll horizontal no mobile -->
-      <div style="display:flex;flex-direction:row;overflow-x:auto;background:var(--border-subtle);gap:1px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--border-default) transparent;">
-
-        <div v-for="(item, i) in basketItems" :key="i"
-          style="flex:1 1 0%;min-width:140px;padding:1.125rem 1.25rem;background:var(--surface-base);display:flex;flex-direction:column;gap:0.5rem;">
-          <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);white-space:nowrap;">
-            {{ item.label }}
-          </span>
-          <span class="font-mono-data"
-            :style="item.color ? `color:${item.color};font-size:1.375rem;font-weight:700;line-height:1;` : 'color:var(--text-primary);font-size:1.375rem;font-weight:700;line-height:1;'">
-            {{ item.value }}
-          </span>
-          <span v-if="item.sub" style="font-size:0.72rem;font-weight:600;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">
-            {{ item.sub }}
-          </span>
+      <!-- ══ BASKET TRAVA ══ -->
+      <div v-if="modo === 'TRAVA_ALTA' && agregadoBasketTrava"
+           style="width:100%;border-radius:var(--radius-xl);overflow:hidden;border:1px solid var(--brand-emerald-muted);box-shadow:var(--shadow-sm);background:var(--surface-base);">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.875rem 1.5rem;border-bottom:1px solid var(--brand-emerald-muted);background:var(--brand-emerald-light);">
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <div style="padding:0.5rem;background:var(--brand-emerald-light);color:var(--brand-emerald);border-radius:var(--radius-md);border:1px solid var(--brand-emerald-muted);">
+              <i data-lucide="git-branch" style="width:16px;height:16px;display:block;"></i>
+            </div>
+            <span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:var(--brand-emerald);">Cesta de Travas</span>
+            <span style="font-size:0.75rem;font-weight:700;padding:2px 10px;border-radius:99px;background:white;color:var(--brand-emerald);border:1px solid var(--brand-emerald-muted);">
+              {{ agregadoBasketTrava.qtdCards }} travas
+            </span>
+          </div>
+          <button @click="processarComparacaoTrava"
+            style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem 1.25rem;background:var(--brand-emerald);color:#fff;border:none;border-radius:var(--radius-full);font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;cursor:pointer;transition:opacity 0.15s;"
+            onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+            <i data-lucide="zap" style="width:14px;height:14px;display:block;"></i>
+            Iniciar Batalha
+          </button>
         </div>
-
+        <div style="display:flex;flex-direction:row;overflow-x:auto;background:var(--border-subtle);gap:1px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--border-default) transparent;">
+          <div v-for="(item, i) in basketItemsTrava" :key="i"
+            style="flex:1 1 0%;min-width:150px;padding:1.125rem 1.25rem;background:var(--surface-base);display:flex;flex-direction:column;gap:0.5rem;">
+            <span style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-muted);white-space:nowrap;">{{ item.label }}</span>
+            <span class="font-mono-data"
+              :style="item.color ? `color:${item.color};font-size:1.375rem;font-weight:700;line-height:1;` : 'color:var(--text-primary);font-size:1.375rem;font-weight:700;line-height:1;'">
+              {{ item.value }}
+            </span>
+          </div>
+        </div>
       </div>
+
     </div>
 
-    </div>
-
-    <!-- ══ RESULTADOS ══ -->
-    <div v-if="mostrarResultados"
+    <!-- ══ RESULTADOS PUT SECO ══ -->
+    <div v-if="mostrarResultados && modo === 'PUT_SECO'"
          style="display: grid; gap: 1.5rem; margin-top: 1rem;"
          :style="isMobile ? 'grid-template-columns: 1fr; padding-bottom: 6rem;' : 'grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); padding-bottom: 8rem;'">
 
-      <!-- Rentabilidade -->
       <div class="premium-card comp-resultado-card"
-           style="border-color: var(--brand-emerald-muted);
-                  background: var(--surface-base); position: relative; overflow: hidden;"
+           style="border-color: var(--brand-emerald-muted); background: var(--surface-base); position: relative; overflow: hidden;"
            :style="isMobile ? 'padding: 1.25rem;' : 'padding: 2.5rem;'">
         <div style="position: absolute; right: -1.5rem; top: -1.5rem; font-size: 6rem; font-weight: 800;
                     font-style: italic; color: var(--brand-emerald); opacity: 0.06;
                     pointer-events: none; font-family: 'Syne', sans-serif; line-height: 1;">ROC</div>
         <span style="padding: 0.375rem 1rem; background: var(--brand-emerald-light); color: var(--brand-emerald);
                       border-radius: var(--radius-md); font-weight: 700; text-transform: uppercase;
-                      letter-spacing: 0.12em; margin-bottom: 1.5rem; display: inline-block;
-                      border: 1px solid var(--brand-emerald-muted);"
-              :style="isMobile ? 'font-size: 18px;' : 'font-size: 9px;'">
-          Eficiência Financeira
-        </span>
+                      letter-spacing: 0.12em; margin-bottom: 1.5rem; display: inline-block; border: 1px solid var(--brand-emerald-muted);"
+              :style="isMobile ? 'font-size: 18px;' : 'font-size: 9px;'">Eficiência Financeira</span>
         <div style="display: flex; align-items: baseline; gap: 1rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
-          <h3 class="font-mono-data comp-resultado-ticker"
-              style="font-weight: 700; color: var(--text-primary); letter-spacing: -0.04em;"
-              :style="isMobile ? 'font-size: 3rem;' : 'font-size: 3rem;'">
-            {{ rankingRentabilidade.ticker }}
-          </h3>
-          <span class="font-mono-data" style="font-weight: 700; color: var(--brand-emerald);"
-                :style="isMobile ? 'font-size: 1.75rem;' : 'font-size: 1.25rem;'">
-            {{ formatPct(rankingRentabilidade.anualizado) }} a.a.
-          </span>
+          <h3 class="font-mono-data comp-resultado-ticker" style="font-weight: 700; color: var(--text-primary); letter-spacing: -0.04em; font-size: 3rem;">{{ rankingRentabilidade.ticker }}</h3>
+          <span class="font-mono-data" style="font-weight: 700; color: var(--brand-emerald);" :style="isMobile ? 'font-size: 1.75rem;' : 'font-size: 1.25rem;'">{{ formatPct(rankingRentabilidade.anualizado) }} a.a.</span>
         </div>
-        <p class="t-label-sm" style="color: var(--brand-emerald); opacity: 0.7; text-transform: uppercase;
-                                     letter-spacing: 0.25em; margin-bottom: 2rem;">
-          Onde seu dinheiro rende mais por dia
-        </p>
-        <div class="comp-resultado-veredito"
-             style="background: var(--surface-overlay); border-radius: var(--radius-lg);
-                     border: 1px solid var(--brand-emerald-muted);"
-             :style="isMobile ? 'padding: 1.25rem;' : 'padding: 2rem;'">
-          <h4 class="t-label" style="color: var(--text-primary); text-transform: uppercase; margin-bottom: 1rem;
-                                     text-decoration: underline; text-underline-offset: 4px;">Veredito de Alocação</h4>
+        <p class="t-label-sm" style="color: var(--brand-emerald); opacity: 0.7; text-transform: uppercase; letter-spacing: 0.25em; margin-bottom: 2rem;">Onde seu dinheiro rende mais por dia</p>
+        <div class="comp-resultado-veredito" style="background: var(--surface-overlay); border-radius: var(--radius-lg); border: 1px solid var(--brand-emerald-muted);" :style="isMobile ? 'padding: 1.25rem;' : 'padding: 2rem;'">
+          <h4 class="t-label" style="color: var(--text-primary); text-transform: uppercase; margin-bottom: 1rem; text-decoration: underline; text-underline-offset: 4px;">Veredito de Alocação</h4>
           <p class="t-body" style="color: var(--text-secondary); line-height: 1.7;">
             Esta é a opção vencedora para quem busca <strong style="color: var(--text-primary);">renda mensal pura</strong>.
             O sistema calculou que ela devolve <strong style="color: var(--text-primary);">{{ formatMoney(rankingRentabilidade.premioPorMil) }}</strong>
@@ -404,48 +748,137 @@
         </div>
       </div>
 
-      <!-- Segurança -->
       <div class="premium-card comp-resultado-card"
-           style="border-color: var(--brand-indigo-muted);
-                  background: var(--surface-base); position: relative; overflow: hidden;"
+           style="border-color: var(--brand-indigo-muted); background: var(--surface-base); position: relative; overflow: hidden;"
            :style="isMobile ? 'padding: 1.25rem;' : 'padding: 2.5rem;'">
         <div style="position: absolute; right: -1.5rem; top: -1.5rem; font-size: 6rem; font-weight: 800;
                     font-style: italic; color: var(--brand-indigo); opacity: 0.06;
                     pointer-events: none; font-family: 'Syne', sans-serif; line-height: 1;">SAFE</div>
         <span style="padding: 0.375rem 1rem; background: var(--brand-indigo-light); color: var(--brand-indigo);
                       border-radius: var(--radius-md); font-weight: 700; text-transform: uppercase;
-                      letter-spacing: 0.12em; margin-bottom: 1.5rem; display: inline-block;
-                      border: 1px solid var(--brand-indigo-muted);"
-              :style="isMobile ? 'font-size: 18px;' : 'font-size: 9px;'">
-          Proteção Patrimonial
-        </span>
+                      letter-spacing: 0.12em; margin-bottom: 1.5rem; display: inline-block; border: 1px solid var(--brand-indigo-muted);"
+              :style="isMobile ? 'font-size: 18px;' : 'font-size: 9px;'">Proteção Patrimonial</span>
         <div style="display: flex; align-items: baseline; gap: 1rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
-          <h3 class="font-mono-data comp-resultado-ticker"
-              style="font-weight: 700; color: var(--text-primary); letter-spacing: -0.04em;"
-              :style="isMobile ? 'font-size: 3rem;' : 'font-size: 3rem;'">
-            {{ rankingSeguranca.ticker }}
-          </h3>
-          <span class="font-mono-data" style="font-weight: 700; color: var(--brand-indigo);"
-                :style="isMobile ? 'font-size: 1.75rem;' : 'font-size: 1.25rem;'">
-            {{ formatPct(rankingSeguranca.margemQueda) }} de folga
-          </span>
+          <h3 class="font-mono-data comp-resultado-ticker" style="font-weight: 700; color: var(--text-primary); letter-spacing: -0.04em; font-size: 3rem;">{{ rankingSeguranca.ticker }}</h3>
+          <span class="font-mono-data" style="font-weight: 700; color: var(--brand-indigo);" :style="isMobile ? 'font-size: 1.75rem;' : 'font-size: 1.25rem;'">{{ formatPct(rankingSeguranca.margemQueda) }} de folga</span>
         </div>
-        <p class="t-label-sm" style="color: var(--brand-indigo); opacity: 0.7; text-transform: uppercase;
-                                     letter-spacing: 0.25em; margin-bottom: 2rem;">
-          Menor risco de ser exercido
-        </p>
-        <div class="comp-resultado-veredito"
-             style="background: var(--surface-overlay); border-radius: var(--radius-lg);
-                     border: 1px solid var(--brand-indigo-muted);"
-             :style="isMobile ? 'padding: 1.25rem;' : 'padding: 2rem;'">
-          <h4 class="t-label" style="color: var(--text-primary); text-transform: uppercase; margin-bottom: 1rem;
-                                     text-decoration: underline; text-underline-offset: 4px;">Veredito de Risco</h4>
+        <p class="t-label-sm" style="color: var(--brand-indigo); opacity: 0.7; text-transform: uppercase; letter-spacing: 0.25em; margin-bottom: 2rem;">Menor risco de ser exercido</p>
+        <div class="comp-resultado-veredito" style="background: var(--surface-overlay); border-radius: var(--radius-lg); border: 1px solid var(--brand-indigo-muted);" :style="isMobile ? 'padding: 1.25rem;' : 'padding: 2rem;'">
+          <h4 class="t-label" style="color: var(--text-primary); text-transform: uppercase; margin-bottom: 1rem; text-decoration: underline; text-underline-offset: 4px;">Veredito de Risco</h4>
           <p class="t-body" style="color: var(--text-secondary); line-height: 1.7;">
             Esta PUT provou ser a mais resiliente. O ativo precisaria cair mais do que
             <strong style="color: var(--text-primary);">{{ formatPct(rankingSeguranca.margemQueda) }}</strong>
             para o exercício ocorrer. Break-even em
             <strong style="color: var(--text-primary);">{{ formatMoney(rankingSeguranca.breakeven) }}</strong>.
           </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ RESULTADOS TRAVA ══ -->
+    <div v-if="mostrarResultadosTrava && modo === 'TRAVA_ALTA'"
+         style="display: grid; gap: 1.5rem; margin-top: 1rem;"
+         :style="isMobile ? 'grid-template-columns: 1fr; padding-bottom: 6rem;' : 'grid-template-columns: repeat(3, 1fr); padding-bottom: 8rem;'">
+
+      <!-- Maior ROC -->
+      <div class="premium-card comp-resultado-card"
+           style="border-color: var(--brand-emerald-muted); background: var(--surface-base); position: relative; overflow: hidden;"
+           :style="isMobile ? 'padding: 1.25rem;' : 'padding: 2rem;'">
+        <div style="position: absolute; right: -1rem; top: -1rem; font-size: 5rem; font-weight: 800;
+                    font-style: italic; color: var(--brand-emerald); opacity: 0.06;
+                    pointer-events: none; font-family: 'Syne', sans-serif; line-height: 1;">ROC</div>
+        <span style="padding: 0.375rem 0.875rem; background: var(--brand-emerald-light); color: var(--brand-emerald);
+                      border-radius: var(--radius-md); font-weight: 700; text-transform: uppercase;
+                      letter-spacing: 0.12em; margin-bottom: 1.25rem; display: inline-block; border: 1px solid var(--brand-emerald-muted);"
+              :style="isMobile ? 'font-size: 18px;' : 'font-size: 9px;'">Eficiência Financeira</span>
+        <div style="display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 0.375rem; flex-wrap: wrap;">
+          <h3 class="font-mono-data" style="font-weight: 700; color: var(--text-primary); font-size: 1.75rem;">{{ rankingTravaRoc.label }}</h3>
+        </div>
+        <span class="font-mono-data" style="font-weight: 700; color: var(--brand-emerald);" :style="isMobile ? 'font-size: 2rem;' : 'font-size: 1.5rem;'">
+          {{ formatPct(rankingTravaRoc.rocAnualizado) }} a.a.
+        </span>
+        <p class="t-label-sm" style="color: var(--brand-emerald); opacity: 0.7; text-transform: uppercase; letter-spacing: 0.2em; margin: 0.75rem 0 1.25rem;">Melhor rentabilidade anualizada</p>
+        <div style="display: flex; flex-direction: column; gap: 0.375rem;">
+          <div style="display: flex; justify-content: space-between;">
+            <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase;">Crédito Líq.</span>
+            <span class="font-mono-data" style="font-weight: 700; color: var(--text-primary); font-size: 0.875rem;">{{ formatMoney(rankingTravaRoc.creditoLiquido) }}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase;">ROC Bruto</span>
+            <span class="font-mono-data" style="font-weight: 700; color: var(--brand-emerald); font-size: 0.875rem;">{{ formatPct(rankingTravaRoc.rocBruto) }}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase;">DTE</span>
+            <span class="font-mono-data" style="font-weight: 700; color: var(--text-secondary); font-size: 0.875rem;">{{ rankingTravaRoc.dte }} dias</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Maior Segurança -->
+      <div class="premium-card comp-resultado-card"
+           style="border-color: var(--brand-indigo-muted); background: var(--surface-base); position: relative; overflow: hidden;"
+           :style="isMobile ? 'padding: 1.25rem;' : 'padding: 2rem;'">
+        <div style="position: absolute; right: -1rem; top: -1rem; font-size: 5rem; font-weight: 800;
+                    font-style: italic; color: var(--brand-indigo); opacity: 0.06;
+                    pointer-events: none; font-family: 'Syne', sans-serif; line-height: 1;">SAFE</div>
+        <span style="padding: 0.375rem 0.875rem; background: var(--brand-indigo-light); color: var(--brand-indigo);
+                      border-radius: var(--radius-md); font-weight: 700; text-transform: uppercase;
+                      letter-spacing: 0.12em; margin-bottom: 1.25rem; display: inline-block; border: 1px solid var(--brand-indigo-muted);"
+              :style="isMobile ? 'font-size: 18px;' : 'font-size: 9px;'">Proteção Patrimonial</span>
+        <div style="display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 0.375rem; flex-wrap: wrap;">
+          <h3 class="font-mono-data" style="font-weight: 700; color: var(--text-primary); font-size: 1.75rem;">{{ rankingTravaSeguranca.label }}</h3>
+        </div>
+        <span class="font-mono-data" style="font-weight: 700; color: var(--brand-indigo);" :style="isMobile ? 'font-size: 2rem;' : 'font-size: 1.5rem;'">
+          {{ formatPct(rankingTravaSeguranca.margemQueda) }} de folga
+        </span>
+        <p class="t-label-sm" style="color: var(--brand-indigo); opacity: 0.7; text-transform: uppercase; letter-spacing: 0.2em; margin: 0.75rem 0 1.25rem;">Maior distância do break-even</p>
+        <div style="display: flex; flex-direction: column; gap: 0.375rem;">
+          <div style="display: flex; justify-content: space-between;">
+            <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase;">Break-Even</span>
+            <span class="font-mono-data" style="font-weight: 700; color: var(--text-primary); font-size: 0.875rem;">{{ formatMoney(rankingTravaSeguranca.breakeven) }}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase;">Spot</span>
+            <span class="font-mono-data" style="font-weight: 700; color: var(--text-secondary); font-size: 0.875rem;">{{ formatMoney(rankingTravaSeguranca.spot) }}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase;">Garantia</span>
+            <span class="font-mono-data" style="font-weight: 700; color: var(--text-secondary); font-size: 0.875rem;">{{ formatMoney(rankingTravaSeguranca.garantia) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Melhor R/R -->
+      <div class="premium-card comp-resultado-card"
+           style="border-color: #fde68a; background: var(--surface-base); position: relative; overflow: hidden;"
+           :style="isMobile ? 'padding: 1.25rem;' : 'padding: 2rem;'">
+        <div style="position: absolute; right: -1rem; top: -1rem; font-size: 5rem; font-weight: 800;
+                    font-style: italic; color: #d97706; opacity: 0.06;
+                    pointer-events: none; font-family: 'Syne', sans-serif; line-height: 1;">R/R</div>
+        <span style="padding: 0.375rem 0.875rem; background: #fef3c7; color: #d97706;
+                      border-radius: var(--radius-md); font-weight: 700; text-transform: uppercase;
+                      letter-spacing: 0.12em; margin-bottom: 1.25rem; display: inline-block; border: 1px solid #fde68a;"
+              :style="isMobile ? 'font-size: 18px;' : 'font-size: 9px;'">Risco / Retorno</span>
+        <div style="display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 0.375rem; flex-wrap: wrap;">
+          <h3 class="font-mono-data" style="font-weight: 700; color: var(--text-primary); font-size: 1.75rem;">{{ rankingTravaRR.label }}</h3>
+        </div>
+        <span class="font-mono-data" style="font-weight: 700; color: #d97706;" :style="isMobile ? 'font-size: 2rem;' : 'font-size: 1.5rem;'">
+          R/R {{ rankingTravaRR.rr ? rankingTravaRR.rr.toFixed(2) : '---' }}
+        </span>
+        <p class="t-label-sm" style="color: #d97706; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.2em; margin: 0.75rem 0 1.25rem;">Melhor relação retorno / risco</p>
+        <div style="display: flex; flex-direction: column; gap: 0.375rem;">
+          <div style="display: flex; justify-content: space-between;">
+            <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase;">Crédito Líq.</span>
+            <span class="font-mono-data" style="font-weight: 700; color: var(--text-primary); font-size: 0.875rem;">{{ formatMoney(rankingTravaRR.creditoLiquido) }}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase;">Risco Máx.</span>
+            <span class="font-mono-data" style="font-weight: 700; color: var(--brand-rose); font-size: 0.875rem;">{{ formatMoney(rankingTravaRR.riscoMax) }}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase;">Largura</span>
+            <span class="font-mono-data" style="font-weight: 700; color: var(--text-secondary); font-size: 0.875rem;">{{ formatMoney(rankingTravaRR.largura) }}</span>
+          </div>
         </div>
       </div>
 
@@ -460,22 +893,17 @@
   @keyframes comp-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
   @keyframes comp-spin  { to { transform: rotate(360deg); } }
 
-  /* ── Mobile S22 Ultra (~412px) — escala global 2x ── */
+  .comp-toggle-desktop { font-size: 10px; }
+  .comp-toggle-mobile  { font-size: 16px; }
+
   @media (max-width: 480px) {
     .comp-delete-btn { opacity: 1 !important; }
-
-    /* Classes tipográficas globais */
     .t-label-sm { font-size: 16px !important; }
     .t-label    { font-size: 20px !important; }
     .t-body     { font-size: 18px !important; line-height: 1.65 !important; }
     .t-title    { font-size: 1.75rem !important; }
-
-    /* Mono data base */
     .font-mono-data { font-size: 20px; }
   }
-
-/* Basket strip — scroll horizontal no mobile via inline styles */
-
 </style>
 
 <script>
@@ -484,16 +912,27 @@ window.ComparativoView = {
   props: ['isMobile', 'isLoading'],
   data() {
     return {
+      // ── PUT Seco ──
       cardCounter: 2,
       cards: [],
       ordenarPor: 'padrao',
       mostrarResultados: false,
       rankingRentabilidade: {},
-      rankingSeguranca: {}
+      rankingSeguranca: {},
+
+      // ── Trava de Alta ──
+      modo: 'PUT_SECO',
+      cardTravaCounter: 2,
+      cardsTrava: [],
+      mostrarResultadosTrava: false,
+      rankingTravaRoc: {},
+      rankingTravaSeguranca: {},
+      rankingTravaRR: {}
     };
   },
 
   computed: {
+    // ── PUT Seco basket ──
     agregadoBasket() {
       const validos = this.cards.filter(c => c.api.isValid);
       if (validos.length < 2) return null;
@@ -509,62 +948,86 @@ window.ComparativoView = {
       return { qtdCards: n, somaPremioUnitario: somaPremio, mediaPremioUnitario: somaPremio / n,
                mediaLucroPct: somaLucro / n, somaLotes, somaNotional, somaCredito, mediaCredito: somaCredito / n };
     },
-
     basketItems() {
       if (!this.agregadoBasket) return [];
       const b = this.agregadoBasket;
       return [
-        { label: 'Lotes (Soma)',    value: b.somaLotes },
-        { label: 'Prêmio Unit.',    value: this.formatMoney(b.somaPremioUnitario),
-          sub: 'méd: ' + this.formatMoney(b.mediaPremioUnitario) },
-        { label: 'Lucro (Média)',   value: this.formatPct(b.mediaLucroPct), color: 'var(--brand-emerald)' },
-        { label: 'Notional (Soma)', value: this.formatMoney(b.somaNotional) },
-        { label: 'Crédito Recebido', value: this.formatMoney(b.somaCredito), color: 'var(--brand-emerald)',
-          sub: 'méd: ' + this.formatMoney(b.mediaCredito) }
+        { label: 'Lotes (Soma)',     value: b.somaLotes },
+        { label: 'Prêmio Unit.',     value: this.formatMoney(b.somaPremioUnitario), sub: 'méd: ' + this.formatMoney(b.mediaPremioUnitario) },
+        { label: 'Lucro (Média)',    value: this.formatPct(b.mediaLucroPct), color: 'var(--brand-emerald)' },
+        { label: 'Notional (Soma)',  value: this.formatMoney(b.somaNotional) },
+        { label: 'Crédito Recebido', value: this.formatMoney(b.somaCredito), color: 'var(--brand-emerald)', sub: 'méd: ' + this.formatMoney(b.mediaCredito) }
+      ];
+    },
+
+    // ── Trava basket ──
+    agregadoBasketTrava() {
+      const validas = this.cardsTrava.filter(c => this.isTravaValida(c));
+      if (validas.length < 2) return null;
+      let somaCredito = 0, somaGarantia = 0, somaRiscoMax = 0, somaRocPonderado = 0;
+      validas.forEach(c => {
+        const cred  = this.calcCreditoLiquido(c);
+        const gar   = this.calcGarantiaTrava(c);
+        const risco = this.calcRiscoMax(c);
+        const roc   = this.calcRocAnualizadoTrava(c);
+        somaCredito      += cred * (c.qtd || 0);
+        somaGarantia     += gar;
+        somaRiscoMax     += risco;
+        somaRocPonderado += roc * gar;
+      });
+      const rocMedioPonderado = somaGarantia > 0 ? somaRocPonderado / somaGarantia : 0;
+      return { qtdCards: validas.length, somaCredito, somaGarantia, somaRiscoMax, rocMedioPonderado };
+    },
+    basketItemsTrava() {
+      if (!this.agregadoBasketTrava) return [];
+      const b = this.agregadoBasketTrava;
+      return [
+        { label: 'Travas',           value: b.qtdCards },
+        { label: 'Crédito Total',    value: this.formatMoney(b.somaCredito),    color: 'var(--brand-emerald)' },
+        { label: 'Garantia Total',   value: this.formatMoney(b.somaGarantia) },
+        { label: 'Risco Máximo',     value: this.formatMoney(b.somaRiscoMax),   color: 'var(--brand-rose)' },
+        { label: 'ROC a.a. (pond.)', value: this.formatPct(b.rocMedioPonderado), color: 'var(--brand-emerald)' }
       ];
     }
   },
 
-  created() { this.carregarCache(); },
+  created() {
+    this.carregarCache();
+    this.carregarCacheTrava();
+  },
 
   watch: {
     cards: {
-      handler() {
-        this.salvarCache();
-        this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
-      },
+      handler() { this.salvarCache(); this.$nextTick(() => { if (window.lucide) lucide.createIcons(); }); },
+      deep: true
+    },
+    cardsTrava: {
+      handler() { this.salvarCacheTrava(); this.$nextTick(() => { if (window.lucide) lucide.createIcons(); }); },
       deep: true
     }
   },
 
   methods: {
-    getCardBorderStyle(card) {
-      if (!this.mostrarResultados)
-        return 'background: var(--surface-base); border: 1px solid var(--border-default);';
-      const isRent = this.rankingRentabilidade.id === card.id;
-      const isSafe = this.rankingSeguranca.id === card.id;
-      if (isRent && isSafe) return 'background: var(--surface-base); border: 2px solid var(--brand-emerald); box-shadow: 0 0 0 4px var(--brand-emerald-muted);';
-      if (isRent)           return 'background: var(--surface-base); border: 2px solid var(--brand-emerald);';
-      if (isSafe)           return 'background: var(--surface-base); border: 2px solid var(--brand-indigo);';
-      return 'background: var(--surface-base); border: 1px solid var(--border-default);';
-    },
-
-    limparArena() {
-      localStorage.removeItem('arena_put_cache');
-      this.cards = [this.criarCardVazio(1), this.criarCardVazio(2)];
-      this.cardCounter = 2; this.mostrarResultados = false;
+    // ── Modo ──
+    setModo(novoModo) {
+      if (novoModo === this.modo) return;
       this.ordenarPor = 'padrao';
+      if (novoModo === 'TRAVA_ALTA' && this.cardsTrava.length === 0) {
+        this.cardsTrava = [this.criarCardTravaVazio(1), this.criarCardTravaVazio(2)];
+        this.cardTravaCounter = 2;
+      }
+      this.modo = novoModo;
       this.$nextTick(() => lucide.createIcons());
     },
+
+    // ── PUT Seco — cache ──
     salvarCache() {
-      localStorage.setItem('arena_put_cache', JSON.stringify(
-        { cards: this.cards, cardCounter: this.cardCounter }
-      ));
+      localStorage.setItem('arena_put_cache', JSON.stringify({ cards: this.cards, cardCounter: this.cardCounter }));
     },
     carregarCache() {
-      const cache = localStorage.getItem('arena_put_cache');
-      if (cache) {
-        const p = JSON.parse(cache);
+      const raw = localStorage.getItem('arena_put_cache');
+      if (raw) {
+        const p = JSON.parse(raw);
         this.cards = p.cards; this.cardCounter = p.cardCounter;
         if (this.cards.some(c => c.api.isValid)) this.processarComparacao();
       } else {
@@ -572,6 +1035,25 @@ window.ComparativoView = {
       }
       this.$nextTick(() => lucide.createIcons());
     },
+
+    // ── Trava — cache ──
+    salvarCacheTrava() {
+      localStorage.setItem('arena_trava_cache', JSON.stringify({ cardsTrava: this.cardsTrava, cardTravaCounter: this.cardTravaCounter, modo: this.modo }));
+    },
+    carregarCacheTrava() {
+      const raw = localStorage.getItem('arena_trava_cache');
+      if (raw) {
+        const p = JSON.parse(raw);
+        this.cardsTrava = p.cardsTrava || [];
+        this.cardTravaCounter = p.cardTravaCounter || 2;
+        if (p.modo === 'TRAVA_ALTA') {
+          this.modo = 'TRAVA_ALTA';
+          if (this.cardsTrava.some(c => this.isTravaValida(c))) this.processarComparacaoTrava();
+        }
+      }
+    },
+
+    // ── PUT Seco — cards ──
     criarCardVazio(id) {
       return { id, ticker: '', qtd: 100, loading: false, error: '',
                api: { spotPrice: 0, strike: 0, premioAtual: 0, dte: 0, trades: 0, isValid: false } };
@@ -583,8 +1065,8 @@ window.ComparativoView = {
       this.$nextTick(() => {
         lucide.createIcons();
         if (this.isMobile) {
-          const lastCard = this.$el.querySelector('[style*="border-radius: var(--radius-xl)"]:last-child');
-          if (lastCard) lastCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const last = this.$el.querySelector('[style*="border-radius: var(--radius-xl)"]:last-child');
+          if (last) last.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else {
           const c = this.$el.querySelector('[style*="overflow-x: auto"]');
           if (c) c.scrollTo({ left: c.scrollWidth, behavior: 'smooth' });
@@ -592,55 +1074,209 @@ window.ComparativoView = {
       });
     },
     removerCard(id) {
-      if (this.cards.length > 2) {
-        this.cards = this.cards.filter(c => c.id !== id);
-        this.mostrarResultados = false;
-        this.$nextTick(() => lucide.createIcons());
-      }
+      if (this.cards.length > 2) { this.cards = this.cards.filter(c => c.id !== id); this.mostrarResultados = false; this.$nextTick(() => lucide.createIcons()); }
     },
-    ordenarArena() {
-      if (this.ordenarPor === 'padrao') { this.cards.sort((a, b) => a.id - b.id); return; }
-      this.cards.sort((a, b) => {
-        if (a.api.isValid && !b.api.isValid) return -1;
-        if (!a.api.isValid && b.api.isValid) return 1;
-        if (this.ordenarPor === 'lucro')     return this.calcLucroPct(b) - this.calcLucroPct(a);
-        if (this.ordenarPor === 'seguranca') return this.getDistanciaNumerica(b) - this.getDistanciaNumerica(a);
-        if (this.ordenarPor === 'premio')    return (b.api.premioAtual || 0) - (a.api.premioAtual || 0);
-        return 0;
+    limparArena() {
+      localStorage.removeItem('arena_put_cache');
+      this.cards = [this.criarCardVazio(1), this.criarCardVazio(2)];
+      this.cardCounter = 2; this.mostrarResultados = false; this.ordenarPor = 'padrao';
+      this.$nextTick(() => lucide.createIcons());
+    },
+
+    // ── Trava — cards ──
+    criarCardTravaVazio(id) {
+      const perna = () => ({ ticker: '', loading: false, error: '',
+        api: { spotPrice: 0, strike: 0, premioAtual: 0, dte: 0, isValid: false, category: '' } });
+      return { id, qtd: 100, venda: perna(), compra: perna() };
+    },
+    adicionarCardTrava() {
+      this.cardTravaCounter++;
+      this.cardsTrava.push(this.criarCardTravaVazio(this.cardTravaCounter));
+      this.mostrarResultadosTrava = false; this.ordenarPor = 'padrao';
+      this.$nextTick(() => {
+        lucide.createIcons();
+        const c = this.$el.querySelector('[style*="overflow-x: auto"]');
+        if (c) c.scrollTo({ left: c.scrollWidth, behavior: 'smooth' });
       });
     },
-    ajustarPremio(card, delta) {
-      card.api.premioAtual = Math.max(0.01, parseFloat((parseFloat(card.api.premioAtual || 0) + delta).toFixed(2)));
-      this.mostrarResultados = false;
+    removerCardTrava(id) {
+      if (this.cardsTrava.length > 2) { this.cardsTrava = this.cardsTrava.filter(c => c.id !== id); this.mostrarResultadosTrava = false; this.$nextTick(() => lucide.createIcons()); }
     },
-    ajustarQtd(card, valor) { card.qtd = Math.max(100, card.qtd + valor); this.mostrarResultados = false; },
+    limparArenaTrava() {
+      localStorage.removeItem('arena_trava_cache');
+      this.cardsTrava = [this.criarCardTravaVazio(1), this.criarCardTravaVazio(2)];
+      this.cardTravaCounter = 2; this.mostrarResultadosTrava = false; this.ordenarPor = 'padrao';
+      this.$nextTick(() => lucide.createIcons());
+    },
+
+    // ── Ordenação (PUT Seco e Trava) ──
+    ordenarArena() {
+      if (this.modo === 'PUT_SECO') {
+        if (this.ordenarPor === 'padrao') { this.cards.sort((a, b) => a.id - b.id); return; }
+        this.cards.sort((a, b) => {
+          if (a.api.isValid && !b.api.isValid) return -1;
+          if (!a.api.isValid && b.api.isValid) return 1;
+          if (this.ordenarPor === 'lucro')     return this.calcLucroPct(b) - this.calcLucroPct(a);
+          if (this.ordenarPor === 'seguranca') return this.getDistanciaNumerica(b) - this.getDistanciaNumerica(a);
+          if (this.ordenarPor === 'premio')    return (b.api.premioAtual || 0) - (a.api.premioAtual || 0);
+          return 0;
+        });
+      } else {
+        if (this.ordenarPor === 'padrao') { this.cardsTrava.sort((a, b) => a.id - b.id); return; }
+        this.cardsTrava.sort((a, b) => {
+          const av = this.isTravaValida(a), bv = this.isTravaValida(b);
+          if (av && !bv) return -1; if (!av && bv) return 1;
+          if (this.ordenarPor === 'roc')       return this.calcRocAnualizadoTrava(b) - this.calcRocAnualizadoTrava(a);
+          if (this.ordenarPor === 'seguranca') return this.calcMargemTrava(b) - this.calcMargemTrava(a);
+          if (this.ordenarPor === 'credito')   return this.calcCreditoLiquido(b) - this.calcCreditoLiquido(a);
+          return 0;
+        });
+      }
+    },
+
+    // ── PUT Seco — API e ajustes ──
     buscarDadosAPI(card) {
       if (!card.ticker || card.ticker.length < 4) return;
       card.loading = true; card.error = ''; card.api.isValid = false; this.mostrarResultados = false;
       google.script.run
         .withSuccessHandler((res) => {
           card.loading = false;
-          if (res && res.success) {
-            card.api = { ...res.data, isValid: true };
-            this.ordenarArena();
-          } else {
-            card.error = (res && res.error) || 'Ativo não encontrado.';
-          }
+          if (res && res.success) { card.api = { ...res.data, isValid: true }; this.ordenarArena(); }
+          else { card.error = (res && res.error) || 'Ativo não encontrado.'; }
           this.$nextTick(() => lucide.createIcons());
         })
         .withFailureHandler((err) => {
-          card.loading = false;
-          card.error = String(err.message || err);
+          card.loading = false; card.error = String(err.message || err);
           this.$nextTick(() => lucide.createIcons());
         })
         .apiIntegracaoOpLab(card.ticker);
     },
+    ajustarPremio(card, delta) {
+      card.api.premioAtual = Math.max(0.01, parseFloat((parseFloat(card.api.premioAtual || 0) + delta).toFixed(2)));
+      this.mostrarResultados = false;
+    },
+    ajustarQtd(card, valor) { card.qtd = Math.max(100, card.qtd + valor); this.mostrarResultados = false; },
+
+    // ── Trava — API e ajustes ──
+    buscarDadosVenda(card) {
+      const t = (card.venda.ticker || '').trim().toUpperCase();
+      if (!t || t.length < 4) return;
+      card.venda.ticker = t;
+      card.venda.loading = true; card.venda.error = ''; card.venda.api.isValid = false;
+      this.mostrarResultadosTrava = false;
+      google.script.run
+        .withSuccessHandler((res) => {
+          card.venda.loading = false;
+          if (res && res.success) { card.venda.api = { ...res.data, isValid: true }; }
+          else { card.venda.error = (res && res.error) || 'Não encontrado.'; }
+          this.$nextTick(() => lucide.createIcons());
+        })
+        .withFailureHandler((err) => {
+          card.venda.loading = false; card.venda.error = String(err.message || err);
+          this.$nextTick(() => lucide.createIcons());
+        })
+        .apiIntegracaoOpLab(t);
+    },
+    buscarDadosCompra(card) {
+      const t = (card.compra.ticker || '').trim().toUpperCase();
+      if (!t || t.length < 4) return;
+      card.compra.ticker = t;
+      card.compra.loading = true; card.compra.error = ''; card.compra.api.isValid = false;
+      this.mostrarResultadosTrava = false;
+      google.script.run
+        .withSuccessHandler((res) => {
+          card.compra.loading = false;
+          if (res && res.success) { card.compra.api = { ...res.data, isValid: true }; }
+          else { card.compra.error = (res && res.error) || 'Não encontrado.'; }
+          this.$nextTick(() => lucide.createIcons());
+        })
+        .withFailureHandler((err) => {
+          card.compra.loading = false; card.compra.error = String(err.message || err);
+          this.$nextTick(() => lucide.createIcons());
+        })
+        .apiIntegracaoOpLab(t);
+    },
+    ajustarPremioTrava(perna, delta) {
+      perna.premioAtual = Math.max(0.01, parseFloat((parseFloat(perna.premioAtual || 0) + delta).toFixed(2)));
+      this.mostrarResultadosTrava = false;
+    },
+    ajustarQtdTrava(card, valor) { card.qtd = Math.max(100, card.qtd + valor); this.mostrarResultadosTrava = false; },
+
+    // ── Trava — cálculos ──
+    calcCreditoLiquido(c) { return parseFloat(((c.venda.api.premioAtual || 0) - (c.compra.api.premioAtual || 0)).toFixed(2)); },
+    calcLargura(c)         { return parseFloat(((c.venda.api.strike || 0) - (c.compra.api.strike || 0)).toFixed(2)); },
+    calcGarantiaTrava(c)   { return this.calcLargura(c) * (c.qtd || 0); },
+    calcBreakevenTrava(c)  { return parseFloat(((c.venda.api.strike || 0) - this.calcCreditoLiquido(c)).toFixed(2)); },
+    calcMargemTrava(c) {
+      const spot = c.venda.api.spotPrice || 0;
+      if (!spot) return 0;
+      return parseFloat((((spot - this.calcBreakevenTrava(c)) / spot) * 100).toFixed(2));
+    },
+    calcRocTrava(c) {
+      const larg = this.calcLargura(c);
+      return larg > 0 ? parseFloat(((this.calcCreditoLiquido(c) / larg) * 100).toFixed(2)) : 0;
+    },
+    calcRocAnualizadoTrava(c) {
+      const dte = c.venda.api.dte || 0;
+      return dte > 0 ? parseFloat(((this.calcRocTrava(c) / dte) * 252).toFixed(2)) : 0;
+    },
+    calcRiscoMax(c) {
+      return parseFloat(((this.calcLargura(c) - this.calcCreditoLiquido(c)) * (c.qtd || 0)).toFixed(2));
+    },
+    calcRR(c) {
+      const cred = this.calcCreditoLiquido(c);
+      const larg = this.calcLargura(c);
+      const risco = larg - cred;
+      return risco > 0 ? parseFloat((cred / risco).toFixed(2)) : 0;
+    },
+    isTravaValida(c) {
+      if (!c.venda.api.isValid || !c.compra.api.isValid) return false;
+      if (!c.venda.api.premioAtual || !c.compra.api.premioAtual) return false;
+      return this.calcCreditoLiquido(c) > 0 && this.calcLargura(c) > 0;
+    },
+    getTravaWarnings(c) {
+      const w = [];
+      const catV = (c.venda.api.category || '').toUpperCase();
+      const catC = (c.compra.api.category || '').toUpperCase();
+      if (c.venda.api.isValid && catV && catV !== 'PUT') w.push('VENDA não é PUT — categoria: ' + catV);
+      if (c.compra.api.isValid && catC && catC !== 'PUT') w.push('COMPRA não é PUT — categoria: ' + catC);
+      if (c.venda.api.isValid && c.compra.api.isValid) {
+        if (c.venda.api.strike <= c.compra.api.strike) w.push('Strike VENDA deve ser maior que COMPRA');
+        if (this.calcCreditoLiquido(c) <= 0) w.push('Crédito líquido negativo — verifique os prêmios');
+        if (c.venda.api.dte !== c.compra.api.dte && c.venda.api.dte > 0 && c.compra.api.dte > 0)
+          w.push('Vencimentos diferentes (' + c.venda.api.dte + 'd vs ' + c.compra.api.dte + 'd)');
+      }
+      return w;
+    },
+    getCardBorderStyleTrava(c) {
+      if (!this.mostrarResultadosTrava) {
+        if (this.isTravaValida(c)) return 'background: var(--surface-base); border: 1px solid var(--brand-emerald-muted);';
+        return 'background: var(--surface-base); border: 1px solid var(--border-default);';
+      }
+      const isRoc  = this.rankingTravaRoc.id === c.id;
+      const isSafe = this.rankingTravaSeguranca.id === c.id;
+      const isRR   = this.rankingTravaRR.id === c.id;
+      if (isRoc && isSafe) return 'background: var(--surface-base); border: 2px solid var(--brand-emerald); box-shadow: 0 0 0 4px var(--brand-emerald-muted);';
+      if (isRoc)           return 'background: var(--surface-base); border: 2px solid var(--brand-emerald);';
+      if (isSafe)          return 'background: var(--surface-base); border: 2px solid var(--brand-indigo);';
+      if (isRR)            return 'background: var(--surface-base); border: 2px solid #d97706;';
+      return 'background: var(--surface-base); border: 1px solid var(--border-default);';
+    },
+
+    // ── Processamento PUT Seco ──
+    getCardBorderStyle(card) {
+      if (!this.mostrarResultados)
+        return 'background: var(--surface-base); border: 1px solid var(--border-default);';
+      const isRent = this.rankingRentabilidade.id === card.id;
+      const isSafe = this.rankingSeguranca.id === card.id;
+      if (isRent && isSafe) return 'background: var(--surface-base); border: 2px solid var(--brand-emerald); box-shadow: 0 0 0 4px var(--brand-emerald-muted);';
+      if (isRent)           return 'background: var(--surface-base); border: 2px solid var(--brand-emerald);';
+      if (isSafe)           return 'background: var(--surface-base); border: 2px solid var(--brand-indigo);';
+      return 'background: var(--surface-base); border: 1px solid var(--border-default);';
+    },
     calcPremioTotal(c)   { return (c.api.premioAtual || 0) * (c.qtd || 0); },
     calcNotional(c)      { return (c.api.strike || 0) * (c.qtd || 0); },
     calcLucroPct(c)      { return c.api.strike ? (c.api.premioAtual / c.api.strike) * 100 : 0; },
-    ...window.Formatador.mixin(),
-    formatMoney(val) { return window.Formatador.moeda(val); },
-    formatPct(val)   { return window.Formatador.pct(val, 2); },
     getDistanciaNumerica(c) {
       if (!c.api.strike) return -999;
       const be = c.api.strike - c.api.premioAtual;
@@ -654,13 +1290,13 @@ window.ComparativoView = {
       const v = this.cards.filter(c => c.api.isValid && c.api.premioAtual > 0);
       if (v.length < 2) return;
       const analise = v.map(c => {
-        const premioTotal   = this.calcPremioTotal(c);
-        const notional      = this.calcNotional(c);
-        const rocBruto      = (premioTotal / notional) * 100;
-        const anualizado    = c.api.dte > 0 ? (rocBruto / c.api.dte) * 252 : rocBruto;
-        const breakeven     = c.api.strike - c.api.premioAtual;
-        const premioPorMil  = (premioTotal / notional) * 1000;
-        const margemQueda   = c.api.spotPrice > 0 ? ((c.api.spotPrice - breakeven) / c.api.spotPrice) * 100 : 0;
+        const premioTotal  = this.calcPremioTotal(c);
+        const notional     = this.calcNotional(c);
+        const rocBruto     = (premioTotal / notional) * 100;
+        const anualizado   = c.api.dte > 0 ? (rocBruto / c.api.dte) * 252 : rocBruto;
+        const breakeven    = c.api.strike - c.api.premioAtual;
+        const premioPorMil = (premioTotal / notional) * 1000;
+        const margemQueda  = c.api.spotPrice > 0 ? ((c.api.spotPrice - breakeven) / c.api.spotPrice) * 100 : 0;
         return { id: c.id, ticker: c.ticker.toUpperCase(), rocBruto, anualizado, breakeven, margemQueda, premioPorMil, dte: c.api.dte, spot: c.api.spotPrice };
       });
       this.rankingRentabilidade = [...analise].sort((a, b) => b.anualizado - a.anualizado)[0];
@@ -668,7 +1304,39 @@ window.ComparativoView = {
       this.mostrarResultados = true;
       if (this.ordenarPor === 'padrao') { this.ordenarPor = 'lucro'; this.ordenarArena(); }
       this.$nextTick(() => lucide.createIcons());
-    }
+    },
+
+    // ── Processamento Trava ──
+    processarComparacaoTrava() {
+      const validas = this.cardsTrava.filter(c => this.isTravaValida(c));
+      if (validas.length < 2) return;
+      const analise = validas.map(c => ({
+        id:             c.id,
+        label:          c.venda.ticker.toUpperCase() + ' / ' + c.compra.ticker.toUpperCase(),
+        creditoLiquido: this.calcCreditoLiquido(c),
+        largura:        this.calcLargura(c),
+        garantia:       this.calcGarantiaTrava(c),
+        breakeven:      this.calcBreakevenTrava(c),
+        margemQueda:    this.calcMargemTrava(c),
+        rocBruto:       this.calcRocTrava(c),
+        rocAnualizado:  this.calcRocAnualizadoTrava(c),
+        riscoMax:       this.calcRiscoMax(c),
+        rr:             this.calcRR(c),
+        dte:            c.venda.api.dte || 0,
+        spot:           c.venda.api.spotPrice || 0
+      }));
+      this.rankingTravaRoc       = [...analise].sort((a, b) => b.rocAnualizado - a.rocAnualizado)[0];
+      this.rankingTravaSeguranca = [...analise].sort((a, b) => b.margemQueda - a.margemQueda)[0];
+      this.rankingTravaRR        = [...analise].sort((a, b) => b.rr - a.rr)[0];
+      this.mostrarResultadosTrava = true;
+      if (this.ordenarPor === 'padrao') { this.ordenarPor = 'roc'; this.ordenarArena(); }
+      this.$nextTick(() => lucide.createIcons());
+    },
+
+    // ── Formatadores ──
+    ...window.Formatador.mixin(),
+    formatMoney(val) { return window.Formatador.moeda(val); },
+    formatPct(val)   { return window.Formatador.pct(val, 2); }
   }
 };
 </script>
