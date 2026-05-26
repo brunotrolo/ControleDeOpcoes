@@ -162,32 +162,24 @@ const app = createApp({
       resizeTimer = setTimeout(checkMobileStatus, 150);
     });
 
-    const topGridComponents = computed(() => {
-      if (!isMobile.value) return currentLayout.value;
-      const config = window.MOBILE_ORCHESTRATOR_CONFIG || { sequence: [] };
-      const seqIds = config.sequence.map(s => s.id);
-      if (!seqIds.length) return currentLayout.value;
-      const idx = currentLayout.value.findIndex(c => seqIds.includes(c.id));
-      return idx === -1 ? currentLayout.value : currentLayout.value.slice(0, idx);
+    const mobileLayoutSplit = computed(() => {
+      const layout = currentLayout.value;
+      if (!isMobile.value) return { top: layout, carousel: [], bottom: [] };
+      const seqIds = (window.MOBILE_ORCHESTRATOR_CONFIG || { sequence: [] }).sequence.map(s => s.id);
+      if (!seqIds.length) return { top: layout, carousel: [], bottom: [] };
+      const seqSet = new Set(seqIds);
+      const idx = layout.findIndex(c => seqSet.has(c.id));
+      if (idx === -1) return { top: layout, carousel: [], bottom: [] };
+      return {
+        top:      layout.slice(0, idx),
+        carousel: layout.filter(c => seqSet.has(c.id)),
+        bottom:   layout.slice(idx).filter(c => !seqSet.has(c.id))
+      };
     });
 
-    const mobileCarouselComponents = computed(() => {
-      if (!isMobile.value) return [];
-      const config = window.MOBILE_ORCHESTRATOR_CONFIG || { sequence: [] };
-      const seqIds = config.sequence.map(s => s.id);
-      if (!seqIds.length) return [];
-      return currentLayout.value.filter(c => seqIds.includes(c.id));
-    });
-
-    const bottomGridComponents = computed(() => {
-      if (!isMobile.value) return [];
-      const config = window.MOBILE_ORCHESTRATOR_CONFIG || { sequence: [] };
-      const seqIds = config.sequence.map(s => s.id);
-      if (!seqIds.length) return [];
-      const idx = currentLayout.value.findIndex(c => seqIds.includes(c.id));
-      if (idx === -1) return [];
-      return currentLayout.value.slice(idx).filter(c => !seqIds.includes(c.id));
-    });
+    const topGridComponents        = computed(() => mobileLayoutSplit.value.top);
+    const mobileCarouselComponents = computed(() => mobileLayoutSplit.value.carousel);
+    const bottomGridComponents     = computed(() => mobileLayoutSplit.value.bottom);
 
     const getMobileLayoutZones = computed(() => {
       return window.LayoutConfig && window.LayoutConfig.MOBILE_ORCHESTRATOR_CONFIG

@@ -225,12 +225,18 @@ window.CardStrategiesBook = {
 
     filtros: function() {
       var ests = this.estrategias;
+      var nCred = 0, nDeb = 0, nSimp = 0, nComp = 0;
+      for (var i = 0; i < ests.length; i++) {
+        var e = ests[i];
+        if (e.categoria === 'credito') nCred++; else nDeb++;
+        if (e.isSimples) nSimp++; else nComp++;
+      }
       return [
         { key: 'todas',    label: 'Todas',    count: ests.length },
-        { key: 'credito',  label: 'Crédito',  count: ests.filter(function(e) { return e.categoria === 'credito'; }).length },
-        { key: 'debito',   label: 'Débito',   count: ests.filter(function(e) { return e.categoria === 'debito';  }).length },
-        { key: 'simples',  label: 'Simples',  count: ests.filter(function(e) { return e.isSimples; }).length },
-        { key: 'composta', label: 'Compostas',count: ests.filter(function(e) { return !e.isSimples; }).length }
+        { key: 'credito',  label: 'Crédito',  count: nCred },
+        { key: 'debito',   label: 'Débito',   count: nDeb  },
+        { key: 'simples',  label: 'Simples',  count: nSimp },
+        { key: 'composta', label: 'Compostas',count: nComp }
       ];
     },
 
@@ -281,7 +287,7 @@ window.CardStrategiesBook = {
       var cor     = this._cores(tipo);
       var metrics = this._metricas(pernas);
       var leg0    = pernas[0];
-      var dte     = Math.min.apply(null, pernas.map(function(p) { return typeof p.dteCorridos === 'number' ? p.dteCorridos : 999; }));
+      var dte     = pernas.reduce(function(min, p) { var v = typeof p.dteCorridos === 'number' ? p.dteCorridos : 999; return v < min ? v : min; }, 999);
 
       return Object.assign({
         id:            id,
@@ -357,33 +363,43 @@ window.CardStrategiesBook = {
     },
 
     _metricas: function(pernas) {
-      var vendas  = pernas.filter(function(p) { return p.direcaoTrade === 'VENDA';  });
-      var compras = pernas.filter(function(p) { return p.direcaoTrade === 'COMPRA'; });
-      var puts    = pernas.filter(function(p) { return String(p.tipoOpcao).toUpperCase() === 'PUT';  });
-      var calls   = pernas.filter(function(p) { return String(p.tipoOpcao).toUpperCase() === 'CALL'; });
+      // Passe único: classifica cada perna e acumula todas as métricas juntas
+      var vendas = [], compras = [], puts = [], calls = [];
+      var valorRecebido = 0, valorPago = 0;
+      var custoFecharVendas = 0, ganhoFecharCompras = 0;
+      var plTotal = 0, deltaNet = 0, thetaNet = 0, qtdTotal = 0;
 
-      var valorRecebido = vendas.reduce( function(s, p) { return s + (p.premioMedio  || 0) * (p.quantidade || 1); }, 0);
-      var valorPago     = compras.reduce(function(s, p) { return s + (p.premioMedio  || 0) * (p.quantidade || 1); }, 0);
-      var saldoLiquido  = valorRecebido - valorPago;
+      pernas.forEach(function(p) {
+        var isVenda = p.direcaoTrade === 'VENDA';
+        var tipo    = String(p.tipoOpcao || '').toUpperCase();
+        var qtd     = p.quantidade || 1;
+        var pm      = p.premioMedio || 0;
+        var pa      = p.premioAtual || 0;
+        var d       = (p.delta || 0) * qtd;
+        var t       = (p.theta || 0) * qtd;
 
-      var custoFecharVendas  = vendas.reduce( function(s, p) { return s + (p.premioAtual || 0) * (p.quantidade || 1); }, 0);
-      var ganhoFecharCompras = compras.reduce(function(s, p) { return s + (p.premioAtual || 0) * (p.quantidade || 1); }, 0);
-      var custoDesmontar     = custoFecharVendas - ganhoFecharCompras;
+        if (isVenda) {
+          vendas.push(p);
+          valorRecebido     += pm * qtd;
+          custoFecharVendas += pa * qtd;
+          deltaNet          -= d;
+          thetaNet          -= t;
+        } else {
+          compras.push(p);
+          valorPago          += pm * qtd;
+          ganhoFecharCompras += pa * qtd;
+          deltaNet           += d;
+          thetaNet           += t;
+        }
+        if (tipo === 'PUT')  puts.push(p);
+        if (tipo === 'CALL') calls.push(p);
+        plTotal  += p.plTotalValor || 0;
+        if (qtd > qtdTotal) qtdTotal = qtd;
+      });
 
-      var plTotal = pernas.reduce(function(s, p) { return s + (p.plTotalValor || 0); }, 0);
-      var plPct   = saldoLiquido !== 0 ? (plTotal / Math.abs(saldoLiquido)) * 100 : null;
-
-      // Delta líquido: short = delta invertido
-      var deltaNet = pernas.reduce(function(s, p) {
-        var d = (p.delta || 0) * (p.quantidade || 1);
-        return s + (p.direcaoTrade === 'VENDA' ? -d : d);
-      }, 0);
-
-      // Theta líquido: mantém sinal do dado (theta já vem como negativo para comprador)
-      var thetaNet = pernas.reduce(function(s, p) {
-        var t = (p.theta || 0) * (p.quantidade || 1);
-        return s + (p.direcaoTrade === 'VENDA' ? -t : t);
-      }, 0);
+      var saldoLiquido   = valorRecebido - valorPago;
+      var custoDesmontar = custoFecharVendas - ganhoFecharCompras;
+      var plPct          = saldoLiquido !== 0 ? (plTotal / Math.abs(saldoLiquido)) * 100 : null;
 
       // Ganho/Perda Máx: APENAS spreads verticais de mesmo tipo (2 PUTs ou 2 CALLs, 1V+1C)
       var maxProfit = null, maxLoss = null;
@@ -402,11 +418,7 @@ window.CardStrategiesBook = {
         }
       }
 
-      // Categoria para filtros: baseado em saldo líquido
       var categoria = saldoLiquido >= 0 ? 'credito' : 'debito';
-
-      // Métricas de estrutura: prêmio unitário, quantidade em lotes, margem bloqueada
-      var qtdTotal          = pernas.reduce(function(mx, p) { return Math.max(mx, p.quantidade || 1); }, 0);
       var lotes             = Math.round(qtdTotal / 100);
       var premioLiquidoUnit = qtdTotal > 0 ? saldoLiquido / qtdTotal : 0;
       var margemBloqueada   = (maxProfit !== null && maxLoss !== null) ? maxProfit + maxLoss : null;

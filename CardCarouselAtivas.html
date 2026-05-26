@@ -452,8 +452,18 @@ window.CardCarouselAtivas = {
   computed: {
     activeTrades: function() {
       var lista = (this.statsPreCalculados && this.statsPreCalculados.listaAtivas) ? this.statsPreCalculados.listaAtivas : [];
+      function moneynessOrdem(op) {
+        var m = String(op.moneynessCode || '').toUpperCase();
+        if (m.indexOf('ITM') >= 0) return 0;
+        if (m.indexOf('ATM') >= 0) return 1;
+        return 2; // OTM ou desconhecido
+      }
       return lista.slice().sort(function(a, b) {
-        return (a.dteCorridos || 999) - (b.dteCorridos || 999);
+        var dteDiff = (a.dteCorridos || 999) - (b.dteCorridos || 999);
+        if (dteDiff !== 0) return dteDiff;
+        var mDiff = moneynessOrdem(a) - moneynessOrdem(b);
+        if (mDiff !== 0) return mDiff;
+        return (a.tickerAtivo || '').localeCompare(b.tickerAtivo || '');
       });
     },
 
