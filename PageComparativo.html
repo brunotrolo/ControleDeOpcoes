@@ -1059,18 +1059,18 @@ window.ComparativoView = {
     cards: {
       handler() {
         clearTimeout(this._saveTimer);
-        this._saveTimer = setTimeout(() => this.salvarCache(), 400);
+        this._saveTimer = setTimeout(() => this.salvarCache(), 2000);
         clearTimeout(this._iconsTimer);
-        this._iconsTimer = setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 400);
+        this._iconsTimer = setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 200);
       },
       deep: true
     },
     cardsTrava: {
       handler() {
         clearTimeout(this._saveTravaTimer);
-        this._saveTravaTimer = setTimeout(() => this.salvarCacheTrava(), 400);
+        this._saveTravaTimer = setTimeout(() => this.salvarCacheTrava(), 2000);
         clearTimeout(this._iconsTimer);
-        this._iconsTimer = setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 400);
+        this._iconsTimer = setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 200);
       },
       deep: true
     }
@@ -1093,7 +1093,10 @@ window.ComparativoView = {
 
     // ── PUT Seco — cache ──
     salvarCache() {
-      localStorage.setItem('arena_put_cache', JSON.stringify({ cards: this.cards, cardCounter: this.cardCounter }));
+      var snapshot = this.cards.map(function(c) {
+        return Object.assign({}, c, { loading: false, error: '' });
+      });
+      localStorage.setItem('arena_put_cache', JSON.stringify({ cards: snapshot, cardCounter: this.cardCounter }));
     },
     carregarCache() {
       const raw = localStorage.getItem('arena_put_cache');
@@ -1112,7 +1115,12 @@ window.ComparativoView = {
 
     // ── Trava — cache ──
     salvarCacheTrava() {
-      localStorage.setItem('arena_trava_cache', JSON.stringify({ cardsTrava: this.cardsTrava, cardTravaCounter: this.cardTravaCounter, modo: this.modo }));
+      var snapshot = this.cardsTrava.map(function(c) {
+        var venda  = Object.assign({}, c.venda,  { loading: false, error: '' });
+        var compra = Object.assign({}, c.compra, { loading: false, error: '' });
+        return Object.assign({}, c, { venda: venda, compra: compra });
+      });
+      localStorage.setItem('arena_trava_cache', JSON.stringify({ cardsTrava: snapshot, cardTravaCounter: this.cardTravaCounter, modo: this.modo }));
     },
     carregarCacheTrava() {
       const raw = localStorage.getItem('arena_trava_cache');
