@@ -508,7 +508,7 @@
 </template>
 
 <script>
-app.component('card-dashboard', {
+window.CardDashboard = {
   template: '#card-dashboard-template',
   props: {
     statsPreCalculados: { type: Object, default: function() { return {}; } },
