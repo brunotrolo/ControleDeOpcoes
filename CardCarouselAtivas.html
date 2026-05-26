@@ -388,13 +388,13 @@ function caGetCtx(op) {
   var m   = String(op.moneynessCode || '').toUpperCase();
   var pct = parseFloat(op.plTotalPct) || 0;
 
-  if (m.indexOf('ITM') >= 0 && pct < 0) return {
+  if (m.indexOf('ITM') >= 0) return {
     cardStyle:   'border-color:var(--brand-rose-muted);background:var(--brand-rose-light);',
     badgeStyle:  'color:#fff;background:var(--brand-rose);border-color:var(--brand-rose);',
     footerStyle: 'background:var(--brand-rose-light);border-color:var(--brand-rose-muted);color:var(--brand-rose);',
     icon: '🚨'
   };
-  if (m.indexOf('ITM') >= 0 || m.indexOf('ATM') >= 0) return {
+  if (m.indexOf('ATM') >= 0) return {
     cardStyle:   'border-color:var(--brand-amber-muted);background:var(--brand-amber-light);',
     badgeStyle:  'color:var(--brand-amber);background:var(--brand-amber-light);border-color:var(--brand-amber-muted);',
     footerStyle: 'background:var(--brand-amber-light);border-color:var(--brand-amber-muted);color:var(--brand-amber);',
