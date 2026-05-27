@@ -122,7 +122,7 @@
                   </span>
                   <span style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;
                                font-weight:700;color:var(--text-secondary);">
-                    {{ fmtDate(op.dataVencimento) }}
+                    {{ fmtVencDate(op) }}
                   </span>
                 </div>
               </div>
@@ -250,7 +250,7 @@
               <span style="color:var(--border-default);">|</span>
               <span style="font-size:0.6rem;color:var(--text-muted);">QTD: {{ fmtNum(op.quantidade) }}</span>
               <span style="margin-left:auto;font-size:0.6rem;font-weight:700;color:var(--text-muted);">
-                {{ op.dteCorridos }}d &middot; {{ fmtDate(op.dataVencimento) }}
+                {{ op.dteCorridos }}d &middot; {{ fmtVencDate(op) }}
               </span>
             </div>
           </div>
@@ -374,6 +374,30 @@ function caFmtDate(v) {
   return String(v).split(' ')[0];
 }
 
+// Formata data de vencimento com fallback por DTE quando EXPIRY está vazio
+function caFmtVencDate(op) {
+  var d = op.dataVencimento;
+  var dt = null;
+  if (d instanceof Date && !isNaN(d.getTime())) {
+    dt = d;
+  } else if (d && typeof d === 'string' && d.length > 0) {
+    var parsed = new Date(d);
+    if (!isNaN(parsed.getTime())) dt = parsed;
+  }
+  if (dt) {
+    return String(dt.getDate()).padStart(2, '0') + '/' +
+           String(dt.getMonth() + 1).padStart(2, '0') + '/' +
+           dt.getFullYear();
+  }
+  var dte = parseInt(op.dteCorridos);
+  if (!dte || dte < 0) return '--';
+  var hoje = new Date();
+  var exp = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + dte);
+  return String(exp.getDate()).padStart(2, '0') + '/' +
+         String(exp.getMonth() + 1).padStart(2, '0') + '/' +
+         exp.getFullYear();
+}
+
 function caFmtDistancia(v) {
   var F = window.Formatador;
   if (F && F.distanciaPct) return F.distanciaPct(v);
@@ -455,11 +479,18 @@ window.CardCarouselAtivas = {
 
       function vencTs(op) {
         var d = op.dataVencimento;
-        if (!d) return 9999999999999;
-        var dt = (d instanceof Date) ? d : new Date(d);
-        if (isNaN(dt.getTime())) return 9999999999999;
-        // Normaliza para meia-noite para garantir agrupamento correto
-        return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).getTime();
+        var dt = null;
+        if (d instanceof Date && !isNaN(d.getTime())) {
+          dt = d;
+        } else if (d && typeof d === 'string' && d.length > 0) {
+          var parsed = new Date(d);
+          if (!isNaN(parsed.getTime())) dt = parsed;
+        }
+        if (dt) return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).getTime();
+        // Fallback: usa DTE para estimar data de vencimento
+        var dte = parseInt(op.dteCorridos) || 0;
+        var hoje = new Date();
+        return new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + dte).getTime();
       }
 
       function moneynessOrdem(op) {
@@ -485,7 +516,7 @@ window.CardCarouselAtivas = {
       var resultado = {};
       if (!this.activeTrades.length) return resultado;
       this.activeTrades.forEach(function(op) {
-        var venc = caFmtDate(op.dataVencimento);
+        var venc = caFmtVencDate(op);
         if (!resultado[venc]) resultado[venc] = [];
         resultado[venc].push(op);
       });
@@ -510,6 +541,7 @@ window.CardCarouselAtivas = {
     fmtNum:      caFmtNum,
     fmtPct:      caFmtPct,
     fmtDate:     caFmtDate,
+    fmtVencDate: caFmtVencDate,
     fmtDistancia: caFmtDistancia,
     getCtx:      caGetCtx,
     getTipoBadge: caGetTipoBadge,
