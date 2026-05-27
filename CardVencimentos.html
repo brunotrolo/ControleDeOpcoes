@@ -625,12 +625,9 @@ window.CardVencimentos = {
 
     // ── Helpers dos cards do drawer ───────────────────────────────
     cvCorBorda: function(op) {
-      var m   = String(op.moneynessCode || '').toUpperCase();
-      var pct = parseFloat(op.plTotalPct) || 0;
-      if (m.indexOf('ITM') >= 0 && pct < 0)
-        return 'border-color:var(--brand-rose-muted);background:var(--brand-rose-light);';
-      if (m.indexOf('ITM') >= 0 || m.indexOf('ATM') >= 0)
-        return 'border-color:var(--brand-amber-muted);background:var(--brand-amber-light);';
+      var m = String(op.moneynessCode || '').toUpperCase();
+      if (m.indexOf('ITM') >= 0) return 'border-color:var(--brand-rose-muted);background:var(--brand-rose-light);';
+      if (m.indexOf('ATM') >= 0) return 'border-color:var(--brand-amber-muted);background:var(--brand-amber-light);';
       return 'border-color:var(--brand-emerald-muted);background:var(--brand-emerald-light);';
     },
 
@@ -652,20 +649,16 @@ window.CardVencimentos = {
     },
 
     cvFooterStyle: function(op) {
-      var m   = String(op.moneynessCode || '').toUpperCase();
-      var pct = parseFloat(op.plTotalPct) || 0;
-      if (m.indexOf('ITM') >= 0 && pct < 0)
-        return 'background:var(--brand-rose-light);border-color:var(--brand-rose-muted);color:var(--brand-rose);';
-      if (m.indexOf('ITM') >= 0 || m.indexOf('ATM') >= 0)
-        return 'background:var(--brand-amber-light);border-color:var(--brand-amber-muted);color:var(--brand-amber);';
+      var m = String(op.moneynessCode || '').toUpperCase();
+      if (m.indexOf('ITM') >= 0) return 'background:var(--brand-rose-light);border-color:var(--brand-rose-muted);color:var(--brand-rose);';
+      if (m.indexOf('ATM') >= 0) return 'background:var(--brand-amber-light);border-color:var(--brand-amber-muted);color:var(--brand-amber);';
       return 'background:var(--brand-emerald-light);border-color:var(--brand-emerald-muted);color:var(--brand-emerald);';
     },
 
     cvCardIcon: function(op) {
-      var m   = String(op.moneynessCode || '').toUpperCase();
-      var pct = parseFloat(op.plTotalPct) || 0;
-      if (m.indexOf('ITM') >= 0 && pct < 0) return '🚨';
-      if (m.indexOf('ITM') >= 0 || m.indexOf('ATM') >= 0) return '⚠️';
+      var m = String(op.moneynessCode || '').toUpperCase();
+      if (m.indexOf('ITM') >= 0) return '🚨';
+      if (m.indexOf('ATM') >= 0) return '⚠️';
       return '✅';
     },
 
