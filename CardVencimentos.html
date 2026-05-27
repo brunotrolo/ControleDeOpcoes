@@ -706,10 +706,21 @@ window.CardVencimentos = {
     // ── Formatadores ──────────────────────────────────────────────
     fmtData: function(dataStr) {
       if (!dataStr) return '--';
-      var pts = String(dataStr).split('T')[0].split('-');
-      if (pts.length < 3) return dataStr;
-      var meses = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
-      return pts[2] + '/' + meses[parseInt(pts[1]) - 1] + '/' + pts[0];
+      var dt;
+      if (dataStr instanceof Date) {
+        dt = dataStr;
+      } else {
+        var s = String(dataStr).split('T')[0];
+        var pts = s.split('-');
+        if (pts.length >= 3) {
+          var meses = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+          return pts[2] + '/' + meses[parseInt(pts[1]) - 1] + '/' + pts[0];
+        }
+        dt = new Date(dataStr);
+        if (isNaN(dt.getTime())) return '--';
+      }
+      var mm = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+      return String(dt.getDate()).padStart(2, '0') + '/' + mm[dt.getMonth()] + '/' + dt.getFullYear();
     },
 
     fmtMoeda: function(v) {
