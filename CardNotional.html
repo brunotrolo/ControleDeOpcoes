@@ -1173,25 +1173,22 @@ window.CardNotional = {
     // ── Helpers dos cards do drawer — identicos ao CarouselAtivas ──────────
     notCardIcon: function(op) {
       var mc = String(op.moneynessCode || '').toUpperCase();
-      var pl = parseFloat(op.plTotalPct || 0);
-      if (mc.indexOf('ITM') >= 0 && pl < 0) return '🚨';
-      if (mc.indexOf('ITM') >= 0 || mc.indexOf('ATM') >= 0) return '⚠️';
+      if (mc.indexOf('ITM') >= 0) return '🚨';
+      if (mc.indexOf('ATM') >= 0) return '⚠️';
       return '✅';
     },
 
     notCardBorder: function(op) {
       var mc = String(op.moneynessCode || '').toUpperCase();
-      var pl = parseFloat(op.plTotalPct || 0);
-      if (mc.indexOf('ITM') >= 0 && pl < 0) return 'border-color:var(--brand-rose-muted);background:var(--brand-rose-light);';
-      if (mc.indexOf('ITM') >= 0 || mc.indexOf('ATM') >= 0) return 'border-color:var(--brand-amber-muted);background:var(--brand-amber-light);';
+      if (mc.indexOf('ITM') >= 0) return 'border-color:var(--brand-rose-muted);background:var(--brand-rose-light);';
+      if (mc.indexOf('ATM') >= 0) return 'border-color:var(--brand-amber-muted);background:var(--brand-amber-light);';
       return 'border-color:var(--brand-emerald-muted);background:var(--brand-emerald-light);';
     },
 
     notFooterStyle: function(op) {
       var mc = String(op.moneynessCode || '').toUpperCase();
-      var pl = parseFloat(op.plTotalPct || 0);
-      if (mc.indexOf('ITM') >= 0 && pl < 0) return 'background:var(--brand-rose-light);border-color:var(--brand-rose-muted);color:var(--brand-rose);';
-      if (mc.indexOf('ITM') >= 0 || mc.indexOf('ATM') >= 0) return 'background:var(--brand-amber-light);border-color:var(--brand-amber-muted);color:var(--brand-amber);';
+      if (mc.indexOf('ITM') >= 0) return 'background:var(--brand-rose-light);border-color:var(--brand-rose-muted);color:var(--brand-rose);';
+      if (mc.indexOf('ATM') >= 0) return 'background:var(--brand-amber-light);border-color:var(--brand-amber-muted);color:var(--brand-amber);';
       return 'background:var(--brand-emerald-light);border-color:var(--brand-emerald-muted);color:var(--brand-emerald);';
     },
 
