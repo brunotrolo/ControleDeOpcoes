@@ -99,7 +99,7 @@
                 <span style="color:var(--border-default);">|</span>
                 <span style="font-size:0.6rem;color:var(--text-muted);">QTD: {{ op.quantidade || '—' }}</span>
                 <span style="margin-left:auto;font-size:0.6rem;font-weight:700;color:var(--text-muted);">
-                  {{ op.dteCorridos }}d &middot; {{ fmtData(String(op.dataVencimento || '').split('T')[0]) }}
+                  {{ op.dteCorridos }}d &middot; {{ fmtData(op.dataVencimento) }}
                 </span>
               </div>
             </div>
@@ -704,23 +704,12 @@ window.CardVencimentos = {
     },
 
     // ── Formatadores ──────────────────────────────────────────────
-    fmtData: function(dataStr) {
-      if (!dataStr) return '--';
-      var dt;
-      if (dataStr instanceof Date) {
-        dt = dataStr;
-      } else {
-        var s = String(dataStr).split('T')[0];
-        var pts = s.split('-');
-        if (pts.length >= 3) {
-          var meses = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
-          return pts[2] + '/' + meses[parseInt(pts[1]) - 1] + '/' + pts[0];
-        }
-        dt = new Date(dataStr);
-        if (isNaN(dt.getTime())) return '--';
-      }
-      var mm = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
-      return String(dt.getDate()).padStart(2, '0') + '/' + mm[dt.getMonth()] + '/' + dt.getFullYear();
+    fmtData: function(v) {
+      var F = window.Formatador;
+      if (F && F.data) return F.data(v);
+      if (!v) return '--';
+      if (v instanceof Date) return v.toLocaleDateString('pt-BR');
+      return String(v).split(' ')[0];
     },
 
     fmtMoeda: function(v) {
