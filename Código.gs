@@ -66,3 +66,50 @@ function include(filename) {
     return ``;
   }
 }
+
+
+// ============================================================================
+// API EXTERNA (WEBHOOK PARA O CLAUDE MCP)
+// ============================================================================
+
+function doPost(e) {
+  try {
+    // 1. Lê os dados enviados pelo servidor MCP
+    const payload = JSON.parse(e.postData.contents);
+    
+    // 2. Trava de Segurança
+    if (payload.token !== "TOKEN_SECRETO_OPLAB_2026") {
+      return ContentService.createTextOutput(JSON.stringify({ status: "Erro", message: "Acesso Negado. Token inválido." }))
+                           .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 3. Roteador de Funções (Delega o comando para a função correta do seu onOpen)
+    switch (payload.funcao) {
+      case "executarFluxoSequencial": executarFluxoSequencial(); break;
+      case "executarSequenciaScanner": executarSequenciaScanner(); break;
+      case "AtualizarNecton_Menu": AtualizarNecton_Menu(); break;
+      case "AtualizarDadosAtivos_Menu": AtualizarDadosAtivos_Menu(); break;
+      case "AtualizarDetalhes_Menu": AtualizarDetalhes_Menu(); break;
+      case "AtualizarGregasAPI_Menu": AtualizarGregasAPI_Menu(); break;
+      case "CalcularGregasNativo_Menu": CalcularGregasNativo_Menu(); break;
+      case "AtualizarScannerOpcoes_Menu": AtualizarScannerOpcoes_Menu(); break;
+      case "SyncBestCoveredOptionsRates_Menu": SyncBestCoveredOptionsRates_Menu(); break;
+      case "SyncHighestOptionsVolume_Menu": SyncHighestOptionsVolume_Menu(); break;
+      case "SyncM9M21Ranking_Menu": SyncM9M21Ranking_Menu(); break;
+      case "SyncCorrelIbovRanking_Menu": SyncCorrelIbovRanking_Menu(); break;
+      case "ScreenerQuantitativo_Menu": ScreenerQuantitativo_Menu(); break;
+      default: 
+        throw new Error(`A função '${payload.funcao}' não está mapeada no roteador.`);
+    }
+
+    // 4. Retorna sucesso para o Claude saber que a planilha foi atualizada
+    return ContentService.createTextOutput(JSON.stringify({ 
+      status: "Sucesso", 
+      message: `A função ${payload.funcao} foi executada na planilha OPLab.` 
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "Erro", message: err.toString() }))
+                         .setMimeType(ContentService.MimeType.JSON);
+  }
+}
