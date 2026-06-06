@@ -24,9 +24,9 @@
             <p class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.18em;margin-top:0.2rem;">Ctrl+V da Necton para iniciar</p>
           </div>
         </div>
-        <div v-if="parsedData.length > 0"
+        <div v-if="parsedDataVisiveis.length > 0"
           style="padding:0.35rem 1rem;background:var(--brand-emerald-light);color:var(--brand-emerald);border:1px solid rgba(5,150,105,0.25);border-radius:var(--radius-full);animation:necton-pulse 1.5s infinite;">
-          <span class="t-label-sm" style="font-weight:700;text-transform:uppercase;letter-spacing:0.15em;">{{ parsedData.length }} Linhas Prontas</span>
+          <span class="t-label-sm" style="font-weight:700;text-transform:uppercase;letter-spacing:0.15em;">{{ parsedDataVisiveis.length }} Linhas Prontas</span>
         </div>
       </div>
 
@@ -51,26 +51,43 @@
         onblur="this.style.borderColor='var(--border-default)';this.style.background='var(--surface-sunken)'"
       ></textarea>
 
-      <!-- VIA PRINT: upload de imagem -->
+      <!-- VIA PRINT: upload de imagem (múltiplos prints) -->
       <div v-if="modoImport==='print'" style="margin-bottom:1.5rem;">
-        <input ref="fileInput" type="file" accept="image/*" @change="selecionarImagem" style="display:none">
+        <input ref="fileInput" type="file" accept="image/*" multiple @change="selecionarImagem" style="display:none">
+
+        <!-- Zona de upload (compacta se já há imagens) -->
         <div @click="$refs.fileInput.click()"
-          style="border:2px dashed var(--border-default);border-radius:var(--radius-lg);padding:2.5rem 1.5rem;text-align:center;cursor:pointer;background:var(--surface-sunken);transition:border-color .2s;"
+          :style="imagensSelecionadas.length > 0 ? 'padding:0.85rem 1.5rem;' : 'padding:2.5rem 1.5rem;'"
+          style="border:2px dashed var(--border-default);border-radius:var(--radius-lg);text-align:center;cursor:pointer;background:var(--surface-sunken);transition:border-color .2s,padding .2s;"
           onmouseover="this.style.borderColor='var(--brand-indigo)'" onmouseout="this.style.borderColor='var(--border-default)'">
-          <i data-lucide="camera" style="width:32px;height:32px;display:block;margin:0 auto 0.75rem;color:var(--brand-indigo);"></i>
-          <p class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.15em;">
-            {{ imagemPreview ? 'Toque para trocar o print' : 'Toque para selecionar o print da corretora' }}
-          </p>
+          <i data-lucide="camera" :style="imagensSelecionadas.length > 0 ? 'width:18px;height:18px;' : 'width:32px;height:32px;'"
+            style="display:inline-block;vertical-align:middle;margin-right:0.5rem;color:var(--brand-indigo);"></i>
+          <span class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.15em;vertical-align:middle;">
+            {{ imagensSelecionadas.length > 0 ? '+ Adicionar mais prints' : 'Toque para selecionar prints da corretora' }}
+          </span>
         </div>
-        <img v-if="imagemPreview" :src="imagemPreview"
-          style="max-width:100%;max-height:20rem;object-fit:contain;border-radius:var(--radius-lg);margin-top:1rem;border:1px solid var(--border-subtle);">
+
+        <!-- Grid de thumbnails -->
+        <div v-if="imagensSelecionadas.length > 0"
+          style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-top:1rem;">
+          <div v-for="(img, i) in imagensSelecionadas" :key="i"
+            style="position:relative;flex-shrink:0;">
+            <img :src="img.preview"
+              style="width:7rem;height:7rem;object-fit:cover;border-radius:var(--radius-md);border:1px solid var(--border-subtle);">
+            <button @click="removerImagem(i)"
+              style="position:absolute;top:-0.35rem;right:-0.35rem;width:1.25rem;height:1.25rem;border-radius:50%;border:none;background:var(--brand-rose);color:#fff;font-size:0.65rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;"
+              title="Remover">×</button>
+            <div class="t-label-sm" style="text-align:center;color:var(--text-muted);margin-top:0.25rem;max-width:7rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ img.nome }}</div>
+          </div>
+        </div>
+
         <div v-if="printErro" style="margin-top:0.75rem;padding:0.75rem 1rem;background:var(--brand-rose-light);border:1px solid rgba(225,29,72,0.2);border-radius:var(--radius-md);color:var(--brand-rose);" class="t-label-sm">
           {{ printErro }}
         </div>
       </div>
 
       <div style="margin-top:1.5rem;display:flex;flex-wrap:wrap;gap:0.75rem;justify-content:flex-end;align-items:center;">
-        <button v-if="rawText.length > 0 || parsedData.length > 0 || (modoImport==='print' && (imagemBase64 || printErro))"
+        <button v-if="rawText.length > 0 || parsedData.length > 0 || (modoImport==='print' && (imagensSelecionadas.length > 0 || printErro))"
           @click="limpar" :disabled="isSaving"
           class="btn-action"
           style="background:var(--surface-base);border:1px solid var(--border-default);color:var(--text-tertiary);">
@@ -81,31 +98,41 @@
           class="btn-action btn-action-primary">
           Analisar Dados
         </button>
-        <button v-if="modoImport==='print' && imagemBase64 && parsedData.length === 0 && !analisando"
+        <button v-if="modoImport==='print' && imagensSelecionadas.length > 0 && parsedData.length === 0 && !analisando"
           @click="analisarPrint"
           style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.25rem;border-radius:var(--radius-md);border:none;background:var(--brand-indigo);color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer;box-shadow:var(--shadow-md);">
-          <i data-lucide="sparkles" style="width:16px;height:16px;display:block;"></i> Analisar com IA
+          <i data-lucide="sparkles" style="width:16px;height:16px;display:block;"></i>
+          Analisar {{ imagensSelecionadas.length > 1 ? imagensSelecionadas.length + ' prints' : 'com IA' }}
         </button>
         <div v-if="analisando" style="display:inline-flex;align-items:center;gap:0.5rem;color:var(--text-muted);" class="t-label-sm">
           <span style="display:inline-block;width:1rem;height:1rem;border:2px solid var(--border-subtle);border-top-color:var(--brand-indigo);border-radius:50%;animation:necton-spin 0.7s linear infinite;"></span>
-          Extraindo dados com Claude Vision...
+          Analisando imagem {{ analisandoIdx + 1 }} de {{ imagensSelecionadas.length }}...
         </div>
-        <button v-if="parsedData.length > 0"
+        <button v-if="parsedDataVisiveis.length > 0"
           @click="salvar" :disabled="isSaving"
           style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.25rem;border-radius:var(--radius-md);border:none;background:var(--brand-emerald);color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer;box-shadow:var(--shadow-md);"
           onmouseover="if(!this.disabled)this.style.background='#047857'"
           onmouseout="this.style.background='var(--brand-emerald)'">
           <span v-if="isSaving" style="display:inline-block;width:1rem;height:1rem;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:necton-spin 0.7s linear infinite;"></span>
-          {{ isSaving ? 'Salvando...' : 'Gravar na Planilha' }}
+          {{ isSaving ? 'Salvando...' : 'Gravar ' + parsedDataVisiveis.length + ' linha' + (parsedDataVisiveis.length !== 1 ? 's' : '') }}
         </button>
       </div>
 
       <!-- PRÉ-VISUALIZAÇÃO -->
       <div v-if="parsedData.length > 0"
         style="margin-top:2rem;border:1px solid var(--border-default);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface-base);box-shadow:var(--shadow-sm);">
-        <div style="background:var(--surface-overlay);border-bottom:1px solid var(--border-subtle);padding:0.75rem 1.25rem;display:flex;justify-content:space-between;align-items:center;">
+        <div style="background:var(--surface-overlay);border-bottom:1px solid var(--border-subtle);padding:0.75rem 1.25rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">
           <span class="t-label-sm" style="font-weight:700;text-transform:uppercase;letter-spacing:0.18em;color:var(--text-tertiary);">Pré-visualização da Inserção</span>
-          <span class="t-label-sm" style="color:var(--text-muted);">Revise os dados antes de gravar</span>
+          <div style="display:flex;align-items:center;gap:1rem;">
+            <!-- filtro canceladas/expiradas (só relevante no modo print) -->
+            <label v-if="parsedData.some(r => r[1]==='CANCELADA' || r[1]==='EXPIRADA')"
+              style="display:inline-flex;align-items:center;gap:0.4rem;cursor:pointer;" class="t-label-sm">
+              <input type="checkbox" v-model="mostrarCanceladasExpiradas"
+                style="width:0.85rem;height:0.85rem;accent-color:var(--brand-indigo);">
+              <span style="color:var(--text-muted);">Mostrar canceladas/expiradas ({{ parsedData.filter(r=>r[1]==='CANCELADA'||r[1]==='EXPIRADA').length }})</span>
+            </label>
+            <span class="t-label-sm" style="color:var(--text-muted);">Revise os dados antes de gravar</span>
+          </div>
         </div>
         <div class="log-scrollbar" style="overflow-x:auto;max-height:24rem;">
           <table style="width:100%;border-collapse:collapse;white-space:nowrap;">
@@ -119,20 +146,36 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(row, idx) in parsedData" :key="idx" class="necton-preview-row">
-                <td style="padding:0.6rem 1rem;font-weight:700;color:var(--text-primary);" class="t-value-sm">{{ row[0] }}</td>
-                <td style="padding:0.6rem 1rem;" class="t-label-sm">{{ row[1] }}</td>
-                <td style="padding:0.6rem 1rem;" class="t-label-sm">{{ row[2] }}</td>
-                <td style="padding:0.6rem 1rem;text-align:center;">
-                  <span :style="row[3]==='C' ? 'background:var(--brand-emerald-light);color:var(--brand-emerald);border:1px solid rgba(5,150,105,0.25);' : 'background:var(--brand-rose-light);color:var(--brand-rose);border:1px solid rgba(225,29,72,0.2);'"
-                    style="padding:0.15rem 0.5rem;border-radius:var(--radius-xs);font-size:0.7rem;font-weight:700;">
-                    {{ row[3] }}
-                  </span>
+              <tr v-for="item in parsedDataVisiveis" :key="item.origIdx" class="necton-preview-row">
+                <!-- ATIVO — editável -->
+                <td style="padding:0.4rem 0.6rem;font-weight:700;color:var(--text-primary);" class="t-value-sm">
+                  <input v-model="parsedData[item.origIdx][0]"
+                    style="background:transparent;border:none;border-bottom:1px solid transparent;font-weight:700;font-size:inherit;color:inherit;width:6rem;outline:none;font-family:inherit;"
+                    onfocus="this.style.borderBottomColor='var(--brand-indigo)'"
+                    onblur="this.style.borderBottomColor='transparent'">
+                </td>
+                <!-- STATUS — editável -->
+                <td style="padding:0.4rem 0.6rem;" class="t-label-sm">
+                  <select v-model="parsedData[item.origIdx][1]"
+                    style="background:transparent;border:none;border-bottom:1px solid transparent;font-size:inherit;color:inherit;outline:none;cursor:pointer;font-family:inherit;"
+                    onfocus="this.style.borderBottomColor='var(--brand-indigo)'"
+                    onblur="this.style.borderBottomColor='transparent'">
+                    <option>EXECUTADA</option><option>CANCELADA</option><option>EXPIRADA</option>
+                  </select>
+                </td>
+                <td style="padding:0.4rem 0.6rem;" class="t-label-sm">{{ item.row[2] }}</td>
+                <!-- DIR. — editável -->
+                <td style="padding:0.4rem 0.6rem;text-align:center;">
+                  <select v-model="parsedData[item.origIdx][3]"
+                    :style="parsedData[item.origIdx][3]==='C' ? 'background:var(--brand-emerald-light);color:var(--brand-emerald);' : 'background:var(--brand-rose-light);color:var(--brand-rose);'"
+                    style="border:none;border-radius:var(--radius-xs);font-size:0.7rem;font-weight:700;padding:0.15rem 0.4rem;cursor:pointer;outline:none;">
+                    <option value="C">C</option><option value="V">V</option>
+                  </select>
                 </td>
                 <td v-for="n in [4,5,6,7,8,9,10,11,12,13]" :key="n"
-                  style="padding:0.6rem 1rem;text-align:right;color:var(--text-tertiary);" class="t-value-sm font-mono-data">{{ row[n] }}</td>
-                <td style="padding:0.6rem 1rem;text-align:center;">
-                  <button @click="removerLinhaPreview(idx)" class="necton-del-btn"
+                  style="padding:0.4rem 0.6rem;text-align:right;color:var(--text-tertiary);" class="t-value-sm font-mono-data">{{ item.row[n] }}</td>
+                <td style="padding:0.4rem 0.6rem;text-align:center;">
+                  <button @click="removerLinhaPreview(item.origIdx)" class="necton-del-btn"
                     style="padding:0.25rem;border-radius:var(--radius-xs);border:none;background:transparent;color:var(--text-muted);cursor:pointer;"
                     title="Remover desta importação">
                     <i data-lucide="x" style="width:16px;height:16px;display:block;"></i>
@@ -386,9 +429,9 @@ window.NectonImport = {
       rawText: '',
       parsedData: [],
       modoImport: 'manual',
-      imagemPreview: null,
-      imagemBase64: null,
-      imagemMime: 'image/jpeg',
+      imagensSelecionadas: [],
+      analisandoIdx: 0,
+      mostrarCanceladasExpiradas: false,
       analisando: false,
       printErro: null,
       isSaving: false,
@@ -449,6 +492,15 @@ window.NectonImport = {
           statusOp:    item.statusOp       || '---'
         };
       });
+    },
+    parsedDataVisiveis() {
+      var self = this;
+      return this.parsedData
+        .map(function(row, i) { return { row: row, origIdx: i }; })
+        .filter(function(item) {
+          return self.mostrarCanceladasExpiradas ||
+                 (item.row[1] !== 'CANCELADA' && item.row[1] !== 'EXPIRADA');
+        });
     },
     isLoadingHistory() {
       return this.carregandoLocal;
@@ -606,9 +658,8 @@ window.NectonImport = {
     limpar() {
       this.rawText = '';
       this.parsedData = [];
-      this.imagemPreview = null;
-      this.imagemBase64  = null;
-      this.printErro     = null;
+      this.imagensSelecionadas = [];
+      this.printErro           = null;
     },
 
     salvar() {
@@ -645,7 +696,7 @@ window.NectonImport = {
           this.isSaving = false;
           alert("Falha de conexão com o servidor: " + err);
         })
-        .apiAdicionarLinhas('Necton_Import', this.parsedData);
+        .apiAdicionarLinhas('Necton_Import', this.parsedDataVisiveis.map(function(i) { return i.row; }));
     },
 
     setSortCol(col) {
@@ -773,42 +824,95 @@ window.NectonImport = {
 
     trocarModo(modo) {
       if (this.modoImport === modo) return;
-      this.modoImport    = modo;
-      this.parsedData    = [];
-      this.printErro     = null;
-      this.imagemPreview = null;
-      this.imagemBase64  = null;
+      this.modoImport          = modo;
+      this.parsedData          = [];
+      this.printErro           = null;
+      this.imagensSelecionadas = [];
+    },
+
+    removerImagem(idx) {
+      this.imagensSelecionadas.splice(idx, 1);
+    },
+
+    _comprimirImagem(dataUrl, maxDim, quality, callback) {
+      var img = new Image();
+      img.onload = function() {
+        var scale  = Math.min(1, maxDim / Math.max(img.width, img.height));
+        var canvas = document.createElement('canvas');
+        canvas.width  = Math.round(img.width  * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        callback(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = dataUrl;
     },
 
     selecionarImagem(event) {
-      var file = event.target.files[0];
-      if (!file) return;
-      this.imagemMime = file.type || 'image/jpeg';
+      var files = Array.from(event.target.files);
+      if (!files.length) return;
       this.printErro  = null;
       this.parsedData = [];
-      var reader = new FileReader();
-      reader.onload = (e) => {
-        this.imagemPreview = e.target.result;
-        this.imagemBase64  = e.target.result.split(',')[1];
-      };
-      reader.readAsDataURL(file);
+      var self = this;
+      var processadas = 0;
+      var total = files.length;
+      var resultado = new Array(total);
+      files.forEach(function(file, i) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          self._comprimirImagem(e.target.result, 1200, 0.82, function(compressed) {
+            resultado[i] = { preview: compressed, base64: compressed.split(',')[1], mime: 'image/jpeg', nome: file.name };
+            processadas++;
+            if (processadas === total) {
+              // Acrescenta às já selecionadas (sem substituir)
+              self.imagensSelecionadas = self.imagensSelecionadas.concat(resultado);
+            }
+          });
+        };
+        reader.readAsDataURL(file);
+      });
+      // Limpa o input para permitir re-selecionar os mesmos arquivos
+      event.target.value = '';
     },
 
     analisarPrint() {
-      this.analisando = true;
-      this.printErro  = null;
-      this.parsedData = [];
+      this.analisando    = true;
+      this.printErro     = null;
+      this.parsedData    = [];
+      this.analisandoIdx = 0;
+      this._analisarProximaImagem(0, []);
+    },
+
+    _analisarProximaImagem(idx, acumulado) {
+      if (idx >= this.imagensSelecionadas.length) {
+        // Deduplicar por [ativo + data]
+        var vistas = {};
+        var dedup  = acumulado.filter(function(row) {
+          var chave = row[0] + '|' + row[13];
+          if (vistas[chave]) return false;
+          vistas[chave] = true;
+          return true;
+        });
+        this.parsedData = dedup;
+        this.analisando = false;
+        return;
+      }
+      this.analisandoIdx = idx;
+      var img  = this.imagensSelecionadas[idx];
+      var self = this;
       google.script.run
-        .withSuccessHandler((res) => {
-          this.analisando = false;
-          if (!res || !res.success) { this.printErro = res ? res.error : 'Erro desconhecido'; return; }
-          this.parsedData = res.linhas;
+        .withSuccessHandler(function(res) {
+          if (!res || !res.success) {
+            self.analisando = false;
+            self.printErro  = 'Imagem ' + (idx + 1) + ': ' + (res ? res.error : 'Erro desconhecido');
+            return;
+          }
+          self._analisarProximaImagem(idx + 1, acumulado.concat(res.linhas));
         })
-        .withFailureHandler((err) => {
-          this.analisando = false;
-          this.printErro  = String(err);
+        .withFailureHandler(function(err) {
+          self.analisando = false;
+          self.printErro  = String(err);
         })
-        .parsearImagemOrdens(this.imagemBase64, this.imagemMime);
+        .parsearImagemOrdens(img.base64, img.mime);
     }
   }
 };
