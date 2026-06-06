@@ -483,5 +483,83 @@ function apiIntegracaoOpLab(ticker) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// parsearImagemOrdens — Claude Vision: extrai ordens de um print da corretora
+// Recebe base64 puro (sem prefixo data:) e o mime type da imagem.
+// Retorna { success, linhas: [[14 campos], ...], total }
+// ─────────────────────────────────────────────────────────────────────────────
+function parsearImagemOrdens(base64, mimeType) {
+  try {
+    var claudeKey = PropertiesService.getScriptProperties().getProperty('CLAUDE_API_KEY');
+    if (!claudeKey) return { success: false, error: 'CLAUDE_API_KEY não configurada nas Script Properties' };
 
+    var prompt = [
+      'Analise esta imagem de ordens de opções de uma corretora brasileira.',
+      'Extraia TODAS as ordens visíveis e retorne SOMENTE um JSON válido, sem markdown, sem texto extra:',
+      '{"ordens":[{"option_ticker":"VALES795","status":"EXECUTADA","side":"V","quantity":1000,"entry_price":1.34}]}',
+      '',
+      'Regras de extração:',
+      '- option_ticker: código exato da opção (ex: VALES795, PRIOR635, CSNAF702)',
+      '- status: normalize para exatamente EXECUTADA, CANCELADA ou EXPIRADA',
+      '- side: "V" para venda (badge vermelho com V), "C" para compra (badge azul com C)',
+      '- quantity: número inteiro sem pontos separadores (ex: 1.000 → 1000)',
+      '- entry_price: use o campo "Preço médio" como decimal com ponto (ex: R$ 1,3400 → 1.34). Se não houver use "Preço". Se nenhum disponível use null',
+      '- Inclua TODAS as ordens visíveis, independente do status',
+      '- Retorne APENAS o JSON, sem nenhum texto adicional'
+    ].join('\n');
+
+    var payload = {
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: [
+        { type: 'text', text: prompt },
+        { type: 'image', source: { type: 'base64', media_type: mimeType || 'image/jpeg', data: base64 } }
+      ]}]
+    };
+
+    var response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+      method: 'post',
+      headers: { 'x-api-key': claudeKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+
+    var code = response.getResponseCode();
+    if (code !== 200) return { success: false, error: 'Erro na API Claude (HTTP ' + code + '): ' + response.getContentText().substring(0, 200) };
+
+    var respJson = JSON.parse(response.getContentText());
+    var texto = (respJson.content && respJson.content[0] && respJson.content[0].text) ? respJson.content[0].text.trim() : '';
+    texto = texto.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
+
+    var ordens = JSON.parse(texto).ordens || [];
+    if (!Array.isArray(ordens)) return { success: false, error: 'Resposta inesperada: sem array de ordens' };
+
+    var hoje = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm');
+    var linhas = ordens.map(function(o) {
+      var qty    = parseInt(o.quantity) || 0;
+      var price  = (o.entry_price !== null && o.entry_price !== undefined) ? parseFloat(o.entry_price) : '';
+      var status = String(o.status || 'EXECUTADA').toUpperCase();
+      var side   = String(o.side   || '').toUpperCase();
+      return [
+        String(o.option_ticker || '').toUpperCase(), // [0]  ATIVO
+        status,                                        // [1]  STATUS
+        'LIMITE',                                      // [2]  ORDER_TYPE
+        side,                                          // [3]  SIDE (V / C)
+        qty, qty, qty,                                 // [4-6] QTY_OFFER / QTY_DISPLAY / QUANTITY
+        status === 'EXECUTADA' ? 0 : qty,             // [7]  QTY_REMAINING
+        price, '', '', price, '',                      // [8-12] LIMIT/DISP/ENTRY/LAST
+        hoje                                           // [13] ORDER_DATE
+      ];
+    });
+
+    SysLogger.log('NectonVision', 'SUCESSO', ordens.length + ' ordens extraídas via Claude Vision');
+    SysLogger.flush();
+    return { success: true, linhas: linhas, total: linhas.length };
+
+  } catch(e) {
+    SysLogger.log('NectonVision', 'ERRO', e.message);
+    SysLogger.flush();
+    return { success: false, error: e.message };
+  }
+}
 

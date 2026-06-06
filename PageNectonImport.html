@@ -30,25 +30,66 @@
         </div>
       </div>
 
-      <textarea v-model="rawText"
+      <!-- TOGGLE: modo de importação -->
+      <div style="display:flex;gap:0.5rem;margin-bottom:1.5rem;">
+        <button @click="trocarModo('manual')"
+          :style="modoImport==='manual'?'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);':'background:var(--surface-base);color:var(--text-secondary);border-color:var(--border-default);'"
+          style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.45rem 1rem;border-radius:var(--radius-md);border:1px solid;font-size:0.78rem;font-weight:700;cursor:pointer;">
+          <i data-lucide="clipboard-paste" style="width:14px;height:14px;display:block;"></i> Manual (Ctrl+V)
+        </button>
+        <button @click="trocarModo('print')"
+          :style="modoImport==='print'?'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);':'background:var(--surface-base);color:var(--text-secondary);border-color:var(--border-default);'"
+          style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.45rem 1rem;border-radius:var(--radius-md);border:1px solid;font-size:0.78rem;font-weight:700;cursor:pointer;">
+          <i data-lucide="camera" style="width:14px;height:14px;display:block;"></i> Via Print
+        </button>
+      </div>
+
+      <textarea v-if="modoImport==='manual'" v-model="rawText"
         placeholder="Cole as colunas aqui (Ativo, Status, Tipo, Dir, Qtd...)"
         style="width:100%;height:8rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:1.25rem;font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-secondary);resize:none;box-shadow:inset 0 1px 4px rgba(0,0,0,0.04);box-sizing:border-box;"
         onfocus="this.style.borderColor='var(--brand-indigo)';this.style.background='var(--surface-base)'"
         onblur="this.style.borderColor='var(--border-default)';this.style.background='var(--surface-sunken)'"
       ></textarea>
 
-      <div style="margin-top:1.5rem;display:flex;flex-wrap:wrap;gap:0.75rem;justify-content:flex-end;">
-        <button v-if="rawText.length > 0 || parsedData.length > 0"
+      <!-- VIA PRINT: upload de imagem -->
+      <div v-if="modoImport==='print'" style="margin-bottom:1.5rem;">
+        <input ref="fileInput" type="file" accept="image/*" @change="selecionarImagem" style="display:none">
+        <div @click="$refs.fileInput.click()"
+          style="border:2px dashed var(--border-default);border-radius:var(--radius-lg);padding:2.5rem 1.5rem;text-align:center;cursor:pointer;background:var(--surface-sunken);transition:border-color .2s;"
+          onmouseover="this.style.borderColor='var(--brand-indigo)'" onmouseout="this.style.borderColor='var(--border-default)'">
+          <i data-lucide="camera" style="width:32px;height:32px;display:block;margin:0 auto 0.75rem;color:var(--brand-indigo);"></i>
+          <p class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.15em;">
+            {{ imagemPreview ? 'Toque para trocar o print' : 'Toque para selecionar o print da corretora' }}
+          </p>
+        </div>
+        <img v-if="imagemPreview" :src="imagemPreview"
+          style="max-width:100%;max-height:20rem;object-fit:contain;border-radius:var(--radius-lg);margin-top:1rem;border:1px solid var(--border-subtle);">
+        <div v-if="printErro" style="margin-top:0.75rem;padding:0.75rem 1rem;background:var(--brand-rose-light);border:1px solid rgba(225,29,72,0.2);border-radius:var(--radius-md);color:var(--brand-rose);" class="t-label-sm">
+          {{ printErro }}
+        </div>
+      </div>
+
+      <div style="margin-top:1.5rem;display:flex;flex-wrap:wrap;gap:0.75rem;justify-content:flex-end;align-items:center;">
+        <button v-if="rawText.length > 0 || parsedData.length > 0 || (modoImport==='print' && (imagemBase64 || printErro))"
           @click="limpar" :disabled="isSaving"
           class="btn-action"
           style="background:var(--surface-base);border:1px solid var(--border-default);color:var(--text-tertiary);">
           Limpar
         </button>
-        <button v-if="parsedData.length === 0"
+        <button v-if="modoImport==='manual' && parsedData.length === 0"
           @click="parseData" :disabled="rawText.length === 0"
           class="btn-action btn-action-primary">
           Analisar Dados
         </button>
+        <button v-if="modoImport==='print' && imagemBase64 && parsedData.length === 0 && !analisando"
+          @click="analisarPrint"
+          style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.25rem;border-radius:var(--radius-md);border:none;background:var(--brand-indigo);color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer;box-shadow:var(--shadow-md);">
+          <i data-lucide="sparkles" style="width:16px;height:16px;display:block;"></i> Analisar com IA
+        </button>
+        <div v-if="analisando" style="display:inline-flex;align-items:center;gap:0.5rem;color:var(--text-muted);" class="t-label-sm">
+          <span style="display:inline-block;width:1rem;height:1rem;border:2px solid var(--border-subtle);border-top-color:var(--brand-indigo);border-radius:50%;animation:necton-spin 0.7s linear infinite;"></span>
+          Extraindo dados com Claude Vision...
+        </div>
         <button v-if="parsedData.length > 0"
           @click="salvar" :disabled="isSaving"
           style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.6rem 1.25rem;border-radius:var(--radius-md);border:none;background:var(--brand-emerald);color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer;box-shadow:var(--shadow-md);"
@@ -344,6 +385,12 @@ window.NectonImport = {
     return {
       rawText: '',
       parsedData: [],
+      modoImport: 'manual',
+      imagemPreview: null,
+      imagemBase64: null,
+      imagemMime: 'image/jpeg',
+      analisando: false,
+      printErro: null,
       isSaving: false,
       isDeleting: null,
       salvandoStatus: null,
@@ -559,6 +606,9 @@ window.NectonImport = {
     limpar() {
       this.rawText = '';
       this.parsedData = [];
+      this.imagemPreview = null;
+      this.imagemBase64  = null;
+      this.printErro     = null;
     },
 
     salvar() {
@@ -718,7 +768,47 @@ window.NectonImport = {
           alert("Falha de conexão com a planilha: " + err);
           this.isDeleting = null; 
         })
-        .apiExcluirLinhaSegura('Necton_Import', linhaAlvo, ativoAlvo); 
+        .apiExcluirLinhaSegura('Necton_Import', linhaAlvo, ativoAlvo);
+    },
+
+    trocarModo(modo) {
+      if (this.modoImport === modo) return;
+      this.modoImport    = modo;
+      this.parsedData    = [];
+      this.printErro     = null;
+      this.imagemPreview = null;
+      this.imagemBase64  = null;
+    },
+
+    selecionarImagem(event) {
+      var file = event.target.files[0];
+      if (!file) return;
+      this.imagemMime = file.type || 'image/jpeg';
+      this.printErro  = null;
+      this.parsedData = [];
+      var reader = new FileReader();
+      reader.onload = (e) => {
+        this.imagemPreview = e.target.result;
+        this.imagemBase64  = e.target.result.split(',')[1];
+      };
+      reader.readAsDataURL(file);
+    },
+
+    analisarPrint() {
+      this.analisando = true;
+      this.printErro  = null;
+      this.parsedData = [];
+      google.script.run
+        .withSuccessHandler((res) => {
+          this.analisando = false;
+          if (!res || !res.success) { this.printErro = res ? res.error : 'Erro desconhecido'; return; }
+          this.parsedData = res.linhas;
+        })
+        .withFailureHandler((err) => {
+          this.analisando = false;
+          this.printErro  = String(err);
+        })
+        .parsearImagemOrdens(this.imagemBase64, this.imagemMime);
     }
   }
 };
