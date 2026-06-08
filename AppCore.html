@@ -419,7 +419,7 @@ const app = createApp({
         // =========================================================
         // 'card-ticker-tape': { ativos: ativosDaHome.value },
         'card-radar':       { statsPreCalculados: cuboOlap.value, isMobile: isMobile.value },
-        'card-notional':    { statsPreCalculados: cuboOlap.value, configGlobais: db.value.configGlobal || {}, isMobile: isMobile.value },
+        // 'card-notional':    { statsPreCalculados: cuboOlap.value, configGlobais: db.value.configGlobal || {}, isMobile: isMobile.value },
         'card-strategies-book': { statsPreCalculados: cuboOlap.value, isMobile: isMobile.value },
         'card-vencimentos':     { statsPreCalculados: cuboOlap.value, isMobile: isMobile.value },
 
@@ -507,7 +507,7 @@ const COMPONENTES_V6 = [
 
   // 1. HOME & COCKPIT
   ['card-radar',             window.CardRadar],
-  ['card-notional',          window.CardNotional],
+  // ['card-notional',          window.CardNotional],
   ['card-strategies-book',   window.CardStrategiesBook],
   ['card-vencimentos',       window.CardVencimentos],
 
