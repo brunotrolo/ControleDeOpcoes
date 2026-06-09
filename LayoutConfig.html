@@ -82,6 +82,54 @@ window.LAYOUT_MAP = {
 };
 
 /**
+ * LAYOUT_MAP_PREMIUM — variante Premium Glass do Cockpit.
+ * Usa os mesmos IDs de card do LAYOUT_MAP, mas aponta para os componentes *-pg.
+ * Views não declaradas aqui fazem fallback automático ao LAYOUT_MAP original.
+ *
+ * REVERT: delete este bloco + remova as entradas *-pg do COMPONENTES_V6 no AppCore.
+ */
+window.LAYOUT_MAP_PREMIUM = {
+  'cockpit': [
+    { id: 'card-radar',           component: 'card-radar-pg',           cols: 'col-span-12', props: {} },
+    { id: 'card-vencimentos',     component: 'card-vencimentos-pg',     cols: 'col-span-12', props: {} },
+    { id: 'card-carousel-ativas', component: 'card-carousel-ativas-pg', cols: 'col-span-12', props: {} },
+    {
+      id: 'card-table',
+      component: 'card-table-pg',
+      cols: 'col-span-12',
+      props: {
+        dataKey: 'cockpit',
+        columns: [
+          { key: 'estrategiaId',      label: 'Estrategia',    type: 'text' },
+          { key: 'tickerAtivo',       label: 'Ativo',         type: 'text' },
+          { key: 'simboloOpcao',      label: 'Opcao',         type: 'text' },
+          { key: 'dataVencimento',    label: 'Vencimento',    type: 'date' },
+          { key: 'direcaoTrade',      label: 'Direcao',       type: 'text' },
+          { key: 'tipoOpcao',         label: 'Tipo',          type: 'text' },
+          { key: 'quantidade',        label: 'Qtd',           type: 'number' },
+          { key: 'strike',            label: 'Strike',        type: 'currency' },
+          { key: 'spotPrice',         label: 'Spot',          type: 'currency' },
+          { key: 'moneynessCode',     label: 'Moneyness',     type: 'text' },
+          { key: 'premioMedio',       label: 'Premio (PM)',   type: 'currency' },
+          { key: 'premioAtual',       label: 'Premio Atual',  type: 'currency' },
+          { key: 'ganhoMaximo',       label: 'Ganho Max',     type: 'currency' },
+          { key: 'potencialLucroPct', label: 'Lucro Max',     type: 'percentage' },
+          { key: 'nocional',          label: 'Nocional',      type: 'currency' },
+          { key: 'plTotalPct',        label: 'P/L %',         type: 'percentage' },
+          { key: 'plTotalUnitario',   label: 'P/L Unit',      type: 'currency' },
+          { key: 'plTotalValor',      label: 'P/L Valor',     type: 'currency' },
+          { key: 'delta',             label: 'Delta',         type: 'number' },
+          { key: 'theta',             label: 'Theta',         type: 'number' },
+          { key: 'dteCorridos',       label: 'DTE',           type: 'number' }
+        ]
+      }
+    },
+    { id: 'card-summary',           component: 'card-summary-pg',           cols: 'col-span-12', props: {} },
+    { id: 'card-strategies-book',   component: 'card-strategies-book-pg',   cols: 'col-span-12', props: {} }
+  ]
+};
+
+/**
  *  MOBILE_ORCHESTRATOR_CONFIG
  */
 window.MOBILE_ORCHESTRATOR_CONFIG = {

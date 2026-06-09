@@ -66,6 +66,12 @@ const app = createApp({
     const modalCalcBS  = ref(false);
     const menu         = ref(window.APP_MENU || []);
 
+    // ── Tema reativo (suporta 'light' | 'dark' | 'premium') ──────────────
+    const currentTheme = ref(window.ThemeManager ? window.ThemeManager.getCurrent() : 'light');
+    window.addEventListener('themechange', function(e) {
+      currentTheme.value = e.detail.theme;
+    });
+
     const currentMenuLabel = computed(() => {
       const item = menu.value.find(
         m => String(m.id).toLowerCase() === String(currentView.value).toLowerCase()
@@ -74,8 +80,12 @@ const app = createApp({
     });
 
     const currentLayout = computed(() => {
-      const map  = window.LAYOUT_MAP || {};
       const view = String(currentView.value).toLowerCase();
+      if (currentTheme.value === 'premium') {
+        const pgMap = window.LAYOUT_MAP_PREMIUM || {};
+        if (pgMap[view]) return pgMap[view];
+      }
+      const map = window.LAYOUT_MAP || {};
       return map[view] || [];
     });
 
@@ -514,6 +524,14 @@ const COMPONENTES_V6 = [
   ['card-carousel-ativas',  window.CardCarouselAtivas],
   ['card-table',             window.CardTable],
   ['card-summary',           window.CardSummary],
+
+  // Premium Glass variants (activos apenas com data-theme="premium")
+  ['card-radar-pg',             window.CardRadarPG],
+  ['card-vencimentos-pg',       window.CardVencimentosPG],
+  ['card-carousel-ativas-pg',   window.CardCarouselAtivasPG],
+  ['card-table-pg',             window.CardTablePG],
+  ['card-summary-pg',           window.CardSummaryPG],
+  ['card-strategies-book-pg',   window.CardStrategiesBookPG],
 
   // 2. ANALISE & GESTAO
   ['comparativo-view',       window.ComparativoView],

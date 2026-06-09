@@ -1,0 +1,155 @@
+<script>
+window.CardStrategiesBookPG = Object.assign({}, window.CardStrategiesBook, {
+  template: `
+<div style="width:100%;font-family:'Plus Jakarta Sans',sans-serif;">
+  <div class="pg-card lead-violet">
+
+    <!-- Cabeçalho + tabs -->
+    <div class="pg-card-h" style="flex-direction:column;align-items:flex-start;gap:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="pg-card-icon">▥</div>
+          <div>
+            <h2>Livro de Estruturas</h2>
+            <div class="pg-hint">{{ estrategiasFiltradas.length }} estrutura{{ estrategiasFiltradas.length !== 1 ? 's' : '' }} · {{ trades.length }} pernas</div>
+          </div>
+        </div>
+        <span class="pg-chip"><b>{{ estrategias.length }}</b></span>
+      </div>
+      <!-- Tabs de filtro -->
+      <div class="pg-tabs">
+        <div v-for="f in filtros" :key="f.key"
+          class="pg-tab" :class="filtroAtivo === f.key ? 'active' : ''"
+          @click="filtroAtivo = f.key">
+          {{ f.label }}<span class="cnt">{{ f.count }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div v-if="!estrategiasFiltradas.length" style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px;">
+      Nenhuma estrutura encontrada
+    </div>
+
+    <!-- Grid de cards de estrutura -->
+    <div v-else class="pg-book">
+      <div v-for="est in estrategiasFiltradas" :key="est.id" class="pg-struct">
+
+        <!-- Header da estrutura -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;">
+          <div>
+            <span class="pg-chip" style="font-size:10px;margin-bottom:6px;"
+              :style="est.corBadge ? 'background:'+est.corFundo+';color:'+est.corTexto+';border-color:'+est.corBorda : ''">
+              {{ est.tipoEstrutura }}
+            </span>
+            <div style="font-size:20px;font-weight:800;color:var(--text-primary);margin-top:4px;">{{ est.ticker }}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <span class="pg-chip" style="font-size:10px;"
+              :class="est.dte <= 15 ? 'red' : est.dte <= 45 ? 'amber' : 'green'">
+              {{ est.dte }}d
+            </span>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">{{ fmt(est.vencimento) }}</div>
+          </div>
+        </div>
+
+        <!-- Tabela de pernas -->
+        <table class="pg-legtbl">
+          <thead><tr>
+            <th>Opção</th>
+            <th>Lado</th>
+            <th class="num">Strike</th>
+            <th class="num">PM</th>
+            <th class="num">Atual</th>
+            <th>MNY</th>
+            <th class="num">Δ</th>
+            <th class="num">Qtd</th>
+          </tr></thead>
+          <tbody>
+            <tr v-for="p in est.pernas" :key="p.simboloOpcao">
+              <td style="font-weight:600;color:var(--text-primary);">{{ p.simboloOpcao }}</td>
+              <td>
+                <span class="pg-tag" :class="(p.direcaoTrade||'').toUpperCase()==='VENDA' ? 'pg-tag-v' : 'pg-tag-c'">
+                  {{ (p.direcaoTrade||'--')[0].toUpperCase() }}
+                </span>
+              </td>
+              <td class="num">{{ fmtNum(p.strike) }}</td>
+              <td class="num">{{ fmt(p.premioMedio) }}</td>
+              <td class="num">{{ fmt(p.premioAtual) }}</td>
+              <td>
+                <span class="pg-chip" style="font-size:9px;padding:1px 6px;"
+                  :class="(p.moneynessCode||'').toUpperCase().includes('OTM') ? 'green' : (p.moneynessCode||'').toUpperCase().includes('ITM') ? 'red' : 'amber'">
+                  {{ p.moneynessCode || '--' }}
+                </span>
+              </td>
+              <td class="num" style="color:var(--brand-indigo);font-size:11px;">{{ p.delta != null ? parseFloat(p.delta).toFixed(3).replace('.',',') : '--' }}</td>
+              <td class="num">{{ p.quantidade }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Fluxo na Abertura -->
+        <div class="pg-flowbox">
+          <div class="pg-flowbox-title">Fluxo na Abertura</div>
+          <div class="pg-flow-r">
+            <span style="color:var(--text-muted);">Recebido (V)</span>
+            <span class="pg-pos">+ {{ fmt(est.metricas.valorRecebido) }}</span>
+          </div>
+          <div class="pg-flow-r">
+            <span style="color:var(--text-muted);">Pago (C)</span>
+            <span>{{ fmt(est.metricas.valorPago) }}</span>
+          </div>
+          <div class="pg-flow-r tot">
+            <span>{{ est.metricas.categoria === 'credito' ? 'Crédito Líquido' : 'Débito Líquido' }}</span>
+            <span :class="est.metricas.saldoLiquido >= 0 ? 'pg-pos' : 'pg-neg'" style="font-weight:800;">
+              {{ fmtSigned(est.metricas.saldoLiquido) }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Situação Atual -->
+        <div class="pg-flowbox">
+          <div class="pg-flowbox-title">Situação Atual</div>
+          <div class="pg-flow-r">
+            <span style="color:var(--text-muted);">Desmontar agora</span>
+            <span>{{ fmt(est.metricas.custoDesmontar) }}</span>
+          </div>
+          <div class="pg-flow-r">
+            <span style="color:var(--text-muted);">P/L Total</span>
+            <span :class="est.metricas.plTotal >= 0 ? 'pg-pos' : 'pg-neg'" style="font-weight:800;">
+              {{ fmtSigned(est.metricas.plTotal) }}
+            </span>
+          </div>
+          <div class="pg-flow-r tot">
+            <span>Retorno</span>
+            <span :class="est.metricas.plPct >= 0 ? 'pg-pos' : 'pg-neg'">
+              {{ (est.metricas.plPct >= 0 ? '+' : '') + fmtNum(est.metricas.plPct) + '%' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Greeks -->
+        <div class="pg-greeks3">
+          <div class="g">
+            <div class="l">Delta Líq.</div>
+            <div class="v">{{ fmtNum(est.metricas.deltaNet) }}</div>
+          </div>
+          <div class="g">
+            <div class="l">Theta/d</div>
+            <div class="v pg-pos" v-if="est.metricas.thetaNet > 0">+{{ fmtNum(est.metricas.thetaNet) }}</div>
+            <div class="v pg-neg" v-else>{{ fmtNum(est.metricas.thetaNet) }}</div>
+          </div>
+          <div class="g">
+            <div class="l">Spot</div>
+            <div class="v" style="color:var(--text-primary);">{{ fmtNum(est.spotAtual) }}</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+  `
+});
+</script>
