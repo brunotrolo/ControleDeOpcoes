@@ -49,7 +49,7 @@ window.CardStrategiesBookPG = Object.assign({}, window.CardStrategiesBook, {
               :class="est.dte <= 15 ? 'red' : est.dte <= 45 ? 'amber' : 'green'">
               {{ est.dte }}d
             </span>
-            <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">{{ fmt(est.vencimento) }}</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">{{ fmtDate(est.vencimento) }}</div>
           </div>
         </div>
 
@@ -93,16 +93,16 @@ window.CardStrategiesBookPG = Object.assign({}, window.CardStrategiesBook, {
           <div class="pg-flowbox-title">Fluxo na Abertura</div>
           <div class="pg-flow-r">
             <span style="color:var(--text-muted);">Recebido (V)</span>
-            <span class="pg-pos">+ {{ fmt(est.metricas.valorRecebido) }}</span>
+            <span class="pg-pos">+ {{ fmt(est.valorRecebido) }}</span>
           </div>
           <div class="pg-flow-r">
             <span style="color:var(--text-muted);">Pago (C)</span>
-            <span>{{ fmt(est.metricas.valorPago) }}</span>
+            <span>{{ fmt(est.valorPago) }}</span>
           </div>
           <div class="pg-flow-r tot">
-            <span>{{ est.metricas.categoria === 'credito' ? 'Crédito Líquido' : 'Débito Líquido' }}</span>
-            <span :class="est.metricas.saldoLiquido >= 0 ? 'pg-pos' : 'pg-neg'" style="font-weight:800;">
-              {{ fmtSigned(est.metricas.saldoLiquido) }}
+            <span>{{ est.categoria === 'credito' ? 'Crédito Líquido' : 'Débito Líquido' }}</span>
+            <span :class="est.saldoLiquido >= 0 ? 'pg-pos' : 'pg-neg'" style="font-weight:800;">
+              {{ fmtSigned(est.saldoLiquido) }}
             </span>
           </div>
         </div>
@@ -112,18 +112,18 @@ window.CardStrategiesBookPG = Object.assign({}, window.CardStrategiesBook, {
           <div class="pg-flowbox-title">Situação Atual</div>
           <div class="pg-flow-r">
             <span style="color:var(--text-muted);">Desmontar agora</span>
-            <span>{{ fmt(est.metricas.custoDesmontar) }}</span>
+            <span>{{ fmt(est.custoDesmontar) }}</span>
           </div>
           <div class="pg-flow-r">
             <span style="color:var(--text-muted);">P/L Total</span>
-            <span :class="est.metricas.plTotal >= 0 ? 'pg-pos' : 'pg-neg'" style="font-weight:800;">
-              {{ fmtSigned(est.metricas.plTotal) }}
+            <span :class="est.plTotal >= 0 ? 'pg-pos' : 'pg-neg'" style="font-weight:800;">
+              {{ fmtSigned(est.plTotal) }}
             </span>
           </div>
           <div class="pg-flow-r tot">
             <span>Retorno</span>
-            <span :class="est.metricas.plPct >= 0 ? 'pg-pos' : 'pg-neg'">
-              {{ (est.metricas.plPct >= 0 ? '+' : '') + fmtNum(est.metricas.plPct) + '%' }}
+            <span :class="est.plPct >= 0 ? 'pg-pos' : 'pg-neg'">
+              {{ (est.plPct >= 0 ? '+' : '') + fmtNum(est.plPct) + '%' }}
             </span>
           </div>
         </div>
@@ -132,12 +132,12 @@ window.CardStrategiesBookPG = Object.assign({}, window.CardStrategiesBook, {
         <div class="pg-greeks3">
           <div class="g">
             <div class="l">Delta Líq.</div>
-            <div class="v">{{ fmtNum(est.metricas.deltaNet) }}</div>
+            <div class="v">{{ fmtNum(est.deltaNet) }}</div>
           </div>
           <div class="g">
             <div class="l">Theta/d</div>
-            <div class="v pg-pos" v-if="est.metricas.thetaNet > 0">+{{ fmtNum(est.metricas.thetaNet) }}</div>
-            <div class="v pg-neg" v-else>{{ fmtNum(est.metricas.thetaNet) }}</div>
+            <div class="v pg-pos" v-if="est.thetaNet > 0">+{{ fmtNum(est.thetaNet) }}</div>
+            <div class="v pg-neg" v-else>{{ fmtNum(est.thetaNet) }}</div>
           </div>
           <div class="g">
             <div class="l">Spot</div>
