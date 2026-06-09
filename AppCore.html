@@ -436,6 +436,14 @@ const app = createApp({
         'card-carousel-ativas': { statsPreCalculados: cuboOlap.value },
         'card-table':           { statsPreCalculados: cuboOlap.value },
 
+        // Premium Glass — espelham exatamente os props dos originais
+        'card-radar-pg':           { statsPreCalculados: cuboOlap.value, isMobile: isMobile.value },
+        'card-vencimentos-pg':     { statsPreCalculados: cuboOlap.value, isMobile: isMobile.value },
+        'card-strategies-book-pg': { statsPreCalculados: cuboOlap.value, isMobile: isMobile.value },
+        'card-carousel-ativas-pg': { statsPreCalculados: cuboOlap.value },
+        'card-table-pg':           { statsPreCalculados: cuboOlap.value },
+        'card-summary-pg':         { cockpit: db.value.cockpit || [], isMobile: isMobile.value },
+
         // =========================================================
         // 2. ANALISE & GESTAO
         // =========================================================

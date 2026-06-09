@@ -24,58 +24,62 @@ window.CardSummaryPG = Object.assign({}, window.CardSummary, {
           <th class="num">Ganho Máx</th>
           <th class="num">Lucro Máx%</th>
           <th class="num">Nocional</th>
-          <th class="num">PM Méd.</th>
-          <th class="num">Atual Méd.</th>
+          <th class="num">Perda Máx</th>
+          <th class="num">PM</th>
+          <th class="num">Atual</th>
           <th class="num">P/L %</th>
           <th class="num">P/L R$</th>
         </tr></thead>
         <tbody>
-          <template v-for="linha in resumoCalculado" :key="linha.chave || linha.operacao">
+          <template v-for="row in resumoCalculado" :key="row.id">
             <!-- Subtotal row -->
-            <tr v-if="linha.tipo === 's'"
+            <tr v-if="row.t === 's'"
               style="background:var(--surface-overlay);font-weight:700;">
-              <td style="color:var(--text-primary);">{{ linha.operacao }}</td>
-              <td class="num">{{ fmtQ(linha.quantidade) }}</td>
-              <td class="num pg-pos">{{ fmtR(linha.ganhoMaximo) }}</td>
-              <td class="num">{{ fmtP(linha.potencialLucroPct) }}</td>
-              <td class="num" style="font-weight:800;color:var(--text-primary);">{{ fmtR(linha.nocional) }}</td>
-              <td class="num">—</td>
-              <td class="num">—</td>
-              <td class="num" :class="(linha.plTotalPct||0) >= 0 ? 'pg-pos' : 'pg-neg'">{{ fmtP(linha.plTotalPct) }}</td>
-              <td class="num" :class="(linha.plTotalValor||0) >= 0 ? 'pg-pos' : 'pg-neg'">{{ fmtR(linha.plTotalValor) }}</td>
+              <td style="color:var(--text-primary);">SUBTOTAL {{ row.tipo }}</td>
+              <td class="num">{{ fmtQ(row.qtd) }}</td>
+              <td class="num" :class="(row.gmax||0) >= 0 ? 'pg-pos' : 'pg-neg'">{{ fmtR(row.gmax) }}</td>
+              <td class="num">{{ fmtP(row.lmp) }}</td>
+              <td class="num" style="font-weight:800;color:var(--text-primary);">{{ fmtR(row.noc) }}</td>
+              <td class="num pg-neg">{{ fmtR(row.pmax) }}</td>
+              <td class="num">{{ fmtR(row.pm) }}</td>
+              <td class="num">{{ fmtR(row.pa) }}</td>
+              <td class="num" :class="(row.plp||0) >= 0 ? 'pg-pos' : 'pg-neg'">{{ fmtP(row.plp) }}</td>
+              <td class="num" :class="(row.plv||0) >= 0 ? 'pg-pos' : 'pg-neg'">{{ fmtR(row.plv) }}</td>
             </tr>
             <!-- Total row -->
-            <tr v-else-if="linha.tipo === 'T'"
+            <tr v-else-if="row.t === 'T'"
               style="background:linear-gradient(90deg,var(--brand-indigo-light),var(--brand-emerald-light));font-weight:800;">
-              <td style="color:var(--text-primary);">{{ linha.operacao }}</td>
-              <td class="num">{{ fmtQ(linha.quantidade) }}</td>
-              <td class="num pg-pos">{{ fmtR(linha.ganhoMaximo) }}</td>
-              <td class="num">{{ fmtP(linha.potencialLucroPct) }}</td>
-              <td class="num" style="color:var(--text-primary);">{{ fmtR(linha.nocional) }}</td>
-              <td class="num">—</td>
-              <td class="num">—</td>
-              <td class="num" :class="(linha.plTotalPct||0) >= 0 ? 'pg-pos' : 'pg-neg'">{{ fmtP(linha.plTotalPct) }}</td>
-              <td class="num" :class="(linha.plTotalValor||0) >= 0 ? 'pg-pos' : 'pg-neg'">{{ fmtR(linha.plTotalValor) }}</td>
+              <td style="color:var(--text-primary);">TOTAL GERAL</td>
+              <td class="num">{{ fmtQ(row.qtd) }}</td>
+              <td class="num" :class="(row.gmax||0) >= 0 ? 'pg-pos' : 'pg-neg'">{{ fmtR(row.gmax) }}</td>
+              <td class="num">{{ fmtP(row.lmp) }}</td>
+              <td class="num" style="color:var(--text-primary);">{{ fmtR(row.noc) }}</td>
+              <td class="num pg-neg">{{ fmtR(row.pmax) }}</td>
+              <td class="num">{{ fmtR(row.pm) }}</td>
+              <td class="num">{{ fmtR(row.pa) }}</td>
+              <td class="num" :class="(row.plp||0) >= 0 ? 'pg-pos' : 'pg-neg'">{{ fmtP(row.plp) }}</td>
+              <td class="num" :class="(row.plv||0) >= 0 ? 'pg-pos' : 'pg-neg'">{{ fmtR(row.plv) }}</td>
             </tr>
             <!-- Detail row -->
             <tr v-else>
               <td>
                 <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                   <span class="pg-chip" style="font-size:9px;padding:2px 7px;"
-                    :class="(linha.direcaoTrade||'').toUpperCase()==='VENDA' ? 'green' : 'red'">
-                    {{ linha.direcaoTrade }}
+                    :class="(row.side||'').toUpperCase()==='VENDA' ? 'green' : 'red'">
+                    {{ row.side }}
                   </span>
-                  <span style="font-weight:600;font-size:12.5px;color:var(--text-primary);">{{ linha.tipoOpcao }}</span>
+                  <span style="font-weight:600;font-size:12.5px;color:var(--text-primary);">{{ row.tipo }}</span>
                 </div>
               </td>
-              <td class="num">{{ fmtQ(linha.quantidade) }}</td>
-              <td class="num pg-pos">{{ fmtR(linha.ganhoMaximo) }}</td>
-              <td class="num">{{ fmtP(linha.potencialLucroPct) }}</td>
-              <td class="num">{{ fmtR(linha.nocional) }}</td>
-              <td class="num">{{ fmtR(linha.premioMedio) }}</td>
-              <td class="num">{{ fmtR(linha.premioAtual) }}</td>
-              <td class="num" :class="(linha.plTotalPct||0) >= 0 ? 'pg-pos' : 'pg-neg'">{{ fmtP(linha.plTotalPct) }}</td>
-              <td class="num" :class="(linha.plTotalValor||0) >= 0 ? 'pg-pos' : 'pg-neg'">{{ fmtR(linha.plTotalValor) }}</td>
+              <td class="num">{{ fmtQ(row.qtd) }}</td>
+              <td class="num" :class="(row.gmax||0) >= 0 ? 'pg-pos' : 'pg-neg'">{{ fmtR(row.gmax) }}</td>
+              <td class="num">{{ fmtP(row.lmp) }}</td>
+              <td class="num">{{ fmtR(row.noc) }}</td>
+              <td class="num pg-neg">{{ fmtR(row.pmax) }}</td>
+              <td class="num">{{ fmtR(row.pm) }}</td>
+              <td class="num">{{ fmtR(row.pa) }}</td>
+              <td class="num" :class="(row.plp||0) >= 0 ? 'pg-pos' : 'pg-neg'">{{ fmtP(row.plp) }}</td>
+              <td class="num" :class="(row.plv||0) >= 0 ? 'pg-pos' : 'pg-neg'">{{ fmtR(row.plv) }}</td>
             </tr>
           </template>
         </tbody>
@@ -122,35 +126,35 @@ window.CardSummaryPG = Object.assign({}, window.CardSummary, {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="row in linhasFiltradas" :key="row.simboloOpcao || row.tickerAtivo">
-            <td style="white-space:nowrap;font-weight:600;color:var(--text-primary);">{{ row.estrategiaId }}</td>
-            <td class="tk">{{ row.tickerAtivo }}</td>
+          <tr v-for="(op, idx) in linhasFiltradas" :key="op.tradeId || idx">
+            <td style="white-space:nowrap;font-weight:600;color:var(--text-primary);">{{ op.estrategiaId }}</td>
+            <td class="tk">{{ op.tickerAtivo }}</td>
             <td>
               <span class="pg-chip" style="font-size:9px;padding:2px 7px;"
-                :class="(row.tipoOpcao||'').toUpperCase()==='PUT' ? 'amber' : 'red'">
-                {{ row.tipoOpcao }}
+                :class="(op.tipoOpcao||'').toUpperCase()==='PUT' ? 'amber' : 'red'">
+                {{ op.tipoOpcao }}
               </span>
             </td>
             <td><span class="pg-chip" style="font-size:9px;padding:2px 7px;"
-              :class="(row.direcaoTrade||'').toUpperCase()==='VENDA' ? 'green' : 'red'">
-              {{ (row.direcaoTrade||'--')[0].toUpperCase() }}
+              :class="(op.direcaoTrade||'').toUpperCase()==='VENDA' ? 'green' : 'red'">
+              {{ (op.direcaoTrade||'--')[0].toUpperCase() }}
             </span></td>
-            <td class="num">{{ row.quantidade }}</td>
-            <td class="num">{{ fmtAuto(row.strike, 'currency') }}</td>
-            <td class="num">{{ fmtAuto(row.spotPrice, 'currency') }}</td>
+            <td class="num">{{ fmtQ(op.quantidade) }}</td>
+            <td class="num">{{ fmtR(op.strike) }}</td>
+            <td class="num">{{ fmtR(op.spotPrice) }}</td>
             <td>
               <span class="pg-chip" style="font-size:9px;padding:2px 7px;"
-                :class="(row.moneynessCode||'').toUpperCase().includes('OTM') ? 'green' : (row.moneynessCode||'').toUpperCase().includes('ITM') ? 'red' : 'amber'">
-                {{ row.moneynessCode || '--' }}
+                :class="(op.moneynessCode||'').toUpperCase().includes('OTM') ? 'green' : (op.moneynessCode||'').toUpperCase().includes('ITM') ? 'red' : 'amber'">
+                {{ op.moneynessCode || '--' }}
               </span>
             </td>
-            <td class="num">{{ fmtAuto(row.premioMedio, 'currency') }}</td>
-            <td class="num">{{ fmtAuto(row.premioAtual, 'currency') }}</td>
-            <td class="num" :class="(parseFloat(row.plTotalPct)||0) >= 0 ? 'pg-pos' : 'pg-neg'">{{ fmtAuto(row.plTotalPct, 'percentage') }}</td>
-            <td class="num" :class="(parseFloat(row.plTotalValor)||0) >= 0 ? 'pg-pos' : 'pg-neg'" style="font-weight:700;">{{ fmtAuto(row.plTotalValor, 'currency') }}</td>
-            <td class="num" style="color:var(--brand-indigo);">{{ row.delta != null ? parseFloat(row.delta).toFixed(4).replace('.',',') : '--' }}</td>
-            <td class="num">{{ row.theta != null ? parseFloat(row.theta).toFixed(4).replace('.',',') : '--' }}</td>
-            <td class="num">{{ row.dteCorridos || '--' }}</td>
+            <td class="num">{{ fmtR(op.premioMedio) }}</td>
+            <td class="num">{{ fmtR(op.premioAtual) }}</td>
+            <td class="num" :class="(parseFloat(op.plTotalPct)||0) >= 0 ? 'pg-pos' : 'pg-neg'">{{ fmtP(op.plTotalPct * 100) }}</td>
+            <td class="num" :class="(parseFloat(op.plTotalValor)||0) >= 0 ? 'pg-pos' : 'pg-neg'" style="font-weight:700;">{{ fmtR(op.plTotalValor) }}</td>
+            <td class="num" style="color:var(--brand-indigo);">{{ op.delta != null ? parseFloat(op.delta).toFixed(4).replace('.',',') : '--' }}</td>
+            <td class="num">{{ op.theta != null ? parseFloat(op.theta).toFixed(4).replace('.',',') : '--' }}</td>
+            <td class="num">{{ op.dteCorridos || '--' }}</td>
           </tr>
         </tbody>
       </table>

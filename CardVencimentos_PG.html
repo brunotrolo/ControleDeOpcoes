@@ -111,8 +111,8 @@ window.CardVencimentosPG = Object.assign({}, window.CardVencimentos, {
             <tr v-for="v in vencimentos" :key="v.dataVencimento"
               @click="abrirDrawer(v)" style="cursor:pointer;">
               <td>
-                <span class="pg-chip" :class="corDTE(v.dteCorridos).label === 'Urgente' ? 'red' : corDTE(v.dteCorridos).label === 'Atenção' ? 'amber' : 'green'" style="font-size:10px;">
-                  {{ v.dteCorridos || calcDTE(v.dataVencimento) }}d
+                <span class="pg-chip" :class="calcDTE(v.dataVencimento) <= 15 ? 'red' : calcDTE(v.dataVencimento) <= 45 ? 'amber' : 'green'" style="font-size:10px;">
+                  {{ calcDTE(v.dataVencimento) }}d
                 </span>
               </td>
               <td style="font-weight:600;color:var(--text-primary);">{{ fmtData(v.dataVencimento) }}</td>
