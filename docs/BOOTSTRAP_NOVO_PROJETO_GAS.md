@@ -61,6 +61,13 @@ faça upload deste arquivo e diga:
 
 Guardar como `TITULO_PLANILHA`.
 
+> ⚡ **O que acontece automaticamente ao final:**
+> - Planilha Google criada
+> - Apps Script criado e vinculado
+> - Código inicial enviado ao GAS
+> - Web app implantado e link `/dev` gerado
+> - Tudo isso sem mais nenhuma ação do usuário após a Etapa 4
+
 ---
 
 ## ETAPA 1 — Ativar a Apps Script API (feita uma única vez na vida)
@@ -220,6 +227,7 @@ docs/**
 .claspignore
 .gitignore
 .trigger-bootstrap
+.deployment-id
 node_modules/**
 ```
 
@@ -344,25 +352,34 @@ jobs:
           echo "SCRIPT_ID=$SCRIPT_ID" >> $GITHUB_ENV
           echo "SHEET_ID=$SHEET_ID" >> $GITHUB_ENV
 
-      - name: Commit .clasp.json com scriptId real
+      - name: Push código inicial + criar web app
+        run: |
+          clasp push --force
+          DEPLOY_OUT=$(clasp deploy --description "Implantação inicial" 2>&1)
+          echo "$DEPLOY_OUT"
+          DEPLOYMENT_ID=$(echo "$DEPLOY_OUT" | grep -oE 'AKfycb[A-Za-z0-9_-]+' | head -1)
+          echo "$DEPLOYMENT_ID" > .deployment-id
+          DEV_URL="https://script.google.com/macros/s/${DEPLOYMENT_ID}/dev"
+          echo "DEPLOYMENT_ID=$DEPLOYMENT_ID" >> $GITHUB_ENV
+          echo "DEV_URL=$DEV_URL" >> $GITHUB_ENV
+
+      - name: Commit .clasp.json + .deployment-id
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git add .clasp.json
-          git commit -m "bootstrap: scriptId do projeto GAS criado automaticamente"
+          git add .clasp.json .deployment-id
+          git commit -m "bootstrap: scriptId e deployment ID criados automaticamente"
           git push
 
       - name: Summary
         run: |
           echo "## ✅ Projeto GAS criado com sucesso!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Campo | Valor |" >> $GITHUB_STEP_SUMMARY
+          echo "| Campo | Link |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|" >> $GITHUB_STEP_SUMMARY
-          echo "| Script ID | \`${{ env.SCRIPT_ID }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| 📊 Planilha Google | https://docs.google.com/spreadsheets/d/${{ env.SHEET_ID }}/edit |" >> $GITHUB_STEP_SUMMARY
           echo "| ⚙️ Editor GAS | https://script.google.com/home/projects/${{ env.SCRIPT_ID }}/edit |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "O deploy do código inicial está sendo executado automaticamente." >> $GITHUB_STEP_SUMMARY
+          echo "| 🌐 Web App (DEV) | ${{ env.DEV_URL }} |" >> $GITHUB_STEP_SUMMARY
 ```
 
 **`.github/workflows/deploy-gas-dev.yml`**
@@ -509,12 +526,16 @@ Agora vem a parte mais legal: vou criar automaticamente a planilha Google e o pr
 > O push desse arquivo aciona automaticamente o workflow
 > `bootstrap-gas-project.yml` (gatilho `push: paths: ['.trigger-bootstrap']`).
 >
-> Aguarde ~60 segundos e use `mcp__github__actions_list` para verificar o
-> status. Quando `completed` + `success`:
-> - Rode `git pull` (o bootstrap commitou `.clasp.json` com os IDs reais)
-> - Leia o `.clasp.json` local, extraia `scriptId` e `parentId` e monte as URLs:
+> Aguarde ~90 segundos e use `mcp__github__actions_list` para verificar o
+> status do workflow `bootstrap-gas-project.yml`.
+> Quando `completed` + `success`:
+> - Rode `git pull` (o bootstrap commitou `.clasp.json` e `.deployment-id`)
+> - Leia `.clasp.json` → extraia `scriptId` e `parentId`
+> - Leia `.deployment-id` → extraia o deployment ID
+> - Monte as URLs:
 >   - **Planilha:** `https://docs.google.com/spreadsheets/d/<parentId>/edit`
 >   - **Editor GAS:** `https://script.google.com/home/projects/<scriptId>/edit`
+>   - **Web App DEV:** `https://script.google.com/macros/s/<deploymentId>/dev`
 > - Avance para a Etapa 6
 
 ---
@@ -535,11 +556,16 @@ Seu projeto foi criado com sucesso. Aqui está tudo que foi configurado:
 ⚙️ **Editor Apps Script:**
 `https://script.google.com/home/projects/SCRIPT_ID/edit`
 
+🌐 **Seu Web App (link permanente de DEV):**
+`https://script.google.com/macros/s/DEPLOYMENT_ID/dev`
+
 📦 **Repositório GitHub:**
 `https://github.com/GITHUB_USER/NOME_PROJETO`
 
-> **Claude:** substitua `PARENT_ID` e `SCRIPT_ID` pelos valores reais lidos do
-> `.clasp.json` na Etapa 5. Apresente sempre os 3 links clicáveis.
+> **Claude:** substitua os placeholders pelos valores reais lidos dos arquivos
+> `.clasp.json` (scriptId + parentId) e `.deployment-id` (deploymentId).
+> Apresente sempre os 4 links clicáveis. O link `/dev` é permanente — toda
+> mudança futura aparece automaticamente nele após cada push.
 
 ---
 
