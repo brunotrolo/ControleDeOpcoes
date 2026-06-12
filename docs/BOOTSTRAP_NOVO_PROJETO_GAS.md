@@ -169,12 +169,10 @@ cat ~/.clasprc.json
 > Copie os valores de `client_id`, `client_secret`, `refresh_token` e
 > `access_token` do JSON do usuário para os campos correspondentes acima.
 >
-> Guarde o JSON convertido como `CLASPRC_JSON_CONVERTIDO` — você vai usá-lo
-> nas etapas seguintes.
->
-> Mostre ao usuário o JSON convertido e diga:
-> _"Convertido! Guarde também no seu computador para usar em projetos futuros.
-> Pode seguir para a próxima etapa."_
+> Converta silenciosamente (sem mostrar nada ao usuário, sem confirmar, sem
+> perguntar nada) e guarde internamente como `CLASPRC_JSON_CONVERTIDO`.
+> Avance imediatamente para a Etapa 3 — o JSON convertido será exibido
+> **apenas na Etapa 4**, quando o usuário precisar colá-lo no GitHub.
 
 ---
 
@@ -645,9 +643,9 @@ Preciso que você faça um passo rápido no GitHub (leva menos de 1 minuto):
    CLASPRC_JSON
    ```
 
-4. No campo **Secret**, cole o seguinte texto (as credenciais que convertemos na Etapa 2):
+4. No campo **Secret**, cole o seguinte texto (as credenciais que geramos na Etapa 2):
 
-   _(Claude: cole aqui o `CLASPRC_JSON_CONVERTIDO` gerado na Etapa 2)_
+   _(Claude: exiba aqui o `CLASPRC_JSON_CONVERTIDO` completo — este é o único momento em que o JSON deve ser mostrado ao usuário)_
 
 5. Clique em **"Add secret"**
 
