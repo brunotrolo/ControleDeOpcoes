@@ -11,16 +11,17 @@
 ## Como funciona (visão geral)
 
 ```
-┌─────────────┐    merge PR     ┌────────────────┐    clasp push    ┌─────────────┐
-│   GitHub    │ ──────────────► │ GitHub Actions │ ───────────────► │  GAS (DEV)  │
-│  (branch    │                 │  (job deploy)  │                  │  projeto    │
-│   main)     │                 │   ~30s         │                  │  atualizado │
-└─────────────┘                 └────────────────┘                  └─────────────┘
+┌─────────────┐    git push     ┌────────────────┐  clasp push+deploy  ┌─────────────┐
+│   GitHub    │ ──────────────► │ GitHub Actions │ ──────────────────► │  GAS (DEV)  │
+│  (branch    │                 │  (job deploy)  │                     │  projeto    │
+│   main)     │                 │   ~45s         │                     │  atualizado │
+└─────────────┘                 └────────────────┘                     └─────────────┘
 ```
 
 O **clasp** é a CLI oficial do Google para Apps Script. O workflow do GitHub
 Actions instala o clasp num runner Linux, autentica com credenciais salvas como
-*secret* e roda `clasp push --force`.
+*secret*, roda `clasp push --force` e depois `clasp deploy` para publicar o web
+app. O link `/dev` é exibido no step summary do Actions.
 
 ---
 
@@ -139,24 +140,33 @@ Pontos-chave do design:
 ```yaml
 on:
   workflow_dispatch:        # permite disparo manual (Actions → Run workflow)
-  pull_request:
-    types: [closed]         # dispara quando a PR é FECHADA...
-    branches: [main]        # ...com base = main
+  push:
+    branches:
+      - main                # dispara em todo push direto para main
+
+permissions:
+  contents: write           # necessário para commitar .deployment-id
 
 jobs:
   deploy:
-    # ...mas só roda se foi MERGEADA (fechar sem merge não deploya)
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - clasp push --force
+      - clasp deploy --description "..."   # cria versão versionada
+      - clasp deployments --json           # captura HEAD deployment ID
+      - salva .deployment-id no repo
+      - exibe link /dev no step summary
 ```
 
 | Decisão | Por quê |
 |---|---|
-| `pull_request: closed` + `if merged` | Não existe evento "PR merged" puro; o padrão é filtrar `closed` pelo campo `merged == true` |
-| `workflow_dispatch` | Permite testar o deploy sem precisar de PR |
+| `push: branches: [main]` | Dispara em qualquer push direto para main — sem precisar de PR |
+| `workflow_dispatch` | Permite testar o deploy manualmente (Actions → Run workflow) |
 | `clasp push --force` | Sem `--force`, o clasp pede confirmação interativa (trava o CI) |
+| `clasp deploy` após push | Cria snapshot versionado + GAS registra o HEAD deployment |
+| `clasp deployments --json` + Node.js | Extrai o HEAD deployment ID (diferente do versioned ID) para o link `/dev` |
 | Cache do npm global | Corta ~15s por execução (262 pacotes do clasp) |
-| `permissions: pull-requests: write` | Necessário para o job comentar na PR confirmando o deploy |
-| `actions/github-script@v7` | Posta "✅ Deploy concluído" na PR com link para o log |
+| `contents: write` permission | Necessário para commitar `.deployment-id` de volta ao repo |
 
 ---
 
@@ -164,15 +174,13 @@ jobs:
 
 ```
 1. Editar código (local, Claude Code, ou GitHub web)
-2. Commit + push no branch de trabalho
-3. Abrir PR → main
-4. Mergear a PR
-5. (automático) GitHub Actions roda clasp push
-6. (automático) Comentário "✅ Deploy concluído" aparece na PR
-7. Recarregar o web app GAS → mudanças no ar
+2. Commit + push para main
+3. (automático) GitHub Actions roda clasp push + clasp deploy
+4. (automático) Step summary exibe link /dev com as mudanças
+5. Abrir o link /dev → mudanças no ar
 ```
 
-Para deploy manual sem PR: **Actions → Deploy to GAS DEV → Run workflow**.
+Para deploy manual: **Actions → Deploy to GAS DEV → Run workflow**.
 
 ---
 
@@ -180,12 +188,13 @@ Para deploy manual sem PR: **Actions → Deploy to GAS DEV → Run workflow**.
 
 | Sintoma | Causa | Correção |
 |---|---|---|
-| Job aparece como **"skipped"** | Disparo manual com `if` exigindo `merged == true` | O `if` precisa de `github.event_name == 'workflow_dispatch' \|\|` antes da condição de merge |
 | `ReferenceError: self is not defined` no GAS | Arquivo `.js` não-GAS (ex.: service worker) foi enviado | Adicionar o caminho ao `.claspignore` |
 | `clasp push` pede confirmação e trava | Falta `--force` | Usar `clasp push --force` |
 | Erro de autenticação `invalid_grant` | `refresh_token` revogado (trocou senha / removeu acesso do app) | Refazer Passo 4 e atualizar o secret |
 | Secret com formato errado | JSON do clasp v3 (`"tokens"`) usado direto | Converter para o formato clássico (`"token"` + `"oauth2ClientSettings"`) — ver Passo 4 |
-| Deploy ok mas mudança não aparece | Cache do browser / deployment de versão fixa | `clasp push` atualiza o código HEAD; o web app `/dev` reflete na hora, o `/exec` depende do deployment apontar para HEAD |
+| Link `/dev` não funciona | HEAD deployment ID ≠ versioned deployment ID | O workflow usa `clasp deployments --json` para capturar o ID marcado como `@HEAD` — é diferente do ID do deployment versionado |
+| Nada em "Testar implantações" no GAS | Web app não foi configurado no `appsscript.json` | Garantir que `appsscript.json` tem a seção `"webapp"` e foi incluído no push |
+| Deploy ok mas mudança não aparece | Cache do browser / deployment de versão fixa | `/dev` reflete na hora após `clasp push`; `/exec` depende do deployment apontar para HEAD |
 
 ---
 
@@ -194,11 +203,12 @@ Para deploy manual sem PR: **Actions → Deploy to GAS DEV → Run workflow**.
 - [ ] Copiar `.github/workflows/deploy-gas-dev.yml` para o novo repo
 - [ ] Criar `.clasp.json` com o scriptId do novo projeto GAS
 - [ ] Criar `.claspignore` listando o que não é código GAS
-- [ ] Garantir que `appsscript.json` existe na raiz
+- [ ] Garantir que `appsscript.json` existe na raiz **com a seção `"webapp"`** (necessário para o link `/dev` funcionar)
 - [ ] Criar o secret `CLASPRC_JSON` no novo repo (pode reutilizar as mesmas
       credenciais se for a mesma conta Google)
-- [ ] Ajustar o branch alvo no `on.pull_request.branches` se não for `main`
+- [ ] Ajustar os branches alvo em `on.push.branches` conforme necessário
 - [ ] Testar com Run workflow manual antes de confiar no automático
+- [ ] Verificar o step summary do job para obter o link `/dev` correto
 
 ## Evoluindo para DEV + PROD (quando precisar)
 

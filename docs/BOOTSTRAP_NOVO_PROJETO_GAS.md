@@ -352,15 +352,34 @@ jobs:
           echo "SCRIPT_ID=$SCRIPT_ID" >> $GITHUB_ENV
           echo "SHEET_ID=$SHEET_ID" >> $GITHUB_ENV
 
-      - name: Push código inicial + criar web app
+      - name: Push código inicial + publicar web app
         run: |
           clasp push --force
-          DEPLOY_OUT=$(clasp deploy --description "Implantação inicial" 2>&1)
-          echo "$DEPLOY_OUT"
-          DEPLOYMENT_ID=$(echo "$DEPLOY_OUT" | grep -oE 'AKfycb[A-Za-z0-9_-]+' | head -1)
-          echo "$DEPLOYMENT_ID" > .deployment-id
-          DEV_URL="https://script.google.com/macros/s/${DEPLOYMENT_ID}/dev"
-          echo "DEPLOYMENT_ID=$DEPLOYMENT_ID" >> $GITHUB_ENV
+          # Cria deployment versionado (GAS cria o HEAD automaticamente)
+          clasp deploy --description "Implantação inicial" 2>&1 || true
+          # Lista todos e extrai o HEAD deployment ID
+          DEPLOYMENTS=$(clasp deployments --json 2>/dev/null || clasp deployments 2>&1)
+          echo "$DEPLOYMENTS"
+          HEAD_ID=$(echo "$DEPLOYMENTS" | node -e "
+            let raw = '';
+            process.stdin.on('data', d => raw += d);
+            process.stdin.on('end', () => {
+              try {
+                const arr = JSON.parse(raw);
+                const head = arr.find(d => JSON.stringify(d).includes('HEAD'));
+                console.log(head ? head.deploymentId : '');
+              } catch(e) {
+                const m = raw.match(/- (AKfycb[A-Za-z0-9_-]+) @HEAD/);
+                console.log(m ? m[1] : '');
+              }
+            });
+          " 2>/dev/null || echo "")
+          if [ -z "$HEAD_ID" ]; then
+            HEAD_ID=$(echo "$DEPLOYMENTS" | grep -oE 'AKfycb[A-Za-z0-9_-]+' | head -1)
+          fi
+          echo "$HEAD_ID" > .deployment-id
+          DEV_URL="https://script.google.com/macros/s/${HEAD_ID}/dev"
+          echo "DEPLOYMENT_ID=$HEAD_ID" >> $GITHUB_ENV
           echo "DEV_URL=$DEV_URL" >> $GITHUB_ENV
 
       - name: Commit .clasp.json + .deployment-id

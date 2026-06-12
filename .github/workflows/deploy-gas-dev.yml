@@ -65,26 +65,58 @@ jobs:
           FILES=$(echo "$OUTPUT" | grep -c '└─' || true)
           echo "files=$FILES" >> $GITHUB_OUTPUT
 
-      # Na primeira execução cria o web app e salva o deployment ID.
-      # Nas seguintes apenas lê o ID salvo — /dev sempre aponta para HEAD.
-      - name: Criar ou ler deployment do web app
+      # Cria ou atualiza o web app deployment e captura o link /dev correto.
+      # O link /dev usa o HEAD deployment ID (diferente do versionado).
+      # Estratégia:
+      #   1ª vez → clasp deploy cria o versionado + GAS cria o HEAD automaticamente
+      #   Sempre  → clasp deployments --json lista todos; pegamos o HEAD
+      - name: Publicar web app e capturar link DEV
         id: webdeploy
         run: |
-          if [ -f .deployment-id ] && [ -s .deployment-id ]; then
-            DEPLOYMENT_ID=$(cat .deployment-id)
-          else
-            DEPLOY_OUT=$(clasp deploy --description "Deploy automático" 2>&1)
-            echo "$DEPLOY_OUT"
-            DEPLOYMENT_ID=$(echo "$DEPLOY_OUT" | grep -oE 'AKfycb[A-Za-z0-9_-]+' | head -1)
-            echo "$DEPLOYMENT_ID" > .deployment-id
+          # Cria/atualiza o deployment versionado
+          clasp deploy --description "Deploy automático $(date +%Y-%m-%d)" 2>&1 || true
+
+          # Lista todos os deployments em JSON e extrai o HEAD deployment ID
+          DEPLOYMENTS=$(clasp deployments --json 2>/dev/null || clasp deployments 2>&1)
+          echo "$DEPLOYMENTS"
+
+          # Tenta parsear JSON primeiro (clasp >= 2.4)
+          HEAD_ID=$(echo "$DEPLOYMENTS" | node -e "
+            let raw = '';
+            process.stdin.on('data', d => raw += d);
+            process.stdin.on('end', () => {
+              try {
+                const arr = JSON.parse(raw);
+                const head = arr.find(d =>
+                  d.deploymentConfig && d.deploymentConfig.versionNumber === undefined ||
+                  (d.deploymentId && JSON.stringify(d).includes('HEAD'))
+                );
+                console.log(head ? head.deploymentId : '');
+              } catch(e) {
+                // fallback: regex sobre texto plano
+                const m = raw.match(/- (AKfycb[A-Za-z0-9_-]+) @HEAD/);
+                console.log(m ? m[1] : '');
+              }
+            });
+          " 2>/dev/null || echo "")
+
+          # Se não achou HEAD, pega o primeiro deployment disponível
+          if [ -z "$HEAD_ID" ]; then
+            HEAD_ID=$(echo "$DEPLOYMENTS" | grep -oE 'AKfycb[A-Za-z0-9_-]+' | head -1)
+          fi
+
+          if [ -n "$HEAD_ID" ]; then
+            echo "$HEAD_ID" > .deployment-id
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git config user.name "github-actions[bot]"
             git add .deployment-id
-            git commit -m "ci: salva deployment ID do web app"
-            git push
+            git diff --staged --quiet || git commit -m "ci: atualiza deployment ID do web app"
+            git push 2>/dev/null || true
           fi
-          DEV_URL="https://script.google.com/macros/s/${DEPLOYMENT_ID}/dev"
+
+          DEV_URL="https://script.google.com/macros/s/${HEAD_ID}/dev"
           echo "dev_url=$DEV_URL" >> $GITHUB_OUTPUT
+          echo "deployment_id=$HEAD_ID" >> $GITHUB_OUTPUT
 
       - name: Deploy summary
         run: |
