@@ -20,8 +20,10 @@
 
 O **clasp** é a CLI oficial do Google para Apps Script. O workflow do GitHub
 Actions instala o clasp num runner Linux, autentica com credenciais salvas como
-*secret*, roda `clasp push --force` e depois `clasp deploy` para publicar o web
-app. O link `/dev` é exibido no step summary do Actions.
+*secret*, roda `clasp push --force` e depois atualiza o web app. As **URLs
+reais** do web app são lidas da API oficial do Apps Script
+(`entryPoints[].webApp.url`) — nunca montadas na mão — e exibidas no step
+summary e persistidas no arquivo `.webapp-urls` do repo.
 
 ---
 
@@ -152,10 +154,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - clasp push --force
-      - clasp deploy --description "..."   # cria versão versionada
-      - clasp deployments --json           # captura HEAD deployment ID
-      - salva .deployment-id no repo
-      - exibe link /dev no step summary
+      - clasp deploy -i <id-existente>     # REUSA o deployment (limite de 20!)
+      - GET script.googleapis.com/v1/projects/{id}/deployments
+      - lê entryPoints[].webApp.url        # URLs REAIS, nunca montadas na mão
+      - salva .webapp-urls no repo
+      - exibe as URLs no step summary
 ```
 
 | Decisão | Por quê |
@@ -163,8 +166,8 @@ jobs:
 | `push: branches: [main]` | Dispara em qualquer push direto para main — sem precisar de PR |
 | `workflow_dispatch` | Permite testar o deploy manualmente (Actions → Run workflow) |
 | `clasp push --force` | Sem `--force`, o clasp pede confirmação interativa (trava o CI) |
-| `clasp deploy` após push | Cria snapshot versionado + GAS registra o HEAD deployment |
-| `clasp deployments --json` + Node.js | Extrai o HEAD deployment ID (diferente do versioned ID) para o link `/dev` |
+| `clasp deploy -i <id>` (reuso) | GAS limita a **20 deployments versionados** por script; criar um novo a cada push estoura o limite e o deploy passa a falhar silenciosamente |
+| API `projects.deployments` | Única fonte confiável das URLs do web app (`entryPoints[].webApp.url`); URLs montadas na mão (`/macros/s/<id>/dev`) podem não funcionar |
 | Cache do npm global | Corta ~15s por execução (262 pacotes do clasp) |
 | `contents: write` permission | Necessário para commitar `.deployment-id` de volta ao repo |
 
@@ -175,9 +178,9 @@ jobs:
 ```
 1. Editar código (local, Claude Code, ou GitHub web)
 2. Commit + push para main
-3. (automático) GitHub Actions roda clasp push + clasp deploy
-4. (automático) Step summary exibe link /dev com as mudanças
-5. Abrir o link /dev → mudanças no ar
+3. (automático) GitHub Actions roda clasp push + atualiza o web app
+4. (automático) Step summary exibe as URLs reais do web app
+5. Abrir a URL (HEAD_URL em .webapp-urls) → mudanças no ar
 ```
 
 Para deploy manual: **Actions → Deploy to GAS DEV → Run workflow**.
@@ -192,9 +195,10 @@ Para deploy manual: **Actions → Deploy to GAS DEV → Run workflow**.
 | `clasp push` pede confirmação e trava | Falta `--force` | Usar `clasp push --force` |
 | Erro de autenticação `invalid_grant` | `refresh_token` revogado (trocou senha / removeu acesso do app) | Refazer Passo 4 e atualizar o secret |
 | Secret com formato errado | JSON do clasp v3 (`"tokens"`) usado direto | Converter para o formato clássico (`"token"` + `"oauth2ClientSettings"`) — ver Passo 4 |
-| Link `/dev` não funciona | HEAD deployment ID ≠ versioned deployment ID | O workflow usa `clasp deployments --json` para capturar o ID marcado como `@HEAD` — é diferente do ID do deployment versionado |
+| Link do web app não funciona | URL montada na mão a partir de um deployment ID | Nunca construa a URL; leia `entryPoints[].webApp.url` da API (o workflow grava em `.webapp-urls`) |
+| `Scripts may only have up to 20 versioned deployments` | Cada execução do CI criava um deployment novo | Reusar o deployment existente: `clasp deploy -i <deploymentId>` |
 | Nada em "Testar implantações" no GAS | Web app não foi configurado no `appsscript.json` | Garantir que `appsscript.json` tem a seção `"webapp"` e foi incluído no push |
-| Deploy ok mas mudança não aparece | Cache do browser / deployment de versão fixa | `/dev` reflete na hora após `clasp push`; `/exec` depende do deployment apontar para HEAD |
+| Deploy ok mas mudança não aparece | Cache do browser / deployment de versão fixa | A URL do deployment HEAD (em `.webapp-urls`, chave `HEAD_URL`) sempre serve o código mais recente após `clasp push` |
 
 ---
 
@@ -208,7 +212,7 @@ Para deploy manual: **Actions → Deploy to GAS DEV → Run workflow**.
       credenciais se for a mesma conta Google)
 - [ ] Ajustar os branches alvo em `on.push.branches` conforme necessário
 - [ ] Testar com Run workflow manual antes de confiar no automático
-- [ ] Verificar o step summary do job para obter o link `/dev` correto
+- [ ] Verificar o step summary do job (ou o arquivo `.webapp-urls`) para obter as URLs reais do web app
 
 ## Evoluindo para DEV + PROD (quando precisar)
 

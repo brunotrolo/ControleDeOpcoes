@@ -65,58 +65,87 @@ jobs:
           FILES=$(echo "$OUTPUT" | grep -c '└─' || true)
           echo "files=$FILES" >> $GITHUB_OUTPUT
 
-      # Cria ou atualiza o web app deployment e captura o link /dev correto.
-      # O link /dev usa o HEAD deployment ID (diferente do versionado).
-      # Estratégia:
-      #   1ª vez → clasp deploy cria o versionado + GAS cria o HEAD automaticamente
-      #   Sempre  → clasp deployments --json lista todos; pegamos o HEAD
-      - name: Publicar web app e capturar link DEV
+      # Publica o web app e captura as URLs REAIS direto da API do Apps Script.
+      # Nada de montar URL na mão: a API retorna entryPoints[].webApp.url para
+      # cada deployment. Se nenhum deployment tiver entry point WEB_APP, o web
+      # app NÃO está implantado e o summary avisa em vez de mostrar link falso.
+      #
+      # GAS limita a 20 deployments versionados por script — por isso o passo
+      # REUSA o deployment versionado mais recente (clasp deploy -i) em vez de
+      # criar um novo a cada execução (que foi o que estourou o limite antes).
+      - name: Publicar web app e capturar URLs reais
         id: webdeploy
         run: |
-          # Cria/atualiza o deployment versionado
-          clasp deploy --description "Deploy automático $(date +%Y-%m-%d)" 2>&1 || true
+          # Renova o access token a partir do refresh token (mesmas credenciais do clasp)
+          CLIENT_ID=$(node -e "console.log(require(process.env.HOME+'/.clasprc.json').oauth2ClientSettings.clientId)")
+          CLIENT_SECRET=$(node -e "console.log(require(process.env.HOME+'/.clasprc.json').oauth2ClientSettings.clientSecret)")
+          REFRESH_TOKEN=$(node -e "console.log(require(process.env.HOME+'/.clasprc.json').token.refresh_token)")
+          ACCESS_TOKEN=$(curl -s https://oauth2.googleapis.com/token \
+            -d client_id="$CLIENT_ID" -d client_secret="$CLIENT_SECRET" \
+            -d refresh_token="$REFRESH_TOKEN" -d grant_type=refresh_token \
+            | node -e "let r='';process.stdin.on('data',d=>r+=d);process.stdin.on('end',()=>console.log(JSON.parse(r).access_token||''))")
+          SCRIPT_ID=$(node -e "console.log(require('./.clasp.json').scriptId)")
 
-          # Lista todos os deployments em JSON e extrai o HEAD deployment ID
-          DEPLOYMENTS=$(clasp deployments --json 2>/dev/null || clasp deployments 2>&1)
-          echo "$DEPLOYMENTS"
+          fetch_deployments() {
+            curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
+              "https://script.googleapis.com/v1/projects/$SCRIPT_ID/deployments?pageSize=50" \
+              > /tmp/deployments.json
+          }
 
-          # Tenta parsear JSON primeiro (clasp >= 2.4)
-          HEAD_ID=$(echo "$DEPLOYMENTS" | node -e "
-            let raw = '';
-            process.stdin.on('data', d => raw += d);
-            process.stdin.on('end', () => {
-              try {
-                const arr = JSON.parse(raw);
-                const head = arr.find(d =>
-                  d.deploymentConfig && d.deploymentConfig.versionNumber === undefined ||
-                  (d.deploymentId && JSON.stringify(d).includes('HEAD'))
-                );
-                console.log(head ? head.deploymentId : '');
-              } catch(e) {
-                // fallback: regex sobre texto plano
-                const m = raw.match(/- (AKfycb[A-Za-z0-9_-]+) @HEAD/);
-                console.log(m ? m[1] : '');
+          # Acha o deployment versionado mais recente para reusar
+          fetch_deployments
+          EXISTING_ID=$(node -e "
+            const deps = require('/tmp/deployments.json').deployments || [];
+            let best = '', bestV = -1;
+            for (const d of deps) {
+              const v = Number(d.deploymentConfig && d.deploymentConfig.versionNumber) || 0;
+              if (v > bestV) { bestV = v; best = d.deploymentId; }
+            }
+            console.log(best);
+          ")
+
+          if [ -n "$EXISTING_ID" ]; then
+            clasp deploy -i "$EXISTING_ID" --description "Deploy automático $(date +%Y-%m-%d)" 2>&1 || true
+          else
+            clasp deploy --description "Deploy automático $(date +%Y-%m-%d)" 2>&1 || true
+          fi
+
+          # Relê os deployments e extrai as URLs exatas que o Google retorna
+          fetch_deployments
+          node > /tmp/urls.env <<'PARSE'
+          const data = require('/tmp/deployments.json');
+          const deps = data.deployments || [];
+          let headUrl = '', execUrl = '', headId = '', bestVersion = -1;
+          for (const d of deps) {
+            const isHead = !(d.deploymentConfig && d.deploymentConfig.versionNumber);
+            if (isHead && !headId) headId = d.deploymentId;
+            for (const ep of (d.entryPoints || [])) {
+              if (ep.entryPointType === 'WEB_APP' && ep.webApp && ep.webApp.url) {
+                if (isHead) { headUrl = ep.webApp.url; headId = d.deploymentId; }
+                else {
+                  const v = Number(d.deploymentConfig.versionNumber) || 0;
+                  if (v > bestVersion) { bestVersion = v; execUrl = ep.webApp.url; }
+                }
               }
-            });
-          " 2>/dev/null || echo "")
+            }
+          }
+          console.log('HEAD_URL=' + headUrl);
+          console.log('EXEC_URL=' + execUrl);
+          console.log('HEAD_ID=' + headId);
+          console.log('TOTAL_DEPLOYMENTS=' + deps.length);
+          PARSE
+          cat /tmp/urls.env
+          cat /tmp/urls.env >> $GITHUB_ENV
 
-          # Se não achou HEAD, pega o primeiro deployment disponível
-          if [ -z "$HEAD_ID" ]; then
-            HEAD_ID=$(echo "$DEPLOYMENTS" | grep -oE 'AKfycb[A-Za-z0-9_-]+' | head -1)
-          fi
-
-          if [ -n "$HEAD_ID" ]; then
-            echo "$HEAD_ID" > .deployment-id
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git config user.name "github-actions[bot]"
-            git add .deployment-id
-            git diff --staged --quiet || git commit -m "ci: atualiza deployment ID do web app"
-            git push 2>/dev/null || true
-          fi
-
-          DEV_URL="https://script.google.com/macros/s/${HEAD_ID}/dev"
-          echo "dev_url=$DEV_URL" >> $GITHUB_OUTPUT
-          echo "deployment_id=$HEAD_ID" >> $GITHUB_OUTPUT
+          # Persiste as URLs reais no repo para o Claude Code ler depois
+          cp /tmp/urls.env .webapp-urls
+          HEAD_ID_VAL=$(grep '^HEAD_ID=' /tmp/urls.env | cut -d= -f2)
+          if [ -n "$HEAD_ID_VAL" ]; then echo "$HEAD_ID_VAL" > .deployment-id; fi
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add .webapp-urls .deployment-id 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "ci: atualiza URLs reais do web app (via API)"
+          git push 2>/dev/null || true
 
       - name: Deploy summary
         run: |
@@ -124,5 +153,12 @@ jobs:
           echo "- **Arquivos enviados:** ${{ steps.push.outputs.files }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🌐 Web App (DEV)" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.webdeploy.outputs.dev_url }}" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ env.HEAD_URL }}" ]; then
+            echo "### 🌐 Web App (URLs reais retornadas pela API do Google)" >> $GITHUB_STEP_SUMMARY
+            echo "- **Código mais recente (HEAD):** ${{ env.HEAD_URL }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Versão publicada:** ${{ env.EXEC_URL }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⚠️ Web app NÃO implantado" >> $GITHUB_STEP_SUMMARY
+            echo "Nenhum deployment tem entry point WEB_APP. Verifique se o" >> $GITHUB_STEP_SUMMARY
+            echo "\`appsscript.json\` contém a seção \`webapp\` e foi enviado no push." >> $GITHUB_STEP_SUMMARY
+          fi
