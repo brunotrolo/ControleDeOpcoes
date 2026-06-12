@@ -1,0 +1,7 @@
+pwa-mobile/**
+mockups/**
+.github/**
+.git/**
+*.md
+.claspignore
+.gitignore
