@@ -14,7 +14,7 @@ There is no build step, no `package.json`, and no local dev server. All executio
 
 ### Automatic (CI/CD) — preferred
 
-**Every push to `main` automatically deploys to the GAS DEV project** via GitHub Actions (`.github/workflows/deploy-gas-dev.yml`). The job runs `clasp push --force`, then `clasp deploy` to publish the web app, and presents the `/dev` URL in the step summary. Manual trigger: **Actions → Deploy to GAS DEV → Run workflow**.
+**Every push to `main` automatically deploys to the GAS DEV project** via GitHub Actions (`.github/workflows/deploy-gas-dev.yml`). The job runs `clasp push --force`, then updates the web app deployment (reusing the existing one — GAS caps scripts at 20 versioned deployments) and reads the **real web app URLs from the Apps Script API** (`entryPoints[].webApp.url`); they appear in the step summary and are committed to `.webapp-urls` (key `HEAD_URL` = always-latest code). Never hand-construct `/macros/s/<id>/dev` URLs. Manual trigger: **Actions → Deploy to GAS DEV → Run workflow**.
 
 Full setup guide (reusable for other projects): `docs/GUIA_CICD_GITHUB_GAS.md`.
 

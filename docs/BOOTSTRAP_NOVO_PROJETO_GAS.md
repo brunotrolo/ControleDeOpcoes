@@ -43,8 +43,8 @@ faça upload deste arquivo e diga:
 - Uma **planilha Google** + **projeto Apps Script** criados automaticamente
 - Um **pipeline de deploy**: toda mudança feita aqui no Claude Code chega ao
   Apps Script em ~30 segundos, sem abrir o GitHub
-- Validação visual: uma página do **Bob Esponja** confirma que o link `/dev`
-  está funcionando antes de qualquer personalização
+- Validação visual: uma página do **Bob Esponja** confirma que o link do
+  web app está funcionando antes de qualquer personalização
 
 ---
 
@@ -69,7 +69,7 @@ permissão no Google."_
 > - Planilha Google criada com o nome do repositório
 > - Apps Script criado e vinculado
 > - Página do Bob Esponja implantada para validar o pipeline
-> - Link `/dev` gerado e entregue
+> - Link do web app capturado da API do Google e entregue
 > - Renomeação guiada para o nome final do projeto
 
 ---
@@ -232,6 +232,7 @@ docs/**
 .gitignore
 .trigger-bootstrap
 .deployment-id
+.webapp-urls
 node_modules/**
 ```
 
@@ -401,42 +402,60 @@ jobs:
           echo "SCRIPT_ID=$SCRIPT_ID" >> $GITHUB_ENV
           echo "SHEET_ID=$SHEET_ID" >> $GITHUB_ENV
 
+      # Publica o web app e captura as URLs REAIS direto da API do Apps Script.
+      # Nunca monte a URL na mão: a API retorna entryPoints[].webApp.url e essa
+      # é a URL exata que funciona no browser.
       - name: Push código inicial + publicar web app
         run: |
           clasp push --force
-          # Cria deployment versionado (GAS cria o HEAD automaticamente)
           clasp deploy --description "Implantação inicial" 2>&1 || true
-          # Lista todos e extrai o HEAD deployment ID
-          DEPLOYMENTS=$(clasp deployments --json 2>/dev/null || clasp deployments 2>&1)
-          echo "$DEPLOYMENTS"
-          HEAD_ID=$(echo "$DEPLOYMENTS" | node -e "
-            let raw = '';
-            process.stdin.on('data', d => raw += d);
-            process.stdin.on('end', () => {
-              try {
-                const arr = JSON.parse(raw);
-                const head = arr.find(d => JSON.stringify(d).includes('HEAD'));
-                console.log(head ? head.deploymentId : '');
-              } catch(e) {
-                const m = raw.match(/- (AKfycb[A-Za-z0-9_-]+) @HEAD/);
-                console.log(m ? m[1] : '');
-              }
-            });
-          " 2>/dev/null || echo "")
-          if [ -z "$HEAD_ID" ]; then
-            HEAD_ID=$(echo "$DEPLOYMENTS" | grep -oE 'AKfycb[A-Za-z0-9_-]+' | head -1)
-          fi
-          echo "$HEAD_ID" > .deployment-id
-          DEV_URL="https://script.google.com/macros/s/${HEAD_ID}/dev"
-          echo "DEPLOYMENT_ID=$HEAD_ID" >> $GITHUB_ENV
-          echo "DEV_URL=$DEV_URL" >> $GITHUB_ENV
 
-      - name: Commit .clasp.json + .deployment-id
+          # Renova o access token a partir do refresh token (mesmas credenciais do clasp)
+          CLIENT_ID=$(node -e "console.log(require(process.env.HOME+'/.clasprc.json').oauth2ClientSettings.clientId)")
+          CLIENT_SECRET=$(node -e "console.log(require(process.env.HOME+'/.clasprc.json').oauth2ClientSettings.clientSecret)")
+          REFRESH_TOKEN=$(node -e "console.log(require(process.env.HOME+'/.clasprc.json').token.refresh_token)")
+          ACCESS_TOKEN=$(curl -s https://oauth2.googleapis.com/token \
+            -d client_id="$CLIENT_ID" -d client_secret="$CLIENT_SECRET" \
+            -d refresh_token="$REFRESH_TOKEN" -d grant_type=refresh_token \
+            | node -e "let r='';process.stdin.on('data',d=>r+=d);process.stdin.on('end',()=>console.log(JSON.parse(r).access_token||''))")
+
+          # Consulta a API oficial: lista deployments com seus entry points
+          curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
+            "https://script.googleapis.com/v1/projects/${{ env.SCRIPT_ID }}/deployments?pageSize=50" \
+            > /tmp/deployments.json
+
+          node > /tmp/urls.env <<'PARSE'
+          const data = require('/tmp/deployments.json');
+          const deps = data.deployments || [];
+          let headUrl = '', execUrl = '', headId = '', bestVersion = -1;
+          for (const d of deps) {
+            const isHead = !(d.deploymentConfig && d.deploymentConfig.versionNumber);
+            if (isHead && !headId) headId = d.deploymentId;
+            for (const ep of (d.entryPoints || [])) {
+              if (ep.entryPointType === 'WEB_APP' && ep.webApp && ep.webApp.url) {
+                if (isHead) { headUrl = ep.webApp.url; headId = d.deploymentId; }
+                else {
+                  const v = Number(d.deploymentConfig.versionNumber) || 0;
+                  if (v > bestVersion) { bestVersion = v; execUrl = ep.webApp.url; }
+                }
+              }
+            }
+          }
+          console.log('HEAD_URL=' + headUrl);
+          console.log('EXEC_URL=' + execUrl);
+          console.log('HEAD_ID=' + headId);
+          PARSE
+          cat /tmp/urls.env
+          cat /tmp/urls.env >> $GITHUB_ENV
+          cp /tmp/urls.env .webapp-urls
+          grep '^HEAD_ID=' /tmp/urls.env | cut -d= -f2 > .deployment-id
+
+      - name: Commit .clasp.json + URLs do web app
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git add .clasp.json .deployment-id
-          git commit -m "bootstrap: scriptId e deployment ID criados automaticamente"
+          git add .clasp.json .deployment-id .webapp-urls
+          git commit -m "bootstrap: scriptId e URLs do web app criados automaticamente"
           git push
 
       - name: Summary
@@ -447,7 +466,7 @@ jobs:
           echo "|---|---|" >> $GITHUB_STEP_SUMMARY
           echo "| 📊 Planilha Google | https://docs.google.com/spreadsheets/d/${{ env.SHEET_ID }}/edit |" >> $GITHUB_STEP_SUMMARY
           echo "| ⚙️ Editor GAS | https://script.google.com/home/projects/${{ env.SCRIPT_ID }}/edit |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🌐 Web App (DEV) | ${{ env.DEV_URL }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🌐 Web App | ${{ env.HEAD_URL }} |" >> $GITHUB_STEP_SUMMARY
 ```
 
 **`.github/workflows/deploy-gas-dev.yml`**
@@ -464,7 +483,7 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write   # para commitar .webapp-urls atualizados
 
 jobs:
   deploy:
@@ -523,12 +542,86 @@ jobs:
           FILES=$(echo "$OUTPUT" | grep -c '└─' || true)
           echo "files=$FILES" >> $GITHUB_OUTPUT
 
+      # Atualiza o web app e captura as URLs reais via API.
+      # GAS limita a 20 deployments versionados — por isso REUSA o existente
+      # (clasp deploy -i) em vez de criar um novo a cada push.
+      - name: Atualizar web app e capturar URLs reais
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          CLIENT_ID=$(node -e "console.log(require(process.env.HOME+'/.clasprc.json').oauth2ClientSettings.clientId)")
+          CLIENT_SECRET=$(node -e "console.log(require(process.env.HOME+'/.clasprc.json').oauth2ClientSettings.clientSecret)")
+          REFRESH_TOKEN=$(node -e "console.log(require(process.env.HOME+'/.clasprc.json').token.refresh_token)")
+          ACCESS_TOKEN=$(curl -s https://oauth2.googleapis.com/token \
+            -d client_id="$CLIENT_ID" -d client_secret="$CLIENT_SECRET" \
+            -d refresh_token="$REFRESH_TOKEN" -d grant_type=refresh_token \
+            | node -e "let r='';process.stdin.on('data',d=>r+=d);process.stdin.on('end',()=>console.log(JSON.parse(r).access_token||''))")
+          SCRIPT_ID=$(node -e "console.log(require('./.clasp.json').scriptId)")
+
+          fetch_deployments() {
+            curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
+              "https://script.googleapis.com/v1/projects/$SCRIPT_ID/deployments?pageSize=50" \
+              > /tmp/deployments.json
+          }
+
+          fetch_deployments
+          EXISTING_ID=$(node -e "
+            const deps = require('/tmp/deployments.json').deployments || [];
+            let best = '', bestV = -1;
+            for (const d of deps) {
+              const v = Number(d.deploymentConfig && d.deploymentConfig.versionNumber) || 0;
+              if (v > bestV) { bestV = v; best = d.deploymentId; }
+            }
+            console.log(best);
+          ")
+          if [ -n "$EXISTING_ID" ]; then
+            clasp deploy -i "$EXISTING_ID" --description "Deploy automático $(date +%Y-%m-%d)" 2>&1 || true
+          else
+            clasp deploy --description "Deploy automático $(date +%Y-%m-%d)" 2>&1 || true
+          fi
+
+          fetch_deployments
+          node > /tmp/urls.env <<'PARSE'
+          const data = require('/tmp/deployments.json');
+          const deps = data.deployments || [];
+          let headUrl = '', execUrl = '', headId = '', bestVersion = -1;
+          for (const d of deps) {
+            const isHead = !(d.deploymentConfig && d.deploymentConfig.versionNumber);
+            if (isHead && !headId) headId = d.deploymentId;
+            for (const ep of (d.entryPoints || [])) {
+              if (ep.entryPointType === 'WEB_APP' && ep.webApp && ep.webApp.url) {
+                if (isHead) { headUrl = ep.webApp.url; headId = d.deploymentId; }
+                else {
+                  const v = Number(d.deploymentConfig.versionNumber) || 0;
+                  if (v > bestVersion) { bestVersion = v; execUrl = ep.webApp.url; }
+                }
+              }
+            }
+          }
+          console.log('HEAD_URL=' + headUrl);
+          console.log('EXEC_URL=' + execUrl);
+          console.log('HEAD_ID=' + headId);
+          PARSE
+          cat /tmp/urls.env
+          cat /tmp/urls.env >> $GITHUB_ENV
+          cp /tmp/urls.env .webapp-urls
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add .webapp-urls
+          git diff --staged --quiet || git commit -m "ci: atualiza URLs do web app"
+          git push 2>/dev/null || true
+
       - name: Deploy summary
         if: steps.check.outputs.skip == 'false'
         run: |
           echo "### ✅ Deploy GAS DEV concluído" >> $GITHUB_STEP_SUMMARY
           echo "- **Arquivos:** ${{ steps.push.outputs.files }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ env.HEAD_URL }}" ]; then
+            echo "### 🌐 Web App: ${{ env.HEAD_URL }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⚠️ Web app NÃO implantado — verifique a seção webapp do appsscript.json" >> $GITHUB_STEP_SUMMARY
+          fi
 ```
 
 ---
@@ -596,18 +689,24 @@ Agora vem a parte mais legal: vou criar automaticamente a planilha Google e o pr
 > Aguarde ~90 segundos e use `mcp__github__actions_list` para verificar o
 > status do workflow `bootstrap-gas-project.yml`.
 > Quando `completed` + `success`:
-> - Rode `git pull` (o bootstrap commitou `.clasp.json` e `.deployment-id`)
+> - Rode `git pull` (o bootstrap commitou `.clasp.json`, `.deployment-id` e
+>   `.webapp-urls`)
 > - Leia `.clasp.json` → extraia `scriptId` e `parentId`
-> - Leia `.deployment-id` → extraia o deployment ID
-> - Monte as URLs:
+> - Leia `.webapp-urls` → a linha `HEAD_URL=...` contém a **URL real do web
+>   app retornada pela API do Google**. ⚠️ **NUNCA monte a URL na mão**
+>   (`/macros/s/<id>/dev`) — a URL construída manualmente pode não funcionar.
+>   Use SEMPRE o valor de `HEAD_URL` exatamente como está no arquivo.
+> - Monte as demais URLs:
 >   - **Planilha:** `https://docs.google.com/spreadsheets/d/<parentId>/edit`
 >   - **Editor GAS:** `https://script.google.com/home/projects/<scriptId>/edit`
->   - **Web App DEV:** `https://script.google.com/macros/s/<deploymentId>/dev`
 > - Avance para a Etapa 6
+>
+> Se `HEAD_URL` estiver vazio no `.webapp-urls`, o web app NÃO foi implantado —
+> verifique o step summary do workflow no GitHub Actions antes de continuar.
 
 ---
 
-## ETAPA 6 — Validar o link /dev (Bob Esponja)
+## ETAPA 6 — Validar o web app (Bob Esponja)
 
 > **Claude:** apresente este texto com as URLs reais preenchidas:
 
@@ -618,7 +717,7 @@ Agora vem a parte mais legal: vou criar automaticamente a planilha Google e o pr
 Seu projeto foi criado. Antes de personalizarmos, abra o link abaixo e confirme que está funcionando:
 
 🌐 **Abra agora o seu Web App:**
-`https://script.google.com/macros/s/DEPLOYMENT_ID/dev`
+_(Claude: cole aqui o valor de `HEAD_URL` lido do arquivo `.webapp-urls` — exatamente como está, sem modificar)_
 
 Você deve ver uma página com o **Bob Esponja 🧽** pulsando e a mensagem
 _"Olá, Mundo Submarino!"_
@@ -631,9 +730,9 @@ Quando o Bob Esponja aparecer, me diga **"funcionou"** para personalizarmos! �
 ---
 
 > **Claude:** aguarde a confirmação do usuário. Se o link não abrir ou der
-> erro, investigue: verifique se o `.deployment-id` foi corretamente commitado,
-> se o step summary do bootstrap mostra um link diferente, e se o usuário está
-> logado com a conta correta.
+> erro, investigue: verifique se `.webapp-urls` tem `HEAD_URL` preenchido, se
+> o step summary do bootstrap no GitHub Actions mostra a mesma URL, e se o
+> usuário está logado com a conta Google correta.
 
 ---
 
@@ -735,8 +834,8 @@ Seu projeto **NOME_FINAL** está completamente configurado:
 ⚙️ **Editor Apps Script:**
 `https://script.google.com/home/projects/SCRIPT_ID/edit`
 
-🌐 **Web App (link permanente de DEV):**
-`https://script.google.com/macros/s/DEPLOYMENT_ID/dev`
+🌐 **Web App (link permanente — sempre o código mais recente):**
+_(Claude: cole aqui o valor de `HEAD_URL` do arquivo `.webapp-urls`)_
 
 📦 **Repositório GitHub:**
 `https://github.com/GITHUB_USER/NOME_REPO`
@@ -755,7 +854,7 @@ Você nunca mais precisa abrir o GitHub ou o terminal. Só diga o que quer mudar
 |---|---|
 | Etapa 2: URL do login não abre | Copie a URL completa e cole numa nova aba do browser |
 | Etapa 4: não encontro o link das secrets | Certifique-se de ser o dono do repositório; o link é exatamente Settings → Secrets and variables → Actions |
-| Etapa 6: link /dev não abre | Confirme que está logado com a conta Google dona do projeto |
+| Etapa 6: link do web app não abre | Confirme que está logado com a conta Google dona do projeto |
 | Etapa 6: página em branco ou erro 404 | O bootstrap pode ter falhado ao capturar o HEAD ID — verifique o step summary do workflow no GitHub Actions |
 | Bootstrap falhou com `invalid_grant` | As credenciais expiraram — repita a Etapa 2 e atualize o secret |
 | Bootstrap falhou com `Apps Script API disabled` | Repita a Etapa 1 — o toggle precisa estar ativo |
