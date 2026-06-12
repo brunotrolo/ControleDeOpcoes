@@ -205,6 +205,7 @@ docs/**
 *.md
 .claspignore
 .gitignore
+.trigger-bootstrap
 node_modules/**
 ```
 
@@ -267,16 +268,17 @@ function include(filename) {
 name: Bootstrap GAS Project
 
 # Workflow executado UMA ÚNICA VEZ para criar a planilha Google e o
-# projeto Apps Script automaticamente. Depois de rodar, este workflow
-# não é mais necessário (mas pode ser mantido para projetos futuros).
+# projeto Apps Script automaticamente.
+#
+# Gatilho: push do arquivo .trigger-bootstrap (criado pelo Claude Code).
+# Isso evita depender de workflow_dispatch, que exige permissão extra.
 
 on:
-  workflow_dispatch:
-    inputs:
-      project_name:
-        description: 'Nome do projeto (título da planilha)'
-        required: true
-        type: string
+  push:
+    paths:
+      - '.trigger-bootstrap'
+    branches:
+      - '**'
 
 permissions:
   contents: write
@@ -290,6 +292,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Ler nome do projeto
+        run: |
+          PROJECT_NAME=$(cat .trigger-bootstrap)
+          echo "PROJECT_NAME=$PROJECT_NAME" >> $GITHUB_ENV
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -317,13 +324,13 @@ jobs:
       - name: Create Google Sheet + Apps Script
         run: |
           rm -f .clasp.json
-          clasp create --type sheets --title "${{ inputs.project_name }}"
+          clasp create --type sheets --title "${{ env.PROJECT_NAME }}"
           SCRIPT_ID=$(node -e "console.log(require('./.clasp.json').scriptId)")
           SHEET_ID=$(node -e "const c=require('./.clasp.json'); console.log(c.parentId ? (Array.isArray(c.parentId) ? c.parentId[0] : c.parentId) : 'N/A')")
           echo "SCRIPT_ID=$SCRIPT_ID" >> $GITHUB_ENV
           echo "SHEET_ID=$SHEET_ID" >> $GITHUB_ENV
 
-      - name: Commit .clasp.json with real scriptId
+      - name: Commit .clasp.json com scriptId real
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
@@ -472,18 +479,21 @@ Agora vem a parte mais legal: vou criar automaticamente a planilha Google e o pr
 
 ---
 
-> **Claude:** use `mcp__github__actions_run_trigger` com:
-> - `owner`: `GITHUB_USER`
-> - `repo`: `NOME_PROJETO`
-> - `workflow_id`: `bootstrap-gas-project.yml`
-> - `ref`: a branch atual da sessão (verifique com `git branch --show-current`)
-> - `inputs`: `{ "project_name": "TITULO_PLANILHA" }`
+> **Claude:** crie o arquivo `.trigger-bootstrap` com o `TITULO_PLANILHA` como
+> conteúdo, faça commit e push:
+> ```bash
+> echo "TITULO_PLANILHA" > .trigger-bootstrap
+> git add .trigger-bootstrap
+> git commit -m "bootstrap: dispara criação do projeto GAS"
+> git push
+> ```
 >
-> Após disparar, aguarde ~60 segundos e use `mcp__github__actions_list` para
-> verificar o status do workflow `bootstrap-gas-project.yml`.
+> O push desse arquivo aciona automaticamente o workflow
+> `bootstrap-gas-project.yml` (gatilho `push: paths: ['.trigger-bootstrap']`).
 >
-> Quando o status for `completed` com conclusão `success`:
-> - Rode `git pull` (o bootstrap commitou o `.clasp.json` com os IDs reais)
+> Aguarde ~60 segundos e use `mcp__github__actions_list` para verificar o
+> status. Quando `completed` + `success`:
+> - Rode `git pull` (o bootstrap commitou `.clasp.json` com os IDs reais)
 > - Leia o `.clasp.json` local, extraia `scriptId` e `parentId` e monte as URLs:
 >   - **Planilha:** `https://docs.google.com/spreadsheets/d/<parentId>/edit`
 >   - **Editor GAS:** `https://script.google.com/home/projects/<scriptId>/edit`
