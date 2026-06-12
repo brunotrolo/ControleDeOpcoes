@@ -145,6 +145,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git add .webapp-urls .deployment-id 2>/dev/null || true
           git diff --staged --quiet || git commit -m "ci: atualiza URLs reais do web app (via API)"
+          git pull --rebase origin "$GITHUB_REF_NAME" 2>/dev/null || true
           git push 2>/dev/null || true
 
       - name: Deploy summary

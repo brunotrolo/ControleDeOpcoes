@@ -98,9 +98,19 @@ Primeiro precisamos ativar uma permissão no Google. Isso é feito **uma única 
 
 Quando ativar, me diga **"ativei"** para continuarmos.
 
+💡 **Já criou um projeto comigo antes?** Se você guardou as credenciais (aquele
+texto com chaves `{}`), cole-as aqui agora — pulamos as Etapas 1 e 2 e vamos
+direto para a Etapa 3.
+
 ---
 
 > **Claude:** aguarde a confirmação. Só siga quando o usuário disser que ativou.
+>
+> **Atalho:** se em vez de "ativei" o usuário colar um JSON de credenciais,
+> converta silenciosamente se estiver no formato v3 (mesmo procedimento da
+> Etapa 2), guarde como `CLASPRC_JSON_CONVERTIDO` e **pule direto para a
+> Etapa 3** — sem mostrar nada e sem perguntar nada. Se o JSON já estiver no
+> formato clássico (`"token"` + `"oauth2ClientSettings"`), use como está.
 
 ---
 
@@ -458,18 +468,22 @@ jobs:
           cp /tmp/urls.env .webapp-urls
           grep '^HEAD_ID=' /tmp/urls.env | cut -d= -f2 > .deployment-id
 
+      # -L é obrigatório: o web app do Google responde 302 redirecionando para
+      # script.googleusercontent.com — sem follow-redirect o teste sempre falha.
       - name: Smoke test do web app
         run: |
           if [ -n "$HEAD_URL" ]; then
-            HTTP_STATUS=$(curl -s -o /tmp/webapp.html -w "%{http_code}" "$HEAD_URL")
+            HTTP_STATUS=$(curl -s -L -o /tmp/webapp.html -w "%{http_code}" "$HEAD_URL")
             if grep -q "Mundo Submarino" /tmp/webapp.html 2>/dev/null; then
-              echo "SMOKE_TEST=✅ validado automaticamente" >> $GITHUB_ENV
+              RESULT="OK"
             else
-              echo "SMOKE_TEST=⚠️ página não retornou conteúdo esperado (HTTP $HTTP_STATUS)" >> $GITHUB_ENV
+              RESULT="FALHOU_HTTP_$HTTP_STATUS"
             fi
           else
-            echo "SMOKE_TEST=⚠️ HEAD_URL vazio — web app não implantado" >> $GITHUB_ENV
+            RESULT="SEM_URL"
           fi
+          echo "SMOKE_TEST=$RESULT" >> $GITHUB_ENV
+          echo "SMOKE_TEST=$RESULT" >> .webapp-urls
 
       - name: Commit .clasp.json + URLs do web app
         run: |
@@ -477,6 +491,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git add .clasp.json .deployment-id .webapp-urls
           git commit -m "bootstrap: scriptId e URLs do web app criados automaticamente"
+          git pull --rebase origin "$GITHUB_REF_NAME" || true
           git push
 
       - name: Summary
@@ -630,6 +645,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git add .webapp-urls
           git diff --staged --quiet || git commit -m "ci: atualiza URLs do web app"
+          git pull --rebase origin "$GITHUB_REF_NAME" 2>/dev/null || true
           git push 2>/dev/null || true
 
       - name: Deploy summary
@@ -713,12 +729,16 @@ jobs:
             echo "⚠️ Falha ao renomear planilha: $RESULT" >> $GITHUB_STEP_SUMMARY
           fi
 
+      # pull --rebase antes do push: o mesmo commit que dispara este workflow
+      # também dispara o deploy, que commita .webapp-urls de volta — sem o
+      # rebase um dos dois pushes falha com "remote contains work you do not have"
       - name: Remover arquivo de trigger
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git rm .trigger-rename
           git commit -m "ci: remove trigger de rename após execução"
+          git pull --rebase origin "$GITHUB_REF_NAME" || true
           git push
 ```
 
@@ -806,10 +826,10 @@ Agora vem a parte mais legal: vou criar automaticamente a planilha Google e o pr
 
 ## ETAPA 6 — Validar o web app (Bob Esponja)
 
-> **Claude:** verifique o campo `SMOKE_TEST` no step summary do workflow
-> `bootstrap-gas-project.yml` (ou `SMOKE_TEST` no `.webapp-urls` se disponível).
+> **Claude:** após o `git pull` da Etapa 5, leia a linha `SMOKE_TEST=` no
+> arquivo `.webapp-urls`.
 >
-> **Se o smoke test passou (`✅ validado automaticamente`):**
+> **Se o smoke test passou (`SMOKE_TEST=OK`):**
 > Apresente a mensagem abaixo e avance **imediatamente** para a Etapa 7 sem
 > esperar confirmação do usuário.
 >
@@ -918,25 +938,31 @@ Quando renomear, me diga **"renomeei"**!
 
 > **Claude:** após a confirmação, aguarde ~30 segundos para o CI/CD terminar
 > o deploy de `Index.html`. Verifique também que o workflow `rename-gas-project.yml`
-> completou com sucesso (planilha renomeada). Então apresente o resultado final:
+> completou com sucesso (planilha renomeada). Então leia os valores reais de:
+> - `SCRIPT_ID` e `PARENT_ID` do arquivo `.clasp.json`
+> - `HEAD_URL` e `EXEC_URL` do arquivo `.webapp-urls`
+> - `GITHUB_USER` e `NOME_REPO` detectados na Etapa 0
+>
+> **OBRIGATÓRIO:** apresente TODOS os 6 links abaixo com os valores reais
+> substituídos. Nunca omita nenhum deles, mesmo que alguma URL esteja vazia
+> (nesse caso, investigue antes de continuar).
 
 ---
 
 **Tudo pronto! 🎉**
 
-Seu projeto **NOME_FINAL** está completamente configurado:
+Seu projeto **NOME_FINAL** está completamente configurado. Salve estes links:
 
-📊 **Planilha Google:**
-`https://docs.google.com/spreadsheets/d/PARENT_ID/edit`
+| | Link |
+|---|---|
+| 📊 **Planilha Google** | `https://docs.google.com/spreadsheets/d/PARENT_ID/edit` |
+| ⚙️ **Editor Apps Script** | `https://script.google.com/home/projects/SCRIPT_ID/edit` |
+| 🟢 **Web App DEV** (código mais recente) | _(Claude: valor de `HEAD_URL` em `.webapp-urls`)_ |
+| 🔵 **Web App PROD** (versão publicada) | _(Claude: valor de `EXEC_URL` em `.webapp-urls`)_ |
+| 📦 **Repositório GitHub** | `https://github.com/GITHUB_USER/NOME_REPO` |
 
-⚙️ **Editor Apps Script:**
-`https://script.google.com/home/projects/SCRIPT_ID/edit`
-
-🌐 **Web App (link permanente — sempre o código mais recente):**
-_(Claude: cole aqui o valor de `HEAD_URL` do arquivo `.webapp-urls`)_
-
-📦 **Repositório GitHub:**
-`https://github.com/GITHUB_USER/NOME_REPO`
+> **DEV** sempre serve o código mais recente após cada push.
+> **PROD** serve a última versão implantada explicitamente.
 
 **Como funciona daqui em diante:**
 
