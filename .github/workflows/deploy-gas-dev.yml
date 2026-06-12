@@ -5,11 +5,11 @@ on:
   pull_request:
     types: [closed]
     branches:
-      - claude/add-claude-documentation-GwgaT
+      - main
 
 jobs:
   deploy:
-    if: github.event.pull_request.merged == true
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
     steps:
@@ -19,7 +19,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Install clasp
         run: npm install -g @google/clasp
