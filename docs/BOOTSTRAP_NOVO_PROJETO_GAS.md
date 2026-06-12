@@ -1,133 +1,183 @@
-# Runbook: Bootstrap de Novo Projeto GAS + CI/CD
+# Bootstrap: Criar Novo Projeto GAS do Zero
 
-> **Como usar:** no início de um novo chat do Claude Code, faça upload deste
-> arquivo e diga:
+---
+
+## 📋 PROTOCOLO PARA CLAUDE (leia antes de começar)
+
+> Este documento é um roteiro que você (Claude) deve seguir para criar um
+> projeto Google Apps Script completo com CI/CD para um usuário leigo.
 >
-> _"Siga o BOOTSTRAP_NOVO_PROJETO_GAS.md para criar meu projeto do zero."_
+> **Regras obrigatórias:**
+> - Apresente **uma etapa por vez**. Nunca avance sem confirmação.
+> - Use linguagem simples. Sem jargões técnicos.
+> - Em cada etapa que exige ação do usuário, diga exatamente **o que clicar**,
+>   **o que copiar** e peça para **colar o resultado aqui no chat**.
+> - Só avance para a próxima etapa após receber a confirmação ou o resultado.
+> - Se o usuário errar ou travar, ofereça ajuda antes de continuar.
+> - No início do projeto, pergunte apenas o **nome do projeto** e o
+>   **username do GitHub** — nada mais ainda.
+
+---
+
+## O que será criado ao final
+
+- Um **repositório privado no GitHub** com o código do projeto
+- Uma **planilha Google** + **projeto Apps Script** criados automaticamente
+- Um **pipeline de deploy**: toda mudança feita aqui no Claude Code chega ao
+  Apps Script em ~30 segundos, sem abrir o GitHub
+
+---
+
+## ETAPA 0 — Perguntas iniciais
+
+Claude deve perguntar ao usuário (tudo de uma vez, antes de fazer qualquer coisa):
+
+> _"Antes de começar, preciso de duas informações:_
+> _1. Qual o **nome do projeto**? (ex: ControleDeEstoque, GestaoFinanceira)_
+> _2. Qual o seu **username do GitHub**? (ex: joaosilva)_
 >
-> Claude vai guiar você passo a passo. Você só precisa ter em mãos:
-> - O **Script ID** do seu projeto GAS
-> - O **JSON de credenciais** do clasp (instrução abaixo para gerar)
-> - O **nome** que quer dar ao repositório GitHub
+> _Pode me responder os dois agora."_
+
+Guardar as respostas como `NOME_PROJETO` e `GITHUB_USER`.
 
 ---
 
-## O que você precisa preparar (antes de abrir o Claude Code)
+## ETAPA 1 — Ativar a Apps Script API (feita uma única vez na vida)
 
-### 1 — Criar o Google Sheet e o projeto GAS
-
-1. Acesse https://sheets.google.com → **Planilha em branco**
-2. Dê um nome (ex: `MeuProjeto`)
-3. Menu → **Extensões → Apps Script** (abre o editor GAS numa nova aba)
-4. Copie o **Script ID** da URL:
-   ```
-   https://script.google.com/home/projects/<COPIE_ISTO>/edit
-   ```
-
-### 2 — Gerar as credenciais do clasp (token OAuth)
-
-> **Sem instalar nada.** Use o Google Cloud Shell (terminal no browser).
-
-1. Abra https://shell.cloud.google.com/
-2. Cole e execute:
-   ```bash
-   npm install -g @google/clasp && clasp login --no-localhost
-   ```
-3. Abra a URL exibida → faça login com a **mesma conta Google do GAS** → autorize
-4. Cole o código de volta no terminal e pressione Enter
-5. Execute:
-   ```bash
-   cat ~/.clasprc.json
-   ```
-6. Copie todo o JSON exibido (começa com `{`, termina com `}`)
-
-> ⚠️ O Cloud Shell gera o formato novo. Claude vai convertê-lo automaticamente
-> para o formato correto antes de salvar.
+> **Claude:** apresente exatamente este texto ao usuário:
 
 ---
 
-## Instruções para Claude (execute nesta ordem)
+**Etapa 1 de 6 — Ativar a Apps Script API**
 
-> Claude: ao receber este arquivo, siga os passos abaixo **na ordem exata**,
-> perguntando ao usuário apenas o que está marcado como **[PERGUNTAR]**.
+Primeiro precisamos ativar uma permissão no Google. Isso é feito **uma única vez** e vale para todos os projetos futuros.
 
----
+1. Clique neste link: **https://script.google.com/home/usersettings**
+2. Certifique-se de estar logado com a conta Google que vai usar o projeto
+3. Encontre a opção **"Google Apps Script API"**
+4. Clique no botão para **ativar** (deve ficar azul/verde)
 
-### PASSO 1 — Coletar informações do usuário
-
-Pergunte ao usuário (pode ser tudo de uma vez):
-
-1. **[PERGUNTAR]** Qual o nome do repositório GitHub? (ex: `meu-projeto-gas`)
-2. **[PERGUNTAR]** Qual o Script ID do projeto GAS? (da URL do editor)
-3. **[PERGUNTAR]** Cole o conteúdo do `~/.clasprc.json` gerado no Cloud Shell
+Quando ativar, me diga **"ativei"** para continuarmos.
 
 ---
 
-### PASSO 2 — Converter as credenciais do clasp
+> **Claude:** aguarde a confirmação. Só siga quando o usuário disser que ativou.
 
-O Cloud Shell (clasp v3) gera o formato novo (`"tokens": { "default": ... }`).
-Claude deve converter para o formato clássico que o workflow usa:
+---
 
-```json
-{
-  "token": {
-    "access_token": "<access_token do JSON original>",
-    "refresh_token": "<refresh_token do JSON original>",
-    "token_type": "Bearer",
-    "expiry_date": 1
-  },
-  "oauth2ClientSettings": {
-    "clientId": "<client_id do JSON original>",
-    "clientSecret": "<client_secret do JSON original>",
-    "redirectUri": "http://localhost"
-  },
-  "isLocalCreds": false
-}
+## ETAPA 2 — Gerar as credenciais de acesso (feita uma única vez por conta)
+
+> **Claude:** apresente exatamente este texto:
+
+---
+
+**Etapa 2 de 6 — Gerar credenciais de acesso**
+
+Agora vamos gerar uma "chave" que permite ao sistema fazer deploys automaticamente. Não precisa instalar nada — vamos usar um terminal gratuito no próprio browser.
+
+**Passo 1:** Abra uma nova aba e acesse: **https://shell.cloud.google.com/**
+
+**Passo 2:** Quando o terminal aparecer, cole este comando e pressione Enter:
+```
+npm install -g @google/clasp && clasp login --no-localhost
 ```
 
-Exibir o JSON convertido ao usuário e pedir confirmação antes de continuar.
+**Passo 3:** O terminal vai mostrar uma URL longa. Copie essa URL, abra numa nova aba e faça login com a sua conta Google (a mesma do Google Sheets).
+
+**Passo 4:** O Google vai pedir permissão — clique em **Permitir/Allow**.
+
+**Passo 5:** Vai aparecer um código na tela. Copie esse código, volte para o terminal do Cloud Shell, cole e pressione Enter.
+
+**Passo 6:** Agora cole este comando e pressione Enter:
+```
+cat ~/.clasprc.json
+```
+
+**Passo 7:** O terminal vai mostrar um texto com chaves `{}`. Selecione **todo esse texto** (do `{` até o `}` final), copie e **cole aqui no chat**.
 
 ---
 
-### PASSO 3 — Criar o repositório GitHub
-
-Use a ferramenta `mcp__github__create_repository` com:
-- `name`: o nome fornecido pelo usuário
-- `private`: `true` (repositório privado por padrão)
-- `auto_init`: `true` (cria com commit inicial)
-
-Confirmar com o usuário a URL do repo criado.
+> **Claude:** aguarde o usuário colar o JSON.
+>
+> Quando receber, converta do formato novo (clasp v3) para o formato clássico:
+>
+> **Formato que o usuário vai colar (clasp v3):**
+> ```json
+> {
+>   "tokens": {
+>     "default": {
+>       "client_id": "...",
+>       "client_secret": "...",
+>       "type": "authorized_user",
+>       "refresh_token": "...",
+>       "access_token": "..."
+>     }
+>   }
+> }
+> ```
+>
+> **Formato correto para usar (clássico):**
+> ```json
+> {
+>   "token": {
+>     "access_token": "<access_token>",
+>     "refresh_token": "<refresh_token>",
+>     "token_type": "Bearer",
+>     "expiry_date": 1
+>   },
+>   "oauth2ClientSettings": {
+>     "clientId": "<client_id>",
+>     "clientSecret": "<client_secret>",
+>     "redirectUri": "http://localhost"
+>   },
+>   "isLocalCreds": false
+> }
+> ```
+>
+> Copie os valores de `client_id`, `client_secret`, `refresh_token` e
+> `access_token` do JSON do usuário para os campos correspondentes acima.
+>
+> Guarde o JSON convertido como `CLASPRC_JSON_CONVERTIDO` — você vai usá-lo
+> nas etapas seguintes.
+>
+> Mostre ao usuário o JSON convertido e diga:
+> _"Convertido! Guarde também no seu computador para usar em projetos futuros.
+> Pode seguir para a próxima etapa."_
 
 ---
 
-### PASSO 4 — Criar o secret CLASPRC_JSON (passo manual do usuário)
+## ETAPA 3 — Criar o repositório no GitHub
 
-Claude **não consegue** criar secrets via GitHub MCP — este é o **único passo manual**.
-
-Instruir o usuário a:
-
-1. Acessar: `https://github.com/<SEU_USUARIO>/<NOME_DO_REPO>/settings/secrets/actions`
-2. Clicar em **New repository secret**
-3. **Name:** `CLASPRC_JSON`
-4. **Secret:** colar o JSON convertido no Passo 2
-5. Clicar em **Add secret**
-6. Voltar e avisar Claude quando concluído
+> **Claude:** use a ferramenta `mcp__github__create_repository` com:
+> - `name`: `NOME_PROJETO` (em minúsculas com hífens, ex: `controle-de-estoque`)
+> - `owner`: `GITHUB_USER`
+> - `private`: `true`
+> - `auto_init`: `false`
+>
+> Após criar, mostre ao usuário:
 
 ---
 
-### PASSO 5 — Criar todos os arquivos do projeto
+**Etapa 3 de 6 — Repositório criado!**
 
-Use `mcp__github__push_files` para criar os arquivos abaixo num único commit.
+Ótimo! Criei o repositório no GitHub. Agora vou configurar todos os arquivos do projeto. Isso vai levar alguns segundos...
 
-#### `.clasp.json`
+---
+
+> **Claude:** use `mcp__github__push_files` para criar todos os arquivos abaixo
+> num único commit na branch `main`. Substitua `NOME_PROJETO` pelo nome real.
+
+### Arquivos a criar via `mcp__github__push_files`:
+
+**`.clasp.json`**
 ```json
 {
-  "scriptId": "<SCRIPT_ID_DO_USUARIO>",
+  "scriptId": "PENDING_BOOTSTRAP",
   "rootDir": "./"
 }
 ```
 
-#### `.claspignore`
+**`.claspignore`**
 ```
 pwa-mobile/**
 mockups/**
@@ -140,7 +190,7 @@ docs/**
 node_modules/**
 ```
 
-#### `appsscript.json`
+**`appsscript.json`**
 ```json
 {
   "timeZone": "America/Sao_Paulo",
@@ -154,35 +204,73 @@ node_modules/**
 }
 ```
 
-#### `.github/workflows/deploy-gas-dev.yml`
-```yaml
-name: Deploy to GAS DEV
+**`.gitignore`**
+```
+node_modules/
+.env
+*.local
+```
 
-# Dispara automaticamente em todo push para main ou branch de trabalho.
-# Também pode ser disparado manualmente: Actions → Deploy to GAS DEV → Run workflow.
-#
-# Pré-requisitos:
-#   - Secret CLASPRC_JSON criado em Settings → Secrets → Actions
-#   - .clasp.json com scriptId do projeto GAS na raiz do repo
-#   - .claspignore excluindo arquivos não-GAS
+**`Código.gs`**
+```javascript
+function doGet(e) {
+  return HtmlService.createHtmlOutputFromFile('Index')
+    .setTitle('NOME_PROJETO')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+```
+
+**`Index.html`**
+```html
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOME_PROJETO</title>
+    <style>
+      body { font-family: sans-serif; max-width: 600px; margin: 60px auto; padding: 20px; }
+      h1 { color: #4f46e5; }
+    </style>
+  </head>
+  <body>
+    <h1>NOME_PROJETO</h1>
+    <p>✅ Projeto criado com sucesso! O pipeline CI/CD está ativo.</p>
+    <p>Qualquer mudança feita no Claude Code aparece aqui em ~30 segundos.</p>
+  </body>
+</html>
+```
+
+**`.github/workflows/bootstrap-gas-project.yml`**
+```yaml
+name: Bootstrap GAS Project
+
+# Workflow executado UMA ÚNICA VEZ para criar a planilha Google e o
+# projeto Apps Script automaticamente. Depois de rodar, este workflow
+# não é mais necessário (mas pode ser mantido para projetos futuros).
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
+    inputs:
+      project_name:
+        description: 'Nome do projeto (título da planilha)'
+        required: true
+        type: string
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  deploy:
+  bootstrap:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -208,7 +296,99 @@ jobs:
       - name: Write clasp credentials
         run: echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
 
+      - name: Create Google Sheet + Apps Script
+        run: |
+          rm -f .clasp.json
+          clasp create --type sheets --title "${{ inputs.project_name }}"
+          SCRIPT_ID=$(node -e "console.log(require('./.clasp.json').scriptId)")
+          echo "SCRIPT_ID=$SCRIPT_ID" >> $GITHUB_ENV
+
+      - name: Commit .clasp.json with real scriptId
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add .clasp.json
+          git commit -m "bootstrap: scriptId do projeto GAS criado automaticamente"
+          git push
+
+      - name: Summary
+        run: |
+          echo "## ✅ Projeto GAS criado com sucesso!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Campo | Valor |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Script ID | \`${{ env.SCRIPT_ID }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Editor GAS | https://script.google.com/home/projects/${{ env.SCRIPT_ID }}/edit |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "O deploy do código inicial está sendo executado automaticamente." >> $GITHUB_STEP_SUMMARY
+```
+
+**`.github/workflows/deploy-gas-dev.yml`**
+```yaml
+name: Deploy to GAS DEV
+
+# Dispara automaticamente em todo push para main.
+# Aguarda o bootstrap ser concluído antes do primeiro deploy real.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verificar se bootstrap foi concluído
+        id: check
+        run: |
+          SCRIPT_ID=$(node -e "console.log(require('./.clasp.json').scriptId)")
+          if [ "$SCRIPT_ID" = "PENDING_BOOTSTRAP" ]; then
+            echo "Bootstrap ainda não concluído. Pulando deploy."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node.js
+        if: steps.check.outputs.skip == 'false'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Cache clasp
+        if: steps.check.outputs.skip == 'false'
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm-global
+          key: clasp-${{ runner.os }}-node24
+
+      - name: Install clasp
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          mkdir -p ~/.npm-global
+          npm config set prefix ~/.npm-global
+          if [ ! -f ~/.npm-global/bin/clasp ]; then
+            npm install -g @google/clasp
+          fi
+          echo "$HOME/.npm-global/bin" >> $GITHUB_PATH
+
+      - name: Write clasp credentials
+        if: steps.check.outputs.skip == 'false'
+        run: echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
+
       - name: Push to GAS DEV
+        if: steps.check.outputs.skip == 'false'
         id: push
         run: |
           OUTPUT=$(clasp push --force 2>&1)
@@ -217,96 +397,130 @@ jobs:
           echo "files=$FILES" >> $GITHUB_OUTPUT
 
       - name: Deploy summary
+        if: steps.check.outputs.skip == 'false'
         run: |
           echo "### ✅ Deploy GAS DEV concluído" >> $GITHUB_STEP_SUMMARY
           echo "- **Arquivos:** ${{ steps.push.outputs.files }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-```
-
-#### `.gitignore`
-```
-node_modules/
-.env
-*.local
-```
-
-#### `Código.gs`
-```javascript
-function doGet(e) {
-  return HtmlService.createHtmlOutputFromFile('Index')
-    .setTitle('Meu Projeto GAS')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
-
-function include(filename) {
-  return HtmlService.createHtmlOutputFromFile(filename).getContent();
-}
-```
-
-#### `Index.html`
-```html
-<!DOCTYPE html>
-<html lang="pt-BR">
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meu Projeto GAS</title>
-  </head>
-  <body>
-    <h1>Projeto GAS iniciado com sucesso!</h1>
-    <p>Pipeline CI/CD ativa. Edite este arquivo e o deploy acontece automaticamente.</p>
-  </body>
-</html>
 ```
 
 ---
 
-### PASSO 6 — Verificar o deploy inicial
+## ETAPA 4 — Criar o secret no GitHub (único passo manual do usuário)
 
-Após o push dos arquivos, o GitHub Actions deve disparar automaticamente.
-
-Informar ao usuário:
-1. O deploy está rodando em: `https://github.com/<usuario>/<repo>/actions`
-2. Aguardar ~30s para o primeiro deploy concluir
-3. Abrir o editor GAS — os arquivos devem aparecer lá
+> **Claude:** apresente exatamente este texto, com a URL específica do repo:
 
 ---
 
-### PASSO 7 — Confirmar e resumir
+**Etapa 4 de 6 — Salvar as credenciais no GitHub**
 
-Ao final, exibir ao usuário:
+Preciso que você faça um passo rápido no GitHub (leva menos de 1 minuto):
 
-```
-✅ Projeto criado com sucesso!
+1. Acesse este link: **https://github.com/GITHUB_USER/NOME_PROJETO/settings/secrets/actions**
 
-Repositório: https://github.com/<usuario>/<repo>
-GAS: https://script.google.com/home/projects/<scriptId>/edit
+2. Clique em **"New repository secret"**
 
-Fluxo de trabalho:
-  Você pede uma mudança aqui no Claude Code
-  → Claude edita + faz git push
-  → GitHub Actions deploya automaticamente (~30s)
-  → Mudança aparece no GAS sem nenhuma ação extra
+3. No campo **Name**, digite exatamente:
+   ```
+   CLASPRC_JSON
+   ```
 
-Para publicar o web app:
-  No editor GAS → Implantar → Nova implantação → Web app
-```
+4. No campo **Secret**, cole o seguinte texto (as credenciais que convertemos na Etapa 2):
 
----
+   _(Claude: cole aqui o `CLASPRC_JSON_CONVERTIDO` gerado na Etapa 2)_
 
-## Solução de problemas comuns
+5. Clique em **"Add secret"**
 
-| Sintoma | Causa | Solução |
-|---|---|---|
-| Job `skipped` | Condição `if merged` com trigger de push | Remover a condição `if` — trigger `push` não precisa dela |
-| `ReferenceError: self is not defined` | Arquivo `.js` não-GAS foi enviado (ex: service worker) | Adicionar o caminho ao `.claspignore` |
-| `invalid_grant` | Credencial revogada (trocou senha ou removeu acesso) | Refazer Passo 2 e atualizar o secret no GitHub |
-| Job não dispara | Branch não está na lista do workflow | Adicionar o nome do branch em `on.push.branches` |
-| Formato inválido do secret | JSON do clasp v3 usado sem converter | Refazer a conversão do Passo 2 deste runbook |
+Quando terminar, me diga **"feito"** para continuarmos.
 
 ---
 
-## Guia de referência completo
+> **Claude:** aguarde a confirmação. Só siga quando o usuário disser que concluiu.
 
-Para detalhes aprofundados sobre o pipeline (decisões de design, segurança,
-escalando para DEV+PROD): `docs/GUIA_CICD_GITHUB_GAS.md`
+---
+
+## ETAPA 5 — Criar a planilha Google + Apps Script automaticamente
+
+> **Claude:** apresente este texto e em seguida dispare o workflow via MCP.
+
+---
+
+**Etapa 5 de 6 — Criando sua planilha e o Apps Script**
+
+Agora vem a parte mais legal: vou criar automaticamente a planilha Google e o projeto Apps Script para você. Aguarde cerca de 1 minuto...
+
+---
+
+> **Claude:** use `mcp__github__actions_run_trigger` com:
+> - `owner`: `GITHUB_USER`
+> - `repo`: `NOME_PROJETO`
+> - `workflow_id`: `bootstrap-gas-project.yml`
+> - `ref`: `main`
+> - `inputs`: `{ "project_name": "NOME_PROJETO" }`
+>
+> Após disparar, aguarde ~60 segundos e use `mcp__github__actions_list` para
+> verificar o status do workflow `bootstrap-gas-project.yml`.
+>
+> Quando o status for `completed` com conclusão `success`:
+> - Use `mcp__github__get_job_logs` para ler o log do job `bootstrap`
+> - Extraia a URL do editor GAS do resumo do workflow
+> - Avance para a Etapa 6
+
+---
+
+## ETAPA 6 — Confirmar e entregar o resultado
+
+> **Claude:** apresente este texto com as URLs reais preenchidas:
+
+---
+
+**Etapa 6 de 6 — Tudo pronto! 🎉**
+
+Seu projeto foi criado com sucesso. Aqui está tudo que foi configurado:
+
+📊 **Planilha Google** — criada automaticamente
+_(Claude: cole a URL da planilha se disponível no log)_
+
+⚙️ **Editor Apps Script:**
+`https://script.google.com/home/projects/SCRIPT_ID/edit`
+
+📦 **Repositório GitHub:**
+`https://github.com/GITHUB_USER/NOME_PROJETO`
+
+---
+
+**Como funciona daqui em diante:**
+
+Você trabalha aqui comigo no Claude Code. Toda vez que eu fizer uma mudança e você disser OK, o código vai para o Apps Script **automaticamente em ~30 segundos**.
+
+Você nunca mais precisa abrir o GitHub ou o terminal. Só diga o que quer mudar.
+
+---
+
+**Quer publicar o projeto como um web app?**
+
+No editor Apps Script:
+1. Clique em **"Implantar"** → **"Nova implantação"**
+2. Tipo: **"Aplicativo da Web"**
+3. Executar como: sua conta Google
+4. Quem tem acesso: escolha conforme necessário
+5. Clique em **"Implantar"**
+6. Copie a URL gerada — esse é o link do seu app!
+
+---
+
+## Solução de problemas
+
+| Sintoma | O que fazer |
+|---|---|
+| Etapa 2: URL do login não abre | Copie a URL completa e cole numa nova aba do browser |
+| Etapa 4: não encontro o link das secrets | Certifique-se de ser o dono do repositório; o link é exatamente Settings → Secrets and variables → Actions |
+| Bootstrap falhou com `invalid_grant` | As credenciais expiraram — repita a Etapa 2 e atualize o secret |
+| Bootstrap falhou com `Apps Script API disabled` | Repita a Etapa 1 — o toggle precisa estar ativo |
+| Deploy pulado após bootstrap | Normal na primeira vez — o segundo commit (do scriptId) dispara o deploy real |
+
+---
+
+## Para projetos futuros (a partir do segundo projeto)
+
+As Etapas 1 e 2 **não precisam ser repetidas** — as credenciais geradas valem para todos os projetos da mesma conta Google. Basta começar pela Etapa 0 (nome + username) e ir direto para a Etapa 3.
