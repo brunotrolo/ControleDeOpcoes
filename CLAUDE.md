@@ -12,7 +12,18 @@ There is no build step, no `package.json`, and no local dev server. All executio
 
 ## Deployment Workflow
 
-The project is deployed and run entirely through the [Google Apps Script IDE](https://script.google.com) or the [clasp CLI](https://github.com/google/clasp).
+### Automatic (CI/CD) — preferred
+
+**Merging a PR into `main` automatically deploys to the GAS DEV project** via GitHub Actions (`.github/workflows/deploy-gas-dev.yml`). The job runs `clasp push --force` and comments "✅ Deploy concluído" on the PR. Manual trigger: **Actions → Deploy to GAS DEV → Run workflow**.
+
+Full setup guide (reusable for other projects): `docs/GUIA_CICD_GITHUB_GAS.md`.
+
+Key files:
+- `.clasp.json` — points to the DEV scriptId (committed; scriptId is not a secret)
+- `.claspignore` — excludes non-GAS files (`pwa-mobile/`, `mockups/`, `docs/`, `.github/`, `*.md`). **Any new non-GAS file/folder must be added here**, otherwise GAS tries to execute it and crashes (e.g. a PWA `sw.js` caused `ReferenceError: self is not defined`)
+- GitHub Secret `CLASPRC_JSON` — clasp OAuth credentials (classic `"token"` + `"oauth2ClientSettings"` format, **not** the clasp v3 `"tokens"` format)
+
+### Manual (fallback)
 
 ```bash
 # Push local changes to GAS
@@ -104,6 +115,23 @@ Files are numbered `000`–`025`; GAS loads them in alphabetical order, so numbe
 
 **Component naming convention:** HTML filename → kebab-case Vue component name (e.g., `CardRadar.html` → `<card-radar>`).
 
+### Premium Glass Theme (optional alternate design, fully reversible)
+
+A second visual theme — **Premium Glass** (glassmorphism) — coexists with the default design without touching any original component. Toggle: floating button (bottom-right) or `Ctrl/Cmd+Shift+P`.
+
+How it works:
+- **Token swap:** a `[data-theme="premium"]` CSS block in `Styles.html` remaps all design tokens (colors, surfaces, shadows) — original tokens untouched.
+- **Component variants:** each Cockpit card has a `*_PG.html` twin (`CardRadar_PG.html`, `CardVencimentos_PG.html`, `CardCarouselAtivas_PG.html`, `CardTable_PG.html`, `CardSummary_PG.html`, `CardStrategiesBook_PG.html`) built with the **`Object.assign` pattern**: it inherits 100% of the original component's logic (props/computed/methods) and only replaces the `template` string. Never edit original components for theme work.
+- **Shared CSS:** `PremiumGlassComponents.html` holds all `.pg-*` classes used exclusively by the `_PG` variants.
+- **Layout switching:** `window.LAYOUT_MAP_PREMIUM` in `LayoutConfig.html` lists the `-pg` component names; `AppCore.html` has a `currentTheme` ref (reacts to the `themechange` DOM event) and the `currentLayout` computed picks the premium map when active.
+- **CRITICAL — props wiring:** `customProps` in `AppCore.html` is keyed by component name string. Every `-pg` component needs its own entry there (mirroring the original's props), otherwise it renders empty. `card-summary-pg` receives `cockpit` (Array), not `statsPreCalculados`.
+- **Revert:** `git revert` the Premium Glass commits, or delete the two `╔═...╚═` blocks in `Styles.html` plus the `_PG` includes in `Index.html`.
+
+Known field-name gotchas in `_PG` templates (inherited computeds use short keys):
+- `CardSummary` `resumoCalculado` rows: `t/side/tipo/qtd/gmax/lmp/noc/pmax/pm/pa/plp/plv`
+- `CardStrategiesBook` metrics are spread directly on `est.*` (not `est.metricas.*`)
+- `CardVencimentos` buckets have no `dteCorridos`; use `calcDTE(v.dataVencimento)`
+
 ### Data Flow
 
 ```
@@ -147,7 +175,13 @@ SysLogger.flush();
 ```
 `CRITICO` level triggers an immediate flush. Never write directly to the sheet for logging purposes.
 
+### Standing Rule (user mandate)
+
+**Never remove or alter existing functionality — only add.** ("está proibido retirar ou alterar qualquer funcionalidade atual, apenas acrescentar"). To disable something, comment it out (e.g. the `CardNotional` include in `Index.html` uses `<? /* include('CardNotional'); */ ?>`) rather than deleting it.
+
 ### GAS-Specific Rules
+
+- **GAS template comments:** inside `Index.html` scriptlets, use `<? /* ... */ ?>`. The form `<?!/* ... */?>` is invalid and breaks the GAS template compiler with a SyntaxError.
 
 - **Always use `getDisplayValues()`** (not `getValues()`) when reading data that will be sent to the frontend via `google.script.run`. GAS cannot serialize native `Date` objects across that boundary — they arrive as `null`. Type conversion is handled by `Tradutor.html`.
 - **Batch all Sheets I/O**: read once, process in memory, write once. Never call `getRange().setValue()` inside a loop.
