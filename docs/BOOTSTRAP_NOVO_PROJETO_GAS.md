@@ -180,10 +180,24 @@ Agora vou criar todos os arquivos do projeto e enviá-los ao GitHub. Isso leva a
 
 ---
 
-> **Claude:** crie os arquivos abaixo localmente (ferramenta Write), faça
-> commit e `git push` na branch atual. Substitua `NOME_PROJETO` pelo título
-> real. **Atenção:** se a sessão estiver numa branch que não é `main`, ajuste
-> o campo `branches` dos dois workflows para incluir a branch atual.
+> **Claude:** CRÍTICO — os arquivos de workflow DEVEM ir para `main`.
+> O GitHub Actions só lê arquivos `.github/workflows/` da branch padrão
+> (`main`). Em qualquer outra branch, os workflows são invisíveis e nunca
+> disparam.
+>
+> Execute na ordem:
+> ```bash
+> git checkout main 2>/dev/null || git checkout -b main
+> git pull origin main 2>/dev/null || true
+> ```
+> Crie todos os arquivos abaixo (ferramenta Write), faça commit e push
+> **diretamente em `main`**:
+> ```bash
+> git add -A
+> git commit -m "bootstrap: configuração inicial do projeto"
+> git push origin main
+> ```
+> Substitua `NOME_PROJETO` pelo título real.
 
 ### Arquivos a criar:
 
@@ -479,13 +493,17 @@ Agora vem a parte mais legal: vou criar automaticamente a planilha Google e o pr
 
 ---
 
-> **Claude:** crie o arquivo `.trigger-bootstrap` com o `TITULO_PLANILHA` como
-> conteúdo, faça commit e push:
+> **Claude:** garanta que está em `main` antes de continuar:
+> ```bash
+> git checkout main && git pull origin main
+> ```
+> Crie o arquivo `.trigger-bootstrap` com o `TITULO_PLANILHA` como conteúdo,
+> faça commit e push direto em `main`:
 > ```bash
 > echo "TITULO_PLANILHA" > .trigger-bootstrap
 > git add .trigger-bootstrap
 > git commit -m "bootstrap: dispara criação do projeto GAS"
-> git push
+> git push origin main
 > ```
 >
 > O push desse arquivo aciona automaticamente o workflow
