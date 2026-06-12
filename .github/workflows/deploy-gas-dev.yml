@@ -4,7 +4,7 @@ name: Deploy to GAS DEV
 # CI/CD: GitHub → Google Apps Script
 #
 # Dispara quando:
-#   1. Uma PR é MERGEADA em main (deploy automático)
+#   1. Um push chega em main ou na branch de trabalho
 #   2. Manualmente: Actions → Deploy to GAS DEV → Run workflow
 #
 # Requisitos (configurados uma única vez):
@@ -21,7 +21,7 @@ on:
       - claude/add-claude-documentation-GwgaT
 
 permissions:
-  contents: read
+  contents: write   # necessário para commitar .deployment-id na primeira vez
   pull-requests: write
 
 jobs:
@@ -39,9 +39,7 @@ jobs:
         with:
           node-version: '24'
 
-      # Cache do clasp: evita baixar 262 pacotes a cada deploy (~15s mais rápido)
       - name: Cache clasp
-        id: cache-clasp
         uses: actions/cache@v4
         with:
           path: ~/.npm-global
@@ -67,9 +65,32 @@ jobs:
           FILES=$(echo "$OUTPUT" | grep -c '└─' || true)
           echo "files=$FILES" >> $GITHUB_OUTPUT
 
+      # Na primeira execução cria o web app e salva o deployment ID.
+      # Nas seguintes apenas lê o ID salvo — /dev sempre aponta para HEAD.
+      - name: Criar ou ler deployment do web app
+        id: webdeploy
+        run: |
+          if [ -f .deployment-id ] && [ -s .deployment-id ]; then
+            DEPLOYMENT_ID=$(cat .deployment-id)
+          else
+            DEPLOY_OUT=$(clasp deploy --description "Deploy automático" 2>&1)
+            echo "$DEPLOY_OUT"
+            DEPLOYMENT_ID=$(echo "$DEPLOY_OUT" | grep -oE 'AKfycb[A-Za-z0-9_-]+' | head -1)
+            echo "$DEPLOYMENT_ID" > .deployment-id
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git config user.name "github-actions[bot]"
+            git add .deployment-id
+            git commit -m "ci: salva deployment ID do web app"
+            git push
+          fi
+          DEV_URL="https://script.google.com/macros/s/${DEPLOYMENT_ID}/dev"
+          echo "dev_url=$DEV_URL" >> $GITHUB_OUTPUT
+
       - name: Deploy summary
         run: |
           echo "### ✅ Deploy GAS DEV concluído" >> $GITHUB_STEP_SUMMARY
           echo "- **Arquivos enviados:** ${{ steps.push.outputs.files }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🌐 Web App (DEV)" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.webdeploy.outputs.dev_url }}" >> $GITHUB_STEP_SUMMARY

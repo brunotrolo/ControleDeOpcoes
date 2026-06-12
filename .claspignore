@@ -5,3 +5,5 @@ mockups/**
 *.md
 .claspignore
 .gitignore
+.deployment-id
+.trigger-bootstrap
