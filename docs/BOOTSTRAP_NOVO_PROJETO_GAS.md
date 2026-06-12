@@ -301,7 +301,9 @@ jobs:
           rm -f .clasp.json
           clasp create --type sheets --title "${{ inputs.project_name }}"
           SCRIPT_ID=$(node -e "console.log(require('./.clasp.json').scriptId)")
+          SHEET_ID=$(node -e "const c=require('./.clasp.json'); console.log(c.parentId ? (Array.isArray(c.parentId) ? c.parentId[0] : c.parentId) : 'N/A')")
           echo "SCRIPT_ID=$SCRIPT_ID" >> $GITHUB_ENV
+          echo "SHEET_ID=$SHEET_ID" >> $GITHUB_ENV
 
       - name: Commit .clasp.json with real scriptId
         run: |
@@ -318,7 +320,8 @@ jobs:
           echo "| Campo | Valor |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|" >> $GITHUB_STEP_SUMMARY
           echo "| Script ID | \`${{ env.SCRIPT_ID }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Editor GAS | https://script.google.com/home/projects/${{ env.SCRIPT_ID }}/edit |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📊 Planilha Google | https://docs.google.com/spreadsheets/d/${{ env.SHEET_ID }}/edit |" >> $GITHUB_STEP_SUMMARY
+          echo "| ⚙️ Editor GAS | https://script.google.com/home/projects/${{ env.SCRIPT_ID }}/edit |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "O deploy do código inicial está sendo executado automaticamente." >> $GITHUB_STEP_SUMMARY
 ```
@@ -462,8 +465,11 @@ Agora vem a parte mais legal: vou criar automaticamente a planilha Google e o pr
 > verificar o status do workflow `bootstrap-gas-project.yml`.
 >
 > Quando o status for `completed` com conclusão `success`:
-> - Use `mcp__github__get_job_logs` para ler o log do job `bootstrap`
-> - Extraia a URL do editor GAS do resumo do workflow
+> - Use `mcp__github__get_file_contents` para ler o `.clasp.json` atualizado
+>   (o bootstrap commitou o arquivo com os IDs reais)
+> - Extraia `scriptId` e `parentId` e monte as URLs:
+>   - **Planilha:** `https://docs.google.com/spreadsheets/d/<parentId>/edit`
+>   - **Editor GAS:** `https://script.google.com/home/projects/<scriptId>/edit`
 > - Avance para a Etapa 6
 
 ---
@@ -478,14 +484,17 @@ Agora vem a parte mais legal: vou criar automaticamente a planilha Google e o pr
 
 Seu projeto foi criado com sucesso. Aqui está tudo que foi configurado:
 
-📊 **Planilha Google** — criada automaticamente
-_(Claude: cole a URL da planilha se disponível no log)_
+📊 **Sua Planilha Google:**
+`https://docs.google.com/spreadsheets/d/PARENT_ID/edit`
 
 ⚙️ **Editor Apps Script:**
 `https://script.google.com/home/projects/SCRIPT_ID/edit`
 
 📦 **Repositório GitHub:**
 `https://github.com/GITHUB_USER/NOME_PROJETO`
+
+> **Claude:** substitua `PARENT_ID` e `SCRIPT_ID` pelos valores reais lidos do
+> `.clasp.json` na Etapa 5. Apresente sempre os 3 links clicáveis.
 
 ---
 
