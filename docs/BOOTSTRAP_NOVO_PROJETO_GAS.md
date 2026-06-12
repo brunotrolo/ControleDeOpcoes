@@ -423,6 +423,8 @@ jobs:
       # Publica o web app e captura as URLs REAIS direto da API do Apps Script.
       # Nunca monte a URL na mão: a API retorna entryPoints[].webApp.url e essa
       # é a URL exata que funciona no browser.
+      # Retry com sleep: a API do Google leva alguns segundos para popular
+      # entryPoints após um deploy novo — sem espera a URL vem vazia.
       - name: Push código inicial + publicar web app
         run: |
           clasp push --force
@@ -437,53 +439,50 @@ jobs:
             -d refresh_token="$REFRESH_TOKEN" -d grant_type=refresh_token \
             | node -e "let r='';process.stdin.on('data',d=>r+=d);process.stdin.on('end',()=>console.log(JSON.parse(r).access_token||''))")
 
-          # Consulta a API oficial: lista deployments com seus entry points
-          curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
-            "https://script.googleapis.com/v1/projects/${{ env.SCRIPT_ID }}/deployments?pageSize=50" \
-            > /tmp/deployments.json
-
-          node > /tmp/urls.env <<'PARSE'
-          const data = require('/tmp/deployments.json');
-          const deps = data.deployments || [];
-          let headUrl = '', execUrl = '', headId = '', bestVersion = -1;
-          for (const d of deps) {
-            const isHead = !(d.deploymentConfig && d.deploymentConfig.versionNumber);
-            if (isHead && !headId) headId = d.deploymentId;
-            for (const ep of (d.entryPoints || [])) {
-              if (ep.entryPointType === 'WEB_APP' && ep.webApp && ep.webApp.url) {
-                if (isHead) { headUrl = ep.webApp.url; headId = d.deploymentId; }
-                else {
-                  const v = Number(d.deploymentConfig.versionNumber) || 0;
-                  if (v > bestVersion) { bestVersion = v; execUrl = ep.webApp.url; }
+          parse_urls() {
+            curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
+              "https://script.googleapis.com/v1/projects/${{ env.SCRIPT_ID }}/deployments?pageSize=50" \
+              > /tmp/deployments.json
+            node > /tmp/urls.env <<'PARSE'
+            const data = require('/tmp/deployments.json');
+            const deps = data.deployments || [];
+            let headUrl = '', execUrl = '', headId = '', bestVersion = -1;
+            for (const d of deps) {
+              const isHead = !(d.deploymentConfig && d.deploymentConfig.versionNumber);
+              if (isHead && !headId) headId = d.deploymentId;
+              for (const ep of (d.entryPoints || [])) {
+                if (ep.entryPointType === 'WEB_APP' && ep.webApp && ep.webApp.url) {
+                  if (isHead) { headUrl = ep.webApp.url; headId = d.deploymentId; }
+                  else {
+                    const v = Number(d.deploymentConfig.versionNumber) || 0;
+                    if (v > bestVersion) { bestVersion = v; execUrl = ep.webApp.url; }
+                  }
                 }
               }
             }
+            console.log('HEAD_URL=' + headUrl);
+            console.log('EXEC_URL=' + execUrl);
+            console.log('HEAD_ID=' + headId);
+PARSE
           }
-          console.log('HEAD_URL=' + headUrl);
-          console.log('EXEC_URL=' + execUrl);
-          console.log('HEAD_ID=' + headId);
-          PARSE
+
+          # Tenta até 4 vezes (a API do Google pode demorar ~30s para popular entryPoints)
+          for attempt in 1 2 3 4; do
+            parse_urls
+            HEAD_URL_VAL=$(grep '^HEAD_URL=' /tmp/urls.env | cut -d= -f2)
+            EXEC_URL_VAL=$(grep '^EXEC_URL=' /tmp/urls.env | cut -d= -f2)
+            if [ -n "$HEAD_URL_VAL" ] && [ -n "$EXEC_URL_VAL" ]; then
+              echo "URLs capturadas na tentativa $attempt"
+              break
+            fi
+            echo "Tentativa $attempt: URLs ainda vazias. Aguardando 20s..."
+            sleep 20
+          done
+
           cat /tmp/urls.env
           cat /tmp/urls.env >> $GITHUB_ENV
           cp /tmp/urls.env .webapp-urls
           grep '^HEAD_ID=' /tmp/urls.env | cut -d= -f2 > .deployment-id
-
-      # -L é obrigatório: o web app do Google responde 302 redirecionando para
-      # script.googleusercontent.com — sem follow-redirect o teste sempre falha.
-      - name: Smoke test do web app
-        run: |
-          if [ -n "$HEAD_URL" ]; then
-            HTTP_STATUS=$(curl -s -L -o /tmp/webapp.html -w "%{http_code}" "$HEAD_URL")
-            if grep -q "Mundo Submarino" /tmp/webapp.html 2>/dev/null; then
-              RESULT="OK"
-            else
-              RESULT="FALHOU_HTTP_$HTTP_STATUS"
-            fi
-          else
-            RESULT="SEM_URL"
-          fi
-          echo "SMOKE_TEST=$RESULT" >> $GITHUB_ENV
-          echo "SMOKE_TEST=$RESULT" >> .webapp-urls
 
       - name: Commit .clasp.json + URLs do web app
         run: |
@@ -503,7 +502,6 @@ jobs:
           echo "| 📊 Planilha Google | https://docs.google.com/spreadsheets/d/${{ env.SHEET_ID }}/edit |" >> $GITHUB_STEP_SUMMARY
           echo "| ⚙️ Editor GAS | https://script.google.com/home/projects/${{ env.SCRIPT_ID }}/edit |" >> $GITHUB_STEP_SUMMARY
           echo "| 🌐 Web App | ${{ env.HEAD_URL }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🔬 Smoke test | ${{ env.SMOKE_TEST }} |" >> $GITHUB_STEP_SUMMARY
 ```
 
 **`.github/workflows/deploy-gas-dev.yml`**
@@ -616,28 +614,39 @@ jobs:
             clasp deploy --description "Deploy automático $(date +%Y-%m-%d)" 2>&1 || true
           fi
 
-          fetch_deployments
-          node > /tmp/urls.env <<'PARSE'
-          const data = require('/tmp/deployments.json');
-          const deps = data.deployments || [];
-          let headUrl = '', execUrl = '', headId = '', bestVersion = -1;
-          for (const d of deps) {
-            const isHead = !(d.deploymentConfig && d.deploymentConfig.versionNumber);
-            if (isHead && !headId) headId = d.deploymentId;
-            for (const ep of (d.entryPoints || [])) {
-              if (ep.entryPointType === 'WEB_APP' && ep.webApp && ep.webApp.url) {
-                if (isHead) { headUrl = ep.webApp.url; headId = d.deploymentId; }
-                else {
-                  const v = Number(d.deploymentConfig.versionNumber) || 0;
-                  if (v > bestVersion) { bestVersion = v; execUrl = ep.webApp.url; }
+          parse_urls() {
+            fetch_deployments
+            node > /tmp/urls.env <<'PARSE'
+            const data = require('/tmp/deployments.json');
+            const deps = data.deployments || [];
+            let headUrl = '', execUrl = '', headId = '', bestVersion = -1;
+            for (const d of deps) {
+              const isHead = !(d.deploymentConfig && d.deploymentConfig.versionNumber);
+              if (isHead && !headId) headId = d.deploymentId;
+              for (const ep of (d.entryPoints || [])) {
+                if (ep.entryPointType === 'WEB_APP' && ep.webApp && ep.webApp.url) {
+                  if (isHead) { headUrl = ep.webApp.url; headId = d.deploymentId; }
+                  else {
+                    const v = Number(d.deploymentConfig.versionNumber) || 0;
+                    if (v > bestVersion) { bestVersion = v; execUrl = ep.webApp.url; }
+                  }
                 }
               }
             }
+            console.log('HEAD_URL=' + headUrl);
+            console.log('EXEC_URL=' + execUrl);
+            console.log('HEAD_ID=' + headId);
+PARSE
           }
-          console.log('HEAD_URL=' + headUrl);
-          console.log('EXEC_URL=' + execUrl);
-          console.log('HEAD_ID=' + headId);
-          PARSE
+
+          for attempt in 1 2 3; do
+            parse_urls
+            HEAD_URL_VAL=$(grep '^HEAD_URL=' /tmp/urls.env | cut -d= -f2)
+            if [ -n "$HEAD_URL_VAL" ]; then break; fi
+            echo "Tentativa $attempt: URLs vazias. Aguardando 15s..."
+            sleep 15
+          done
+
           cat /tmp/urls.env
           cat /tmp/urls.env >> $GITHUB_ENV
           cp /tmp/urls.env .webapp-urls
@@ -826,29 +835,28 @@ Agora vem a parte mais legal: vou criar automaticamente a planilha Google e o pr
 
 ## ETAPA 6 — Validar o web app (Bob Esponja)
 
-> **Claude:** após o `git pull` da Etapa 5, leia a linha `SMOKE_TEST=` no
-> arquivo `.webapp-urls`.
+> **Claude:** o web app usa `executeAs: USER_DEPLOYING` — isso exige que o
+> dono do projeto abra o link **uma vez** no browser para autorizar os escopos
+> do GAS. Não é possível validar isso automaticamente via CI. Apresente o texto
+> abaixo e aguarde a confirmação do usuário.
 >
-> **Se o smoke test passou (`SMOKE_TEST=OK`):**
-> Apresente a mensagem abaixo e avance **imediatamente** para a Etapa 7 sem
-> esperar confirmação do usuário.
->
-> **Se o smoke test falhou ou `HEAD_URL` está vazio:**
-> Apresente a mensagem e aguarde o usuário confirmar manualmente que a página
-> abriu. Se não abrir, investigue: verifique se `.webapp-urls` tem `HEAD_URL`
-> preenchido, se o step summary do bootstrap mostra a mesma URL, e se o usuário
-> está logado com a conta Google correta.
+> Se o link retornar erro ou tela em branco, investigue: verifique se
+> `.webapp-urls` tem `HEAD_URL` preenchido, se o step summary do bootstrap
+> mostra a mesma URL. Se aparecer pedido de autorização do Google, o usuário
+> deve clicar em "Avançar" → "Acessar" — é seguro, é o próprio projeto dele.
 
 ---
 
-**Etapa 6 de 7 — Web app validado!**
+**Etapa 6 de 7 — Confirme que está tudo funcionando!**
 
-🌐 **Seu Web App:**
+🌐 **Abra agora o seu Web App:**
 _(Claude: cole aqui o valor de `HEAD_URL` lido do arquivo `.webapp-urls`)_
 
-_(Claude: se smoke test passou, diga: "O pipeline confirmou automaticamente que a página do Bob Esponja está no ar. Vamos para o último passo!" — e avance para a Etapa 7 sem pedir resposta.)_
+Você deve ver o **Bob Esponja 🧽** pulsando com a mensagem _"Olá, Mundo Submarino!"_
 
-_(Claude: se smoke test falhou, diga: "Abra o link acima — você deve ver o Bob Esponja 🧽 pulsando. Quando confirmar, me avise para continuar.")_
+> ⚠️ Se aparecer uma tela pedindo permissão do Google: clique em **Avançado → Acessar (nome do projeto)**. É seguro — o app é seu.
+
+Quando a página aparecer, me diga **"funcionou"** para personalizarmos! 🎉
 
 ---
 
