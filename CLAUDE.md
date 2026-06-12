@@ -14,7 +14,7 @@ There is no build step, no `package.json`, and no local dev server. All executio
 
 ### Automatic (CI/CD) — preferred
 
-**Merging a PR into `main` automatically deploys to the GAS DEV project** via GitHub Actions (`.github/workflows/deploy-gas-dev.yml`). The job runs `clasp push --force` and comments "✅ Deploy concluído" on the PR. Manual trigger: **Actions → Deploy to GAS DEV → Run workflow**.
+**Every push to `main` automatically deploys to the GAS DEV project** via GitHub Actions (`.github/workflows/deploy-gas-dev.yml`). The job runs `clasp push --force`, then `clasp deploy` to publish the web app, and presents the `/dev` URL in the step summary. Manual trigger: **Actions → Deploy to GAS DEV → Run workflow**.
 
 Full setup guide (reusable for other projects): `docs/GUIA_CICD_GITHUB_GAS.md`.
 
