@@ -31,6 +31,13 @@ faça upload deste arquivo e diga:
 >   **o que copiar** e peça para **colar o resultado aqui no chat**.
 > - Só avance para a próxima etapa após receber a confirmação ou o resultado.
 > - Se o usuário errar ou travar, ofereça ajuda antes de continuar.
+> - **TODAS as decisões técnicas já estão tomadas neste documento.** NUNCA
+>   pergunte ao usuário como gravar arquivos, em qual branch commitar, como
+>   fazer push, ou qualquer outra escolha de implementação. Ao seguir este
+>   roteiro, o usuário já autorizou commits e pushes diretos em `main`.
+>   As únicas interações permitidas são as escritas literalmente nas etapas
+>   (confirmações "ativei"/"feito"/"renomeei", colar o JSON, informar o nome
+>   final).
 > - **Não pergunte o nome do projeto no início** — use o nome do repositório
 >   como título temporário. O nome final será definido na Etapa 7, após validar
 >   que o pipeline funciona.
@@ -178,8 +185,11 @@ cat ~/.clasprc.json
 
 ## ETAPA 3 — Criar os arquivos do projeto
 
-> **Claude:** o repositório já existe (a sessão roda dentro dele). Mostre ao
-> usuário:
+> **Claude:** o repositório já existe (a sessão roda dentro dele).
+> **NÃO pergunte nada** — nem onde gravar os arquivos, nem como commitar,
+> nem se pode fazer push. A resposta já está aqui: grave com a ferramenta
+> Write e faça commit + push **diretamente em `main`**. Apresente o texto
+> abaixo e execute imediatamente:
 
 ---
 
