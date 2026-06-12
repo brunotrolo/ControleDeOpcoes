@@ -448,6 +448,19 @@ jobs:
           cp /tmp/urls.env .webapp-urls
           grep '^HEAD_ID=' /tmp/urls.env | cut -d= -f2 > .deployment-id
 
+      - name: Smoke test do web app
+        run: |
+          if [ -n "$HEAD_URL" ]; then
+            HTTP_STATUS=$(curl -s -o /tmp/webapp.html -w "%{http_code}" "$HEAD_URL")
+            if grep -q "Mundo Submarino" /tmp/webapp.html 2>/dev/null; then
+              echo "SMOKE_TEST=✅ validado automaticamente" >> $GITHUB_ENV
+            else
+              echo "SMOKE_TEST=⚠️ página não retornou conteúdo esperado (HTTP $HTTP_STATUS)" >> $GITHUB_ENV
+            fi
+          else
+            echo "SMOKE_TEST=⚠️ HEAD_URL vazio — web app não implantado" >> $GITHUB_ENV
+          fi
+
       - name: Commit .clasp.json + URLs do web app
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -465,6 +478,7 @@ jobs:
           echo "| 📊 Planilha Google | https://docs.google.com/spreadsheets/d/${{ env.SHEET_ID }}/edit |" >> $GITHUB_STEP_SUMMARY
           echo "| ⚙️ Editor GAS | https://script.google.com/home/projects/${{ env.SCRIPT_ID }}/edit |" >> $GITHUB_STEP_SUMMARY
           echo "| 🌐 Web App | ${{ env.HEAD_URL }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔬 Smoke test | ${{ env.SMOKE_TEST }} |" >> $GITHUB_STEP_SUMMARY
 ```
 
 **`.github/workflows/deploy-gas-dev.yml`**
@@ -622,6 +636,82 @@ jobs:
           fi
 ```
 
+**`.github/workflows/rename-gas-project.yml`**
+```yaml
+name: Rename GAS Project
+
+# Renomeia a planilha Google via Sheets API quando Claude cria .trigger-rename.
+# Gatilho: push do arquivo .trigger-rename contendo o nome final desejado.
+# Limitação: o nome no editor GAS não pode ser alterado via API (rename manual).
+
+on:
+  push:
+    paths:
+      - '.trigger-rename'
+    branches:
+      - '**'
+
+permissions:
+  contents: write
+
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Write clasp credentials
+        run: echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
+
+      - name: Renomear planilha via Sheets API
+        run: |
+          CLIENT_ID=$(node -e "console.log(require(process.env.HOME+'/.clasprc.json').oauth2ClientSettings.clientId)")
+          CLIENT_SECRET=$(node -e "console.log(require(process.env.HOME+'/.clasprc.json').oauth2ClientSettings.clientSecret)")
+          REFRESH_TOKEN=$(node -e "console.log(require(process.env.HOME+'/.clasprc.json').token.refresh_token)")
+          ACCESS_TOKEN=$(curl -s https://oauth2.googleapis.com/token \
+            -d client_id="$CLIENT_ID" -d client_secret="$CLIENT_SECRET" \
+            -d refresh_token="$REFRESH_TOKEN" -d grant_type=refresh_token \
+            | node -e "let r='';process.stdin.on('data',d=>r+=d);process.stdin.on('end',()=>console.log(JSON.parse(r).access_token||''))")
+          PARENT_ID=$(node -e "const c=require('./.clasp.json'); console.log(Array.isArray(c.parentId)?c.parentId[0]:c.parentId||'')")
+
+          # Usa node para gerar o payload (seguro com nomes que têm acentos ou espaços)
+          node -e "
+            const name = require('fs').readFileSync('.trigger-rename','utf8').trim();
+            const payload = JSON.stringify({requests:[{updateSpreadsheetProperties:{properties:{title:name},fields:'title'}}]});
+            require('fs').writeFileSync('/tmp/rename_payload.json', payload);
+          "
+
+          RESULT=$(curl -s -X POST \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d @/tmp/rename_payload.json \
+            "https://sheets.googleapis.com/v4/spreadsheets/$PARENT_ID:batchUpdate")
+
+          if echo "$RESULT" | node -e "let r='';process.stdin.on('data',d=>r+=d);process.stdin.on('end',()=>{try{const o=JSON.parse(r);process.exit(o.error?1:0)}catch(e){process.exit(1)}})" ; then
+            NOME=$(cat .trigger-rename)
+            echo "✅ Planilha renomeada para: $NOME" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Falha ao renomear planilha: $RESULT" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Remover arquivo de trigger
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git rm .trigger-rename
+          git commit -m "ci: remove trigger de rename após execução"
+          git push
+```
+
 ---
 
 ## ETAPA 4 — Criar o secret no GitHub (único passo manual do usuário)
@@ -706,31 +796,29 @@ Agora vem a parte mais legal: vou criar automaticamente a planilha Google e o pr
 
 ## ETAPA 6 — Validar o web app (Bob Esponja)
 
-> **Claude:** apresente este texto com as URLs reais preenchidas:
+> **Claude:** verifique o campo `SMOKE_TEST` no step summary do workflow
+> `bootstrap-gas-project.yml` (ou `SMOKE_TEST` no `.webapp-urls` se disponível).
+>
+> **Se o smoke test passou (`✅ validado automaticamente`):**
+> Apresente a mensagem abaixo e avance **imediatamente** para a Etapa 7 sem
+> esperar confirmação do usuário.
+>
+> **Se o smoke test falhou ou `HEAD_URL` está vazio:**
+> Apresente a mensagem e aguarde o usuário confirmar manualmente que a página
+> abriu. Se não abrir, investigue: verifique se `.webapp-urls` tem `HEAD_URL`
+> preenchido, se o step summary do bootstrap mostra a mesma URL, e se o usuário
+> está logado com a conta Google correta.
 
 ---
 
-**Etapa 6 de 7 — Confirme que está tudo funcionando!**
+**Etapa 6 de 7 — Web app validado!**
 
-Seu projeto foi criado. Antes de personalizarmos, abra o link abaixo e confirme que está funcionando:
+🌐 **Seu Web App:**
+_(Claude: cole aqui o valor de `HEAD_URL` lido do arquivo `.webapp-urls`)_
 
-🌐 **Abra agora o seu Web App:**
-_(Claude: cole aqui o valor de `HEAD_URL` lido do arquivo `.webapp-urls` — exatamente como está, sem modificar)_
+_(Claude: se smoke test passou, diga: "O pipeline confirmou automaticamente que a página do Bob Esponja está no ar. Vamos para o último passo!" — e avance para a Etapa 7 sem pedir resposta.)_
 
-Você deve ver uma página com o **Bob Esponja 🧽** pulsando e a mensagem
-_"Olá, Mundo Submarino!"_
-
-> ⚠️ Você precisa estar **logado com a conta Google** dona do projeto para ver
-> a página. Se pedir login, entre e acesse o link novamente.
-
-Quando o Bob Esponja aparecer, me diga **"funcionou"** para personalizarmos! 🎉
-
----
-
-> **Claude:** aguarde a confirmação do usuário. Se o link não abrir ou der
-> erro, investigue: verifique se `.webapp-urls` tem `HEAD_URL` preenchido, se
-> o step summary do bootstrap no GitHub Actions mostra a mesma URL, e se o
-> usuário está logado com a conta Google correta.
+_(Claude: se smoke test falhou, diga: "Abra o link acima — você deve ver o Bob Esponja 🧽 pulsando. Quando confirmar, me avise para continuar.")_
 
 ---
 
@@ -755,7 +843,12 @@ A infraestrutura está 100% funcionando. Agora personalizamos.
 > 1. **Atualize `Código.gs`** — substitua `NOME_REPO` por `NOME_FINAL` no
 >    `setTitle()`
 >
-> 2. **Substitua `Index.html`** por uma página de boas-vindas com o nome real:
+> 2. **Crie `.trigger-rename`** com o conteúdo `NOME_FINAL` (só o texto, sem
+>    aspas). O workflow `rename-gas-project.yml` vai renomear a planilha Google
+>    via Sheets API automaticamente ao detectar esse arquivo no push. Após a
+>    execução do workflow ele mesmo apaga o arquivo.
+>
+> 3. **Substitua `Index.html`** por uma página de boas-vindas com o nome real:
 >
 > ```html
 > <!DOCTYPE html>
@@ -789,36 +882,33 @@ A infraestrutura está 100% funcionando. Agora personalizamos.
 > </html>
 > ```
 >
-> 3. **Faça commit e push** em `main` — o CI/CD atualiza o web app
->    automaticamente:
+> 4. **Faça commit e push** em `main` — o CI/CD atualiza o web app e o
+>    workflow `rename-gas-project.yml` renomeia a planilha automaticamente:
 >    ```bash
->    git add Código.gs Index.html
+>    git add Código.gs Index.html .trigger-rename
 >    git commit -m "feat: personaliza projeto com nome definitivo"
 >    git push origin main
 >    ```
+>    O workflow de rename apaga `.trigger-rename` sozinho após executar.
 >
-> 4. **Guie o usuário a renomear nos dois lugares** com este texto:
+> 5. **Guie o usuário a renomear APENAS o editor GAS** com este texto:
 
 ---
 
-Quase lá! Só falta renomear a planilha e o editor Apps Script. São dois cliques:
-
-**Planilha Google:**
-1. Abra: `https://docs.google.com/spreadsheets/d/PARENT_ID/edit`
-2. Clique no nome **"NOME_REPO"** no canto superior esquerdo
-3. Digite **"NOME_FINAL"** e pressione Enter
+Quase lá! A planilha Google já foi renomeada automaticamente. Falta só um clique: renomear o projeto no editor Apps Script.
 
 **Editor Apps Script:**
 1. Abra: `https://script.google.com/home/projects/SCRIPT_ID/edit`
 2. Clique no nome do projeto no topo (ao lado do logo do Google)
 3. Digite **"NOME_FINAL"** e pressione Enter
 
-Quando renomear os dois, me diga **"renomeei"**!
+Quando renomear, me diga **"renomeei"**!
 
 ---
 
 > **Claude:** após a confirmação, aguarde ~30 segundos para o CI/CD terminar
-> o deploy das mudanças de `Index.html`, e então apresente o resultado final:
+> o deploy de `Index.html`. Verifique também que o workflow `rename-gas-project.yml`
+> completou com sucesso (planilha renomeada). Então apresente o resultado final:
 
 ---
 
