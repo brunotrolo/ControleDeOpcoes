@@ -6,4 +6,5 @@ mockups/**
 .claspignore
 .gitignore
 .deployment-id
+.webapp-urls
 .trigger-bootstrap
