@@ -2,6 +2,23 @@
 
 ---
 
+## 🚀 Antes de abrir o Claude Code (2 minutos)
+
+O Claude Code precisa de um repositório para trabalhar. Crie um vazio:
+
+1. Acesse **https://github.com/new**
+2. **Repository name:** o nome do seu projeto (ex: `controle-de-estoque`)
+3. Marque **Private**
+4. Marque **"Add a README file"** (para o repositório não ficar vazio)
+5. Clique em **Create repository**
+
+Agora abra o **claude.ai/code**, inicie uma sessão **neste repositório novo**,
+faça upload deste arquivo e diga:
+
+> _"Siga o BOOTSTRAP_NOVO_PROJETO_GAS.md para criar meu projeto do zero."_
+
+---
+
 ## 📋 PROTOCOLO PARA CLAUDE (leia antes de começar)
 
 > Este documento é um roteiro que você (Claude) deve seguir para criar um
@@ -28,17 +45,21 @@
 
 ---
 
-## ETAPA 0 — Perguntas iniciais
+## ETAPA 0 — Identificar o contexto
 
-Claude deve perguntar ao usuário (tudo de uma vez, antes de fazer qualquer coisa):
-
-> _"Antes de começar, preciso de duas informações:_
-> _1. Qual o **nome do projeto**? (ex: ControleDeEstoque, GestaoFinanceira)_
-> _2. Qual o seu **username do GitHub**? (ex: joaosilva)_
+> **Claude:** a sessão já está rodando dentro do repositório do usuário.
+> Detecte `GITHUB_USER` e `NOME_PROJETO` automaticamente com:
+> ```bash
+> git remote get-url origin
+> ```
+> (formato: `.../GITHUB_USER/NOME_PROJETO`)
 >
-> _Pode me responder os dois agora."_
+> Pergunte ao usuário apenas:
 
-Guardar as respostas como `NOME_PROJETO` e `GITHUB_USER`.
+> _"Vamos criar seu projeto! Qual **título** você quer dar à planilha Google?
+> (ex: Controle de Estoque) Se preferir, uso o nome do repositório mesmo."_
+
+Guardar como `TITULO_PLANILHA`.
 
 ---
 
@@ -146,28 +167,25 @@ cat ~/.clasprc.json
 
 ---
 
-## ETAPA 3 — Criar o repositório no GitHub
+## ETAPA 3 — Criar os arquivos do projeto
 
-> **Claude:** use a ferramenta `mcp__github__create_repository` com:
-> - `name`: `NOME_PROJETO` (em minúsculas com hífens, ex: `controle-de-estoque`)
-> - `owner`: `GITHUB_USER`
-> - `private`: `true`
-> - `auto_init`: `false`
->
-> Após criar, mostre ao usuário:
+> **Claude:** o repositório já existe (a sessão roda dentro dele). Mostre ao
+> usuário:
 
 ---
 
-**Etapa 3 de 6 — Repositório criado!**
+**Etapa 3 de 6 — Configurando os arquivos do projeto**
 
-Ótimo! Criei o repositório no GitHub. Agora vou configurar todos os arquivos do projeto. Isso vai levar alguns segundos...
+Agora vou criar todos os arquivos do projeto e enviá-los ao GitHub. Isso leva alguns segundos...
 
 ---
 
-> **Claude:** use `mcp__github__push_files` para criar todos os arquivos abaixo
-> num único commit na branch `main`. Substitua `NOME_PROJETO` pelo nome real.
+> **Claude:** crie os arquivos abaixo localmente (ferramenta Write), faça
+> commit e `git push` na branch atual. Substitua `NOME_PROJETO` pelo título
+> real. **Atenção:** se a sessão estiver numa branch que não é `main`, ajuste
+> o campo `branches` dos dois workflows para incluir a branch atual.
 
-### Arquivos a criar via `mcp__github__push_files`:
+### Arquivos a criar:
 
 **`.clasp.json`**
 ```json
@@ -458,16 +476,15 @@ Agora vem a parte mais legal: vou criar automaticamente a planilha Google e o pr
 > - `owner`: `GITHUB_USER`
 > - `repo`: `NOME_PROJETO`
 > - `workflow_id`: `bootstrap-gas-project.yml`
-> - `ref`: `main`
-> - `inputs`: `{ "project_name": "NOME_PROJETO" }`
+> - `ref`: a branch atual da sessão (verifique com `git branch --show-current`)
+> - `inputs`: `{ "project_name": "TITULO_PLANILHA" }`
 >
 > Após disparar, aguarde ~60 segundos e use `mcp__github__actions_list` para
 > verificar o status do workflow `bootstrap-gas-project.yml`.
 >
 > Quando o status for `completed` com conclusão `success`:
-> - Use `mcp__github__get_file_contents` para ler o `.clasp.json` atualizado
->   (o bootstrap commitou o arquivo com os IDs reais)
-> - Extraia `scriptId` e `parentId` e monte as URLs:
+> - Rode `git pull` (o bootstrap commitou o `.clasp.json` com os IDs reais)
+> - Leia o `.clasp.json` local, extraia `scriptId` e `parentId` e monte as URLs:
 >   - **Planilha:** `https://docs.google.com/spreadsheets/d/<parentId>/edit`
 >   - **Editor GAS:** `https://script.google.com/home/projects/<scriptId>/edit`
 > - Avance para a Etapa 6
