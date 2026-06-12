@@ -918,25 +918,31 @@ Quando renomear, me diga **"renomeei"**!
 
 > **Claude:** após a confirmação, aguarde ~30 segundos para o CI/CD terminar
 > o deploy de `Index.html`. Verifique também que o workflow `rename-gas-project.yml`
-> completou com sucesso (planilha renomeada). Então apresente o resultado final:
+> completou com sucesso (planilha renomeada). Então leia os valores reais de:
+> - `SCRIPT_ID` e `PARENT_ID` do arquivo `.clasp.json`
+> - `HEAD_URL` e `EXEC_URL` do arquivo `.webapp-urls`
+> - `GITHUB_USER` e `NOME_REPO` detectados na Etapa 0
+>
+> **OBRIGATÓRIO:** apresente TODOS os 6 links abaixo com os valores reais
+> substituídos. Nunca omita nenhum deles, mesmo que alguma URL esteja vazia
+> (nesse caso, investigue antes de continuar).
 
 ---
 
 **Tudo pronto! 🎉**
 
-Seu projeto **NOME_FINAL** está completamente configurado:
+Seu projeto **NOME_FINAL** está completamente configurado. Salve estes links:
 
-📊 **Planilha Google:**
-`https://docs.google.com/spreadsheets/d/PARENT_ID/edit`
+| | Link |
+|---|---|
+| 📊 **Planilha Google** | `https://docs.google.com/spreadsheets/d/PARENT_ID/edit` |
+| ⚙️ **Editor Apps Script** | `https://script.google.com/home/projects/SCRIPT_ID/edit` |
+| 🟢 **Web App DEV** (código mais recente) | _(Claude: valor de `HEAD_URL` em `.webapp-urls`)_ |
+| 🔵 **Web App PROD** (versão publicada) | _(Claude: valor de `EXEC_URL` em `.webapp-urls`)_ |
+| 📦 **Repositório GitHub** | `https://github.com/GITHUB_USER/NOME_REPO` |
 
-⚙️ **Editor Apps Script:**
-`https://script.google.com/home/projects/SCRIPT_ID/edit`
-
-🌐 **Web App (link permanente — sempre o código mais recente):**
-_(Claude: cole aqui o valor de `HEAD_URL` do arquivo `.webapp-urls`)_
-
-📦 **Repositório GitHub:**
-`https://github.com/GITHUB_USER/NOME_REPO`
+> **DEV** sempre serve o código mais recente após cada push.
+> **PROD** serve a última versão implantada explicitamente.
 
 **Como funciona daqui em diante:**
 
