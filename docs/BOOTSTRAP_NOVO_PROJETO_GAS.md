@@ -31,8 +31,9 @@ faça upload deste arquivo e diga:
 >   **o que copiar** e peça para **colar o resultado aqui no chat**.
 > - Só avance para a próxima etapa após receber a confirmação ou o resultado.
 > - Se o usuário errar ou travar, ofereça ajuda antes de continuar.
-> - No início do projeto, pergunte apenas o **nome do projeto** e o
->   **username do GitHub** — nada mais ainda.
+> - **Não pergunte o nome do projeto no início** — use o nome do repositório
+>   como título temporário. O nome final será definido na Etapa 7, após validar
+>   que o pipeline funciona.
 
 ---
 
@@ -42,31 +43,34 @@ faça upload deste arquivo e diga:
 - Uma **planilha Google** + **projeto Apps Script** criados automaticamente
 - Um **pipeline de deploy**: toda mudança feita aqui no Claude Code chega ao
   Apps Script em ~30 segundos, sem abrir o GitHub
+- Validação visual: uma página do **Bob Esponja** confirma que o link `/dev`
+  está funcionando antes de qualquer personalização
 
 ---
 
 ## ETAPA 0 — Identificar o contexto
 
 > **Claude:** a sessão já está rodando dentro do repositório do usuário.
-> Detecte `GITHUB_USER` e `NOME_PROJETO` automaticamente com:
+> Detecte `GITHUB_USER` e `NOME_REPO` automaticamente com:
 > ```bash
 > git remote get-url origin
 > ```
-> (formato: `.../GITHUB_USER/NOME_PROJETO`)
+> (formato: `.../GITHUB_USER/NOME_REPO`)
 >
-> Pergunte ao usuário apenas:
+> Guarde ambos. `NOME_REPO` será usado como título inicial da planilha e do
+> projeto GAS — **não pergunte nada ao usuário ainda**.
+>
+> Apresente ao usuário:
 
-> _"Vamos criar seu projeto! Qual **título** você quer dar à planilha Google?
-> (ex: Controle de Estoque) Se preferir, uso o nome do repositório mesmo."_
-
-Guardar como `TITULO_PLANILHA`.
+_"Ótimo! Vou criar seu projeto passo a passo. Vamos começar ativando uma
+permissão no Google."_
 
 > ⚡ **O que acontece automaticamente ao final:**
-> - Planilha Google criada
+> - Planilha Google criada com o nome do repositório
 > - Apps Script criado e vinculado
-> - Código inicial enviado ao GAS
-> - Web app implantado e link `/dev` gerado
-> - Tudo isso sem mais nenhuma ação do usuário após a Etapa 4
+> - Página do Bob Esponja implantada para validar o pipeline
+> - Link `/dev` gerado e entregue
+> - Renomeação guiada para o nome final do projeto
 
 ---
 
@@ -76,7 +80,7 @@ Guardar como `TITULO_PLANILHA`.
 
 ---
 
-**Etapa 1 de 6 — Ativar a Apps Script API**
+**Etapa 1 de 7 — Ativar a Apps Script API**
 
 Primeiro precisamos ativar uma permissão no Google. Isso é feito **uma única vez** e vale para todos os projetos futuros.
 
@@ -99,7 +103,7 @@ Quando ativar, me diga **"ativei"** para continuarmos.
 
 ---
 
-**Etapa 2 de 6 — Gerar credenciais de acesso**
+**Etapa 2 de 7 — Gerar credenciais de acesso**
 
 Agora vamos gerar uma "chave" que permite ao sistema fazer deploys automaticamente. Não precisa instalar nada — vamos usar um terminal gratuito no próprio browser.
 
@@ -181,7 +185,7 @@ cat ~/.clasprc.json
 
 ---
 
-**Etapa 3 de 6 — Configurando os arquivos do projeto**
+**Etapa 3 de 7 — Configurando os arquivos do projeto**
 
 Agora vou criar todos os arquivos do projeto e enviá-los ao GitHub. Isso leva alguns segundos...
 
@@ -204,7 +208,7 @@ Agora vou criar todos os arquivos do projeto e enviá-los ao GitHub. Isso leva a
 > git commit -m "bootstrap: configuração inicial do projeto"
 > git push origin main
 > ```
-> Substitua `NOME_PROJETO` pelo título real.
+> Use `NOME_REPO` (detectado na Etapa 0) nos lugares indicados abaixo.
 
 ### Arquivos a criar:
 
@@ -256,7 +260,7 @@ node_modules/
 ```javascript
 function doGet(e) {
   return HtmlService.createHtmlOutputFromFile('Index')
-    .setTitle('NOME_PROJETO')
+    .setTitle('NOME_REPO')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
@@ -265,23 +269,68 @@ function include(filename) {
 }
 ```
 
-**`Index.html`**
+**`Index.html`** — página de validação (Bob Esponja)
 ```html
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOME_PROJETO</title>
-    <style>
-      body { font-family: sans-serif; max-width: 600px; margin: 60px auto; padding: 20px; }
-      h1 { color: #4f46e5; }
-    </style>
-  </head>
-  <body>
-    <h1>NOME_PROJETO</h1>
-    <p>✅ Projeto criado com sucesso! O pipeline CI/CD está ativo.</p>
-    <p>Qualquer mudança feita no Claude Code aparece aqui em ~30 segundos.</p>
-  </body>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bob Esponja está online!</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: linear-gradient(180deg, #5BB8F5 0%, #5BB8F5 55%, #F5D76E 55%, #F5D76E 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Comic Sans MS', 'Chalkboard SE', cursive;
+      padding: 20px;
+      text-align: center;
+    }
+    .sponge {
+      font-size: 100px;
+      animation: bounce 0.8s ease-in-out infinite alternate;
+      display: block;
+      margin-bottom: 16px;
+    }
+    @keyframes bounce {
+      from { transform: translateY(0) rotate(-5deg); }
+      to   { transform: translateY(-24px) rotate(5deg); }
+    }
+    h1 {
+      font-size: 2.2em;
+      color: #2C3E50;
+      text-shadow: 2px 2px 0 #F39C12;
+      margin-bottom: 12px;
+    }
+    .subtitle {
+      font-size: 1.1em;
+      color: #2471A3;
+      background: rgba(255,255,255,0.75);
+      border-radius: 14px;
+      padding: 10px 22px;
+      margin-bottom: 20px;
+    }
+    .badge {
+      background: #1E8449;
+      color: #fff;
+      border-radius: 20px;
+      padding: 10px 28px;
+      font-size: 1em;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <span class="sponge">🧽</span>
+  <h1>Olá, Mundo Submarino!</h1>
+  <p class="subtitle">
+    Seu pipeline GitHub → Google Apps Script<br>está funcionando perfeitamente!
+  </p>
+  <div class="badge">✅ Infraestrutura validada</div>
+</body>
 </html>
 ```
 
@@ -490,11 +539,11 @@ jobs:
 
 ---
 
-**Etapa 4 de 6 — Salvar as credenciais no GitHub**
+**Etapa 4 de 7 — Salvar as credenciais no GitHub**
 
 Preciso que você faça um passo rápido no GitHub (leva menos de 1 minuto):
 
-1. Acesse este link: **https://github.com/GITHUB_USER/NOME_PROJETO/settings/secrets/actions**
+1. Acesse este link: **https://github.com/GITHUB_USER/NOME_REPO/settings/secrets/actions**
 
 2. Clique em **"New repository secret"**
 
@@ -523,7 +572,7 @@ Quando terminar, me diga **"feito"** para continuarmos.
 
 ---
 
-**Etapa 5 de 6 — Criando sua planilha e o Apps Script**
+**Etapa 5 de 7 — Criando sua planilha e o Apps Script**
 
 Agora vem a parte mais legal: vou criar automaticamente a planilha Google e o projeto Apps Script para você. Aguarde cerca de 1 minuto...
 
@@ -533,10 +582,9 @@ Agora vem a parte mais legal: vou criar automaticamente a planilha Google e o pr
 > ```bash
 > git checkout main && git pull origin main
 > ```
-> Crie o arquivo `.trigger-bootstrap` com o `TITULO_PLANILHA` como conteúdo,
+> Crie o arquivo `.trigger-bootstrap` com o `NOME_REPO` como conteúdo,
 > faça commit e push direto em `main`:
 > ```bash
-> echo "TITULO_PLANILHA" > .trigger-bootstrap
 > git add .trigger-bootstrap
 > git commit -m "bootstrap: dispara criação do projeto GAS"
 > git push origin main
@@ -559,34 +607,139 @@ Agora vem a parte mais legal: vou criar automaticamente a planilha Google e o pr
 
 ---
 
-## ETAPA 6 — Confirmar e entregar o resultado
+## ETAPA 6 — Validar o link /dev (Bob Esponja)
 
 > **Claude:** apresente este texto com as URLs reais preenchidas:
 
 ---
 
-**Etapa 6 de 6 — Tudo pronto! 🎉**
+**Etapa 6 de 7 — Confirme que está tudo funcionando!**
 
-Seu projeto foi criado com sucesso. Aqui está tudo que foi configurado:
+Seu projeto foi criado. Antes de personalizarmos, abra o link abaixo e confirme que está funcionando:
 
-📊 **Sua Planilha Google:**
+🌐 **Abra agora o seu Web App:**
+`https://script.google.com/macros/s/DEPLOYMENT_ID/dev`
+
+Você deve ver uma página com o **Bob Esponja 🧽** pulsando e a mensagem
+_"Olá, Mundo Submarino!"_
+
+> ⚠️ Você precisa estar **logado com a conta Google** dona do projeto para ver
+> a página. Se pedir login, entre e acesse o link novamente.
+
+Quando o Bob Esponja aparecer, me diga **"funcionou"** para personalizarmos! 🎉
+
+---
+
+> **Claude:** aguarde a confirmação do usuário. Se o link não abrir ou der
+> erro, investigue: verifique se o `.deployment-id` foi corretamente commitado,
+> se o step summary do bootstrap mostra um link diferente, e se o usuário está
+> logado com a conta correta.
+
+---
+
+## ETAPA 7 — Personalizar o projeto com o nome definitivo
+
+> **Claude:** apresente este texto:
+
+---
+
+**Etapa 7 de 7 — Vamos dar o nome definitivo ao seu projeto!**
+
+A infraestrutura está 100% funcionando. Agora personalizamos.
+
+**Qual o nome que você quer dar ao projeto?** (ex: _"Controle de Estoque"_)
+
+---
+
+> **Claude:** aguarde o usuário informar o nome. Chame de `NOME_FINAL`.
+>
+> Com `NOME_FINAL` em mãos, faça **tudo isso automaticamente**:
+>
+> 1. **Atualize `Código.gs`** — substitua `NOME_REPO` por `NOME_FINAL` no
+>    `setTitle()`
+>
+> 2. **Substitua `Index.html`** por uma página de boas-vindas com o nome real:
+>
+> ```html
+> <!DOCTYPE html>
+> <html lang="pt-BR">
+> <head>
+>   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+>   <title>NOME_FINAL</title>
+>   <style>
+>     * { box-sizing: border-box; margin: 0; padding: 0; }
+>     body {
+>       min-height: 100vh;
+>       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+>       display: flex;
+>       flex-direction: column;
+>       align-items: center;
+>       justify-content: center;
+>       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+>       padding: 20px;
+>       text-align: center;
+>       color: white;
+>     }
+>     h1 { font-size: 2.4em; font-weight: 800; margin-bottom: 12px; }
+>     p  { font-size: 1.1em; opacity: 0.85; max-width: 420px; line-height: 1.6; }
+>   </style>
+> </head>
+> <body>
+>   <h1>🚀 NOME_FINAL</h1>
+>   <p>Projeto conectado ao GitHub. Toda mudança feita no Claude Code aparece
+>      aqui automaticamente em ~30 segundos.</p>
+> </body>
+> </html>
+> ```
+>
+> 3. **Faça commit e push** em `main` — o CI/CD atualiza o web app
+>    automaticamente:
+>    ```bash
+>    git add Código.gs Index.html
+>    git commit -m "feat: personaliza projeto com nome definitivo"
+>    git push origin main
+>    ```
+>
+> 4. **Guie o usuário a renomear nos dois lugares** com este texto:
+
+---
+
+Quase lá! Só falta renomear a planilha e o editor Apps Script. São dois cliques:
+
+**Planilha Google:**
+1. Abra: `https://docs.google.com/spreadsheets/d/PARENT_ID/edit`
+2. Clique no nome **"NOME_REPO"** no canto superior esquerdo
+3. Digite **"NOME_FINAL"** e pressione Enter
+
+**Editor Apps Script:**
+1. Abra: `https://script.google.com/home/projects/SCRIPT_ID/edit`
+2. Clique no nome do projeto no topo (ao lado do logo do Google)
+3. Digite **"NOME_FINAL"** e pressione Enter
+
+Quando renomear os dois, me diga **"renomeei"**!
+
+---
+
+> **Claude:** após a confirmação, aguarde ~30 segundos para o CI/CD terminar
+> o deploy das mudanças de `Index.html`, e então apresente o resultado final:
+
+---
+
+**Tudo pronto! 🎉**
+
+Seu projeto **NOME_FINAL** está completamente configurado:
+
+📊 **Planilha Google:**
 `https://docs.google.com/spreadsheets/d/PARENT_ID/edit`
 
 ⚙️ **Editor Apps Script:**
 `https://script.google.com/home/projects/SCRIPT_ID/edit`
 
-🌐 **Seu Web App (link permanente de DEV):**
+🌐 **Web App (link permanente de DEV):**
 `https://script.google.com/macros/s/DEPLOYMENT_ID/dev`
 
 📦 **Repositório GitHub:**
-`https://github.com/GITHUB_USER/NOME_PROJETO`
-
-> **Claude:** substitua os placeholders pelos valores reais lidos dos arquivos
-> `.clasp.json` (scriptId + parentId) e `.deployment-id` (deploymentId).
-> Apresente sempre os 4 links clicáveis. O link `/dev` é permanente — toda
-> mudança futura aparece automaticamente nele após cada push.
-
----
+`https://github.com/GITHUB_USER/NOME_REPO`
 
 **Como funciona daqui em diante:**
 
@@ -596,24 +749,14 @@ Você nunca mais precisa abrir o GitHub ou o terminal. Só diga o que quer mudar
 
 ---
 
-**Quer publicar o projeto como um web app?**
-
-No editor Apps Script:
-1. Clique em **"Implantar"** → **"Nova implantação"**
-2. Tipo: **"Aplicativo da Web"**
-3. Executar como: sua conta Google
-4. Quem tem acesso: escolha conforme necessário
-5. Clique em **"Implantar"**
-6. Copie a URL gerada — esse é o link do seu app!
-
----
-
 ## Solução de problemas
 
 | Sintoma | O que fazer |
 |---|---|
 | Etapa 2: URL do login não abre | Copie a URL completa e cole numa nova aba do browser |
 | Etapa 4: não encontro o link das secrets | Certifique-se de ser o dono do repositório; o link é exatamente Settings → Secrets and variables → Actions |
+| Etapa 6: link /dev não abre | Confirme que está logado com a conta Google dona do projeto |
+| Etapa 6: página em branco ou erro 404 | O bootstrap pode ter falhado ao capturar o HEAD ID — verifique o step summary do workflow no GitHub Actions |
 | Bootstrap falhou com `invalid_grant` | As credenciais expiraram — repita a Etapa 2 e atualize o secret |
 | Bootstrap falhou com `Apps Script API disabled` | Repita a Etapa 1 — o toggle precisa estar ativo |
 | Deploy pulado após bootstrap | Normal na primeira vez — o segundo commit (do scriptId) dispara o deploy real |
@@ -622,4 +765,4 @@ No editor Apps Script:
 
 ## Para projetos futuros (a partir do segundo projeto)
 
-As Etapas 1 e 2 **não precisam ser repetidas** — as credenciais geradas valem para todos os projetos da mesma conta Google. Basta começar pela Etapa 0 (nome + username) e ir direto para a Etapa 3.
+As Etapas 1 e 2 **não precisam ser repetidas** — as credenciais geradas valem para todos os projetos da mesma conta Google. Basta começar pela Etapa 0 (detectar repo) e ir direto para a Etapa 3.
