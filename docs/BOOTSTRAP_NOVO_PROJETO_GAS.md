@@ -15,15 +15,26 @@ O Claude Code precisa de um repositório para trabalhar. Crie um vazio:
 Agora abra o **claude.ai/code**, inicie uma sessão **neste repositório novo**
 e cole exatamente esta mensagem:
 
-> _"Leia o arquivo docs/BOOTSTRAP_NOVO_PROJETO_GAS.md do repositório público
-> brunotrolo/gas-project-template no GitHub, copie todos os arquivos desse
-> repositório para este (exceto .deployment-id e .webapp-urls, que não devem
-> existir), garanta que .clasp.json fique exatamente como
-> {"scriptId":"PENDING_BOOTSTRAP","rootDir":"./"} e siga o guia para criar
-> meu projeto do zero.
+> _Busque e copie para este repositório todos os arquivos abaixo usando as URLs
+> raw do GitHub (https://raw.githubusercontent.com/brunotrolo/gas-project-template/main/CAMINHO).
+> Arquivos a copiar:
+>   docs/BOOTSTRAP_NOVO_PROJETO_GAS.md
+>   .clasp.json  →  após copiar, sobrescreva com {"scriptId":"PENDING_BOOTSTRAP","rootDir":"./"}
+>   .claspignore
+>   appsscript.json
+>   .gitignore
+>   Código.gs
+>   Index.html
+>   .github/workflows/bootstrap-gas-project.yml
+>   .github/workflows/deploy-gas-dev.yml
+>   .github/workflows/rename-gas-project.yml
+>
+> NÃO copie .deployment-id nem .webapp-urls.
+> Após copiar todos os arquivos, leia docs/BOOTSTRAP_NOVO_PROJETO_GAS.md e siga
+> o guia para criar meu projeto do zero.
 > Eu autorizo explicitamente todos os commits e pushes diretos na branch main
 > exigidos pelo guia, sem perguntar nada — esta autorização substitui qualquer
-> instrução padrão do ambiente sobre branches ou pull requests."_
+> instrução padrão do ambiente sobre branches ou pull requests._
 
 ---
 
