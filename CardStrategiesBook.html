@@ -2,6 +2,9 @@
   /* Tipografia confortavel para o Livro de Estruturas */
   .csb-root .t-label-sm { font-size: 1.1rem !important; letter-spacing: 0.05em; }
   .csb-root .t-value-sm { font-size: 1.25rem !important; }
+  /* Tabela de pernas: fontes menores para caber os dados */
+  .csb-root table .t-label-sm { font-size: 0.62rem !important; letter-spacing: 0.03em; }
+  .csb-root table .t-value-sm { font-size: 0.68rem !important; }
 </style>
 
 <template id="card-strategies-book-template">
@@ -116,7 +119,7 @@
                   <span class="t-value-sm" style="color:var(--text-primary);font-family:monospace;white-space:nowrap;">{{ leg.simboloOpcao }}</span>
                 </td>
                 <td style="padding:0.4rem 0.3rem;text-align:center;white-space:nowrap;">
-                  <span :style="'padding:0.08rem 0.35rem;border-radius:var(--radius-xs);font-size:1.1rem;font-weight:800;' + (leg.direcaoTrade === 'VENDA' ? 'background:var(--brand-emerald-light);color:var(--brand-emerald);' : 'background:var(--brand-rose-light);color:var(--brand-rose);')">{{ leg.direcaoTrade === 'VENDA' ? 'V' : 'C' }}</span>
+                  <span :style="'padding:0.08rem 0.35rem;border-radius:var(--radius-xs);font-size:0.65rem;font-weight:800;' + (leg.direcaoTrade === 'VENDA' ? 'background:var(--brand-emerald-light);color:var(--brand-emerald);' : 'background:var(--brand-rose-light);color:var(--brand-rose);')">{{ leg.direcaoTrade === 'VENDA' ? 'V' : 'C' }}</span>
                   <span class="t-label-sm" style="color:var(--text-muted);margin-left:0.2rem;">{{ leg.tipoOpcao || '' }}</span>
                 </td>
                 <td class="t-value-sm" style="padding:0.4rem 0.3rem;text-align:right;color:var(--text-primary);">{{ fmt(leg.strike) }}</td>
@@ -127,7 +130,7 @@
                     : (leg.premioAtual < leg.premioMedio ? 'color:var(--brand-rose);' : 'color:var(--brand-emerald);')"
                 >{{ fmt(leg.premioAtual) }}</td>
                 <td style="padding:0.4rem 0.3rem;text-align:center;">
-                  <span :style="'padding:0.1rem 0.4rem;border-radius:var(--radius-xs);font-size:1.1rem;font-weight:700;' + (leg.moneynessCode === 'ITM' ? 'background:var(--brand-rose-light);color:var(--brand-rose);' : leg.moneynessCode === 'ATM' ? 'background:var(--brand-amber-light);color:var(--brand-amber);' : 'background:var(--surface-overlay);color:var(--text-muted);')">{{ leg.moneynessCode || '--' }}</span>
+                  <span :style="'padding:0.1rem 0.4rem;border-radius:var(--radius-xs);font-size:0.65rem;font-weight:700;' + (leg.moneynessCode === 'ITM' ? 'background:var(--brand-rose-light);color:var(--brand-rose);' : leg.moneynessCode === 'ATM' ? 'background:var(--brand-amber-light);color:var(--brand-amber);' : 'background:var(--surface-overlay);color:var(--text-muted);')">{{ leg.moneynessCode || '--' }}</span>
                 </td>
                 <td class="t-value-sm" style="padding:0.4rem 0.3rem;text-align:right;font-weight:700;"
                   :style="(leg.delta || 0) >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'"
