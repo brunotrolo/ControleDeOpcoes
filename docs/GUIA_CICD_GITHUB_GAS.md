@@ -1,10 +1,12 @@
 # Guia Completo: CI/CD GitHub → Google Apps Script
 
-> **Objetivo:** ao mergear uma Pull Request no GitHub, o código é enviado
+> **Objetivo:** a cada push na branch `main` do GitHub, o código é enviado
 > automaticamente para o Google Apps Script (GAS) em ~30 segundos, sem nenhuma
 > ação manual.
 >
 > **Reutilizável em qualquer projeto GAS.** Siga os passos na ordem.
+> Para criar um projeto GAS **do zero** (planilha + script + pipeline),
+> use o runbook `BOOTSTRAP_NOVO_PROJETO_GAS.md`.
 
 ---
 
@@ -168,8 +170,23 @@ jobs:
 | `clasp push --force` | Sem `--force`, o clasp pede confirmação interativa (trava o CI) |
 | `clasp deploy -i <id>` (reuso) | GAS limita a **20 deployments versionados** por script; criar um novo a cada push estoura o limite e o deploy passa a falhar silenciosamente |
 | API `projects.deployments` | Única fonte confiável das URLs do web app (`entryPoints[].webApp.url`); URLs montadas na mão (`/macros/s/<id>/dev`) podem não funcionar |
+| Retry com backoff (5/10/20/30s) na leitura das URLs | A API demora alguns segundos para popular `entryPoints` após um deploy — sem retry a URL vem vazia na 1ª leitura |
+| `git pull --rebase` antes do push do CI | Quando dois workflows commitam de volta ao repo no mesmo push, um deles falha com "remote contains work you do not have" sem o rebase |
 | Cache do npm global | Corta ~15s por execução (262 pacotes do clasp) |
 | `contents: write` permission | Necessário para commitar `.deployment-id` de volta ao repo |
+
+### As duas URLs do web app (DEV vs PROD)
+
+A API retorna **duas** URLs, ambas terminando em `/exec`:
+
+| | Deployment | ID na URL | Quem abre | Atualiza quando |
+|---|---|---|---|---|
+| 🟢 **DEV** (`HEAD_URL`) | HEAD (sem `versionNumber`) | **curto** (~46 chars) | Só o dono, logado | A cada `clasp push` |
+| 🔵 **PROD** (`EXEC_URL`) | Versionado | **longo** (~76 chars) | Público (`ANYONE_ANONYMOUS`) | A cada `clasp deploy` |
+
+O sufixo `/dev` **não existe** nas URLs retornadas pela API — só na interface
+"Testar implantações" do editor GAS. Um `curl` na URL DEV sem sessão recebe a
+tela de login do Google: isso é normal, não é falha.
 
 ---
 
@@ -199,6 +216,10 @@ Para deploy manual: **Actions → Deploy to GAS DEV → Run workflow**.
 | `Scripts may only have up to 20 versioned deployments` | Cada execução do CI criava um deployment novo | Reusar o deployment existente: `clasp deploy -i <deploymentId>` |
 | Nada em "Testar implantações" no GAS | Web app não foi configurado no `appsscript.json` | Garantir que `appsscript.json` tem a seção `"webapp"` e foi incluído no push |
 | Deploy ok mas mudança não aparece | Cache do browser / deployment de versão fixa | A URL do deployment HEAD (em `.webapp-urls`, chave `HEAD_URL`) sempre serve o código mais recente após `clasp push` |
+| URLs vazias logo após o deploy | A API demora segundos para popular `entryPoints` | Retry com backoff (5/10/20/30s) — já embutido nos workflows deste repo |
+| `appsscript.json` sem a seção `webapp` no servidor (após `clasp create`) | `clasp create` **sobrescreve** o `appsscript.json` local com o manifest padrão do Google | Backup antes do create, restore antes do push (`cp` para `/tmp` e de volta) |
+| URL DEV pede login / `curl` mostra tela do Google | Comportamento padrão: a URL HEAD só abre para o dono logado | Normal. A URL pública é a `EXEC_URL` (deployment versionado) |
+| Push do CI falha com "remote contains work you do not have" | Dois workflows commitaram de volta ao repo no mesmo push | `git pull --rebase origin "$GITHUB_REF_NAME"` antes do `git push` |
 
 ---
 
