@@ -50,6 +50,45 @@
           </div>
         </div>
 
+        <!-- Range Bar da Estrutura -->
+        <div style="padding:0.5rem 1rem 0.5rem;background:var(--surface-sunken);border-bottom:1px solid var(--border-subtle);">
+          <!-- Linha de valores: Spot | Badge moneyness | Strike/P&L -->
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:0.85rem;">
+            <div>
+              <div :style="'font-size:0.5rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1px;color:'+est.moneyTone.cor">Spot</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:0.88rem;font-weight:800;color:var(--text-primary);">{{ fmt(est.spotAtual) }}</div>
+            </div>
+            <div :style="'font-size:0.58rem;font-weight:800;letter-spacing:0.08em;padding:2px 10px;border-radius:99px;background:'+est.moneyTone.light+';color:'+est.moneyTone.cor+';border:1px solid '+est.moneyTone.muted">{{ est.moneyTone.label }}</div>
+            <div style="text-align:right;">
+              <template v-if="est.pernas.length === 1">
+                <div style="font-size:0.5rem;font-weight:700;color:var(--brand-indigo);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1px;">Strike</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.88rem;font-weight:800;color:var(--text-primary);">{{ fmt(est.pernas[0].strike) }}</div>
+              </template>
+              <template v-else>
+                <div style="font-size:0.5rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1px;">P/L Total</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.88rem;font-weight:800;" :style="est.plTotal >= 0 ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">{{ fmtSigned(est.plTotal) }}</div>
+              </template>
+            </div>
+          </div>
+          <!-- Trilho -->
+          <div v-if="est.trackData" style="position:relative;padding-top:1.1rem;padding-bottom:1rem;">
+            <div style="position:relative;height:13px;border-radius:99px;background:linear-gradient(90deg,var(--brand-rose-light),var(--brand-amber-light) 50%,var(--brand-emerald-light));border:1px solid var(--border-default);">
+              <!-- Zona entre strikes (spread zone) -->
+              <div v-if="est.trackData.spreadZone" :style="'position:absolute;top:0;bottom:0;background:rgba(217,119,6,0.15);border-left:1.5px dashed rgba(217,119,6,0.35);border-right:1.5px dashed rgba(217,119,6,0.35);left:'+est.trackData.spreadZone.left+'%;width:'+est.trackData.spreadZone.width+'%;'"></div>
+              <!-- Linhas de strike por perna -->
+              <div v-for="(m, mi) in est.trackData.legMarkers" :key="'lm'+mi"
+                :style="'position:absolute;top:-6px;bottom:-6px;width:3px;border-radius:2px;transform:translateX(-1.5px);z-index:2;left:'+m.pct+'%;' + (m.isVenda ? 'background:var(--brand-rose);' : 'background:var(--brand-indigo);')">
+                <!-- Label acima: preço do strike -->
+                <span :style="'position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:nowrap;font-size:0.48rem;font-weight:800;font-family:JetBrains Mono,monospace;' + (m.isVenda ? 'color:var(--brand-rose);' : 'color:var(--brand-indigo);')">R${{ m.strike.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) }}</span>
+                <!-- Label abaixo: V/C + tipo -->
+                <span :style="'position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:nowrap;font-size:0.45rem;font-weight:700;' + (m.isVenda ? 'color:var(--brand-rose);' : 'color:var(--brand-indigo);')">{{ m.isVenda ? 'V' : 'C' }} {{ m.tipoOpcao }}</span>
+              </div>
+              <!-- Bolinha spot (cor = moneyness das vendas) -->
+              <div :style="'position:absolute;top:-5px;width:21px;height:21px;border-radius:50%;transform:translateX(-10.5px);border:3px solid var(--surface-base);z-index:3;left:'+est.trackData.spotPct+'%;background:'+est.moneyTone.cor+';box-shadow:'+est.moneyTone.glow+';'"></div>
+            </div>
+          </div>
+        </div>
+
         <!-- Tabela de Pernas -->
         <div style="padding:0.5rem 1rem 0.75rem;border-bottom:1px solid var(--border-subtle);overflow-x:auto;">
           <table style="width:100%;border-collapse:collapse;">
@@ -281,6 +320,57 @@ window.CardStrategiesBook = {
            + dt.getFullYear();
     },
 
+    // Calcula posicoes percentuais para o trilho de strikes.
+    // Suporta 1..N pernas: cada strike vira uma linha colorida.
+    _computeTrackData: function(spot, pernas) {
+      spot = parseFloat(spot) || 0;
+      var strikes = pernas.map(function(p) { return parseFloat(p.strike) || 0; }).filter(function(s) { return s > 0; });
+      if (!spot || !strikes.length) return null;
+      var all = [spot].concat(strikes);
+      var minA = Math.min.apply(null, all), maxA = Math.max.apply(null, all);
+      var pad  = Math.max((maxA - minA) * 1.8, maxA * 0.05);
+      var lo   = minA - pad, hi = maxA + pad, range = hi - lo || 1;
+      var pct  = function(v) { return Math.max(5, Math.min(95, ((v - lo) / range) * 100)); };
+      var legMarkers = pernas.map(function(p) {
+        return {
+          pct:      pct(parseFloat(p.strike) || 0),
+          isVenda:  p.direcaoTrade === 'VENDA',
+          tipoOpcao: String(p.tipoOpcao || '').toUpperCase().slice(0, 4),
+          strike:   parseFloat(p.strike) || 0
+        };
+      });
+      var spreadZone = null;
+      if (legMarkers.length >= 2) {
+        var pcts   = legMarkers.map(function(m) { return m.pct; });
+        var minPct = Math.min.apply(null, pcts), maxPct = Math.max.apply(null, pcts);
+        spreadZone = { left: minPct, width: maxPct - minPct };
+      }
+      return { spotPct: pct(spot), legMarkers: legMarkers, spreadZone: spreadZone };
+    },
+
+    // Moneyness da estrutura: avalia pelas pernas VENDA (risco).
+    // ITM vendido = vermelho, ATM vendido = ambar, resto = verde.
+    _computeMoneyTone: function(pernas) {
+      var vendasItm = pernas.filter(function(p) {
+        return p.direcaoTrade === 'VENDA' && String(p.moneynessCode || '').toUpperCase().indexOf('ITM') >= 0;
+      });
+      var vendasAtm = pernas.filter(function(p) {
+        return p.direcaoTrade === 'VENDA' && String(p.moneynessCode || '').toUpperCase().indexOf('ATM') >= 0;
+      });
+      if (vendasItm.length > 0) return {
+        cor: 'var(--brand-rose)',    light: 'rgba(225,29,72,0.18)',  muted: 'rgba(225,29,72,0.55)',
+        glow: '0 0 0 3px rgba(225,29,72,0.40), 0 0 10px rgba(225,29,72,0.20)', label: 'ITM'
+      };
+      if (vendasAtm.length > 0) return {
+        cor: 'var(--brand-amber)',   light: 'rgba(217,119,6,0.18)',  muted: 'rgba(217,119,6,0.55)',
+        glow: '0 0 0 3px rgba(217,119,6,0.45), 0 0 10px rgba(217,119,6,0.20)', label: 'ATM'
+      };
+      return {
+        cor: 'var(--brand-emerald)', light: 'var(--brand-emerald-light)', muted: 'var(--brand-emerald-muted)',
+        glow: '0 0 0 3px var(--brand-emerald-muted)', label: 'OTM'
+      };
+    },
+
     _construirEstrutura: function(id, pernas) {
       var self    = this;
       var tipo    = this._classificar(pernas);
@@ -289,6 +379,7 @@ window.CardStrategiesBook = {
       var leg0    = pernas[0];
       var dte     = pernas.reduce(function(min, p) { var v = typeof p.dteCorridos === 'number' ? p.dteCorridos : 999; return v < min ? v : min; }, 999);
 
+      var pernasSorted = pernas.slice().sort(function(a, b) { return (a.strike || 0) - (b.strike || 0); });
       return Object.assign({
         id:            id,
         ticker:        leg0.tickerAtivo || '--',
@@ -297,11 +388,13 @@ window.CardStrategiesBook = {
         tipoEstrutura: tipo,
         isSimples:     pernas.length === 1,
         spotAtual:     leg0.spotPrice || 0,
-        pernas:        pernas.slice().sort(function(a, b) { return (a.strike || 0) - (b.strike || 0); }),
+        pernas:        pernasSorted,
         corFundo:      cor.fundo,
         corBadge:      cor.badge,
         corTexto:      cor.texto,
-        corBorda:      cor.borda
+        corBorda:      cor.borda,
+        trackData:     self._computeTrackData(leg0.spotPrice || 0, pernasSorted),
+        moneyTone:     self._computeMoneyTone(pernas)
       }, metrics);
     },
 
