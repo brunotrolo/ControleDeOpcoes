@@ -367,29 +367,6 @@ const app = createApp({
     // 6. DISPENSADOR DE PROPS (Dependency Injection V6)
     // ====================================================================
 
-    // [C2] ativosDaHome como computed memoizado.
-    // Antes: forEach dentro de getComponentProps rodava em CADA render,
-    // inclusive a cada tick do timerVisual (1x por segundo).
-    // Agora: so recalcula quando db.value.cockpit muda de fato.
-    // Set garante lookup O(1) para deduplicacao de tickers.
-    const ativosDaHome = computed(() => {
-      const vistos = new Set();
-      const lista  = db.value.cockpit || [];
-      const result = [];
-      for (var i = 0; i < lista.length; i++) {
-        var op = lista[i];
-        var t  = String(op.tickerAtivo || '').trim().toUpperCase();
-        if (t && t !== '---' && !vistos.has(t)) {
-          vistos.add(t);
-          result.push({ tickerAtivo: t, spotPrice: op.spotPrice || 0 });
-        }
-      }
-      return result;
-    });
-
-    // getComponentProps agora e uma funcao pura — nao faz mais loops
-    // sobre cockpit. Apenas monta o objeto de props usando computeds
-    // ja calculados (ativosDaHome, cuboOlap).
     const getComponentProps = (compConfig) => {
       const baseProps = {
         isMobile:      isMobile.value,
@@ -519,7 +496,7 @@ const COMPONENTES_V6 = [
   ['necton-import',          window.NectonImport],
   ['automation-view',        window.AutomationView],
   ['wheel-manager',          window.WheelManager],
-  ['log-console',            window.LogConsole],
+
   ['bancodedados-view',      window.BancoDeDadosView],
   ['oplab-explorer-view',    window.OpLabExplorerView],
   ['settings-view',          window.SettingsView],
