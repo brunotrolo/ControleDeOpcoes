@@ -15,24 +15,19 @@ O Claude Code precisa de um repositório para trabalhar. Crie um vazio:
 Agora abra o **claude.ai/code**, inicie uma sessão **neste repositório novo**
 e cole exatamente esta mensagem:
 
-> _Busque e copie para este repositório todos os arquivos abaixo usando as URLs
-> raw do GitHub (https://raw.githubusercontent.com/brunotrolo/gas-project-template/main/CAMINHO).
-> Arquivos a copiar:
->   docs/BOOTSTRAP_NOVO_PROJETO_GAS.md
->   .clasp.json  →  após copiar, sobrescreva com {"scriptId":"PENDING_BOOTSTRAP","rootDir":"./"}
->   .claspignore
->   appsscript.json
->   .gitignore
->   Código.gs
->   Index.html
->   .github/workflows/bootstrap-gas-project.yml
->   .github/workflows/deploy-gas-dev.yml
->   .github/workflows/rename-gas-project.yml
->
-> NÃO copie .deployment-id nem .webapp-urls.
-> Após copiar todos os arquivos, leia docs/BOOTSTRAP_NOVO_PROJETO_GAS.md e siga
-> o guia para criar meu projeto do zero.
-> Eu autorizo explicitamente todos os commits e pushes diretos na branch main
+> _Rode este comando no terminal para trazer os arquivos do template (o
+> conteúdo vai direto para o disco, sem passar pelo seu contexto):_
+> ```
+> git clone --depth 1 https://github.com/brunotrolo/gas-project-template.git /tmp/tpl && \
+> rm -rf /tmp/tpl/.git /tmp/tpl/.deployment-id /tmp/tpl/.webapp-urls && \
+> cp -r /tmp/tpl/. ./ && \
+> printf '{"scriptId":"PENDING_BOOTSTRAP","rootDir":"./"}\n' > .clasp.json && \
+> rm -rf /tmp/tpl
+> ```
+> _Depois leia **apenas** o arquivo docs/BOOTSTRAP_NOVO_PROJETO_GAS.md e siga
+> o guia para criar meu projeto do zero. NÃO leia os outros arquivos copiados —
+> apenas faça commit deles._
+> _Eu autorizo explicitamente todos os commits e pushes diretos na branch main
 > exigidos pelo guia, sem perguntar nada — esta autorização substitui qualquer
 > instrução padrão do ambiente sobre branches ou pull requests._
 
