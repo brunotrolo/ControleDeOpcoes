@@ -115,22 +115,7 @@ Files are numbered `000`–`025`; GAS loads them in alphabetical order, so numbe
 
 **Component naming convention:** HTML filename → kebab-case Vue component name (e.g., `CardRadar.html` → `<card-radar>`).
 
-### Premium Glass Theme (optional alternate design, fully reversible)
-
-A second visual theme — **Premium Glass** (glassmorphism) — coexists with the default design without touching any original component. Toggle: floating button (bottom-right) or `Ctrl/Cmd+Shift+P`.
-
-How it works:
-- **Token swap:** a `[data-theme="premium"]` CSS block in `Styles.html` remaps all design tokens (colors, surfaces, shadows) — original tokens untouched.
-- **Component variants:** each Cockpit card has a `*_PG.html` twin (`CardRadar_PG.html`, `CardVencimentos_PG.html`, `CardCarouselAtivas_PG.html`, `CardTable_PG.html`, `CardSummary_PG.html`, `CardStrategiesBook_PG.html`) built with the **`Object.assign` pattern**: it inherits 100% of the original component's logic (props/computed/methods) and only replaces the `template` string. Never edit original components for theme work.
-- **Shared CSS:** `PremiumGlassComponents.html` holds all `.pg-*` classes used exclusively by the `_PG` variants.
-- **Layout switching:** `window.LAYOUT_MAP_PREMIUM` in `LayoutConfig.html` lists the `-pg` component names; `AppCore.html` has a `currentTheme` ref (reacts to the `themechange` DOM event) and the `currentLayout` computed picks the premium map when active.
-- **CRITICAL — props wiring:** `customProps` in `AppCore.html` is keyed by component name string. Every `-pg` component needs its own entry there (mirroring the original's props), otherwise it renders empty. `card-summary-pg` receives `cockpit` (Array), not `statsPreCalculados`.
-- **Revert:** `git revert` the Premium Glass commits, or delete the two `╔═...╚═` blocks in `Styles.html` plus the `_PG` includes in `Index.html`.
-
-Known field-name gotchas in `_PG` templates (inherited computeds use short keys):
-- `CardSummary` `resumoCalculado` rows: `t/side/tipo/qtd/gmax/lmp/noc/pmax/pm/pa/plp/plv`
-- `CardStrategiesBook` metrics are spread directly on `est.*` (not `est.metricas.*`)
-- `CardVencimentos` buckets have no `dteCorridos`; use `calcDTE(v.dataVencimento)`
+> **Theming:** the app ships a single design with `light`/`dark` modes managed by `window.ThemeManager` in `Styles.html` (`[data-theme="dark"]` token block). An optional "Premium Glass" theme existed previously but was fully removed; recover it via `git revert` of the removal commit if ever needed.
 
 ### Data Flow
 
