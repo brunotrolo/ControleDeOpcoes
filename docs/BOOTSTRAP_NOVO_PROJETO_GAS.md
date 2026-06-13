@@ -842,8 +842,10 @@ Agora vem a parte automática — vou criar sua planilha Google, o projeto Apps 
 
 ## ETAPA 6 — Validar o web app (Bob Esponja)
 
-> **Claude:** mostre a mensagem abaixo com os valores reais de `HEAD_URL`
-> e `EXEC_URL` substituídos. Aguarde a confirmação do usuário.
+> **Claude:** mostre a mensagem abaixo com TODOS os valores reais
+> substituídos: `HEAD_URL` e `EXEC_URL` (do `.webapp-urls`), `PARENT_ID` e
+> `SCRIPT_ID` (do `.clasp.json`), `GITHUB_USER` e `NOME_REPO` (da Etapa 0).
+> Nunca omita nenhum dos 5 links. Aguarde a confirmação do usuário.
 >
 > Lembre-se: `HEAD_URL` (DEV) só abre para o dono logado — isso é normal.
 > `EXEC_URL` (PROD) é a URL pública. Se o usuário ver tela de autorização
@@ -851,15 +853,19 @@ Agora vem a parte automática — vou criar sua planilha Google, o projeto Apps 
 
 ---
 
-**Etapa 6 de 7 — Pronto! Abra os links e confirme.**
+**Etapa 6 de 7 — Pronto! Seu projeto foi criado. 🎉**
 
-Seu projeto foi criado! Antes de personalizarmos, abra os links abaixo e confirme que o **Bob Esponja 🧽** aparece:
+Aqui está tudo o que acabou de ser criado para você:
 
-🟢 **DEV** (seu link privado — só abre para você, logado):
-`HEAD_URL_AQUI`
+| | Link |
+|---|---|
+| 📊 **Planilha Google** | `https://docs.google.com/spreadsheets/d/PARENT_ID/edit` |
+| ⚙️ **Editor Apps Script** | `https://script.google.com/home/projects/SCRIPT_ID/edit` |
+| 🟢 **Web App DEV** (seu link privado — só abre para você, logado) | `HEAD_URL_AQUI` |
+| 🔵 **Web App PROD** (link público — pode compartilhar) | `EXEC_URL_AQUI` |
+| 📦 **Repositório GitHub** | `https://github.com/GITHUB_USER/NOME_REPO` |
 
-🔵 **PROD** (link público — pode compartilhar com qualquer pessoa):
-`EXEC_URL_AQUI`
+Agora **abra os dois links de Web App** e confirme que o **Bob Esponja 🧽** aparece com a mensagem _"Olá, Mundo Submarino!"_
 
 > Se aparecer uma tela de autorização do Google: clique em **Avançado → Acessar**. É o seu próprio projeto — é seguro.
 
