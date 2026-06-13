@@ -809,117 +809,91 @@ Quando terminar, me diga **"feito"** para continuarmos.
 
 ## ETAPA 5 — Criar a planilha Google + Apps Script automaticamente
 
-> **Claude:** apresente este texto e em seguida dispare o workflow via MCP.
+> **Claude:** mostre a mensagem abaixo e execute TODO o trabalho técnico em
+> **silêncio absoluto** — sem status intermediários, sem "verificando...",
+> sem "aguardando...". O usuário vê apenas esta mensagem de entrada e a
+> mensagem de resultado ao final. Se algo der errado, corrija silenciosamente
+> antes de voltar ao chat; só interrompa o usuário se for um erro que
+> genuinamente exige ação dele (ex.: secret errado).
 
 ---
 
-**Etapa 5 de 7 — Criando sua planilha e o Apps Script**
+**Etapa 5 de 7**
 
-Agora vem a parte mais legal: vou criar automaticamente a planilha Google e o projeto Apps Script para você. Aguarde cerca de 1 minuto...
+Agora vem a parte automática — vou criar sua planilha Google, o projeto Apps Script e publicar o web app. Na primeira vez leva **entre 5 e 10 minutos** (instalação de ferramentas + criação + deploy). Não precisa fazer nada, só aguardar. Já volto com tudo pronto e os links em mãos. ☕
 
 ---
 
-> **Claude:** garanta que está em `main` antes de continuar:
-> ```bash
-> git checkout main && git pull origin main
-> ```
-> Crie o arquivo `.trigger-bootstrap` com o `NOME_REPO` como conteúdo,
-> faça commit e push direto em `main`:
-> ```bash
-> git add .trigger-bootstrap
-> git commit -m "bootstrap: dispara criação do projeto GAS"
-> git push origin main
-> ```
+> **Claude:** execute em silêncio, na ordem:
 >
-> O push desse arquivo aciona automaticamente o workflow
-> `bootstrap-gas-project.yml` (gatilho `push: paths: ['.trigger-bootstrap']`).
->
-> Aguarde ~90 segundos e use `mcp__github__actions_list` para verificar o
-> status do workflow `bootstrap-gas-project.yml`.
-> Quando `completed` + `success`:
-> - Rode `git pull` (o bootstrap commitou `.clasp.json`, `.deployment-id` e
->   `.webapp-urls`)
-> - Leia `.clasp.json` → extraia `scriptId` e `parentId`
-> - Leia `.webapp-urls` → as linhas `HEAD_URL=...` (DEV) e `EXEC_URL=...`
->   (PROD) contêm as **URLs reais retornadas pela API do Google**.
->   ⚠️ **NUNCA monte a URL na mão** (`/macros/s/<id>/dev`) — a URL construída
->   manualmente pode não funcionar. Use SEMPRE os valores exatos do arquivo.
-> - Monte as demais URLs:
->   - **Planilha:** `https://docs.google.com/spreadsheets/d/<parentId>/edit`
->   - **Editor GAS:** `https://script.google.com/home/projects/<scriptId>/edit`
-> - Avance para a Etapa 6
->
-> Se `HEAD_URL` ou `EXEC_URL` estiverem vazios no `.webapp-urls`, o web app NÃO
-> foi implantado corretamente. Causa mais comum já conhecida: o manifest no
-> servidor está sem a seção `webapp` (o `clasp create` sobrescreve o
-> `appsscript.json` local — o workflow faz backup/restore para evitar isso,
-> mas confirme nos logs). Correção: garantir que o `appsscript.json` com a
-> seção `webapp` foi enviado (`clasp push --force`) e refazer o deploy
-> reapontando o deployment existente para a nova versão. NUNCA entregue um
-> link ao usuário sem ele estar preenchido no `.webapp-urls`.
+> 1. `git checkout main && git pull origin main`
+> 2. Crie `.trigger-bootstrap` com conteúdo `NOME_REPO`
+> 3. `git add .trigger-bootstrap && git commit -m "bootstrap: dispara criação" && git push origin main`
+> 4. Use `mcp__github__actions_list` para verificar o workflow `bootstrap-gas-project.yml` — repita a cada 30–60s até `conclusion: success`
+> 5. `git pull origin main` (o bootstrap commitou `.clasp.json`, `.deployment-id`, `.webapp-urls`)
+> 6. Leia `.webapp-urls` e `.clasp.json`
+> 7. Se `HEAD_URL` ou `EXEC_URL` estiverem vazios: corrija silenciosamente
+>    antes de continuar (causa mais comum: `clasp push --force` com o
+>    `appsscript.json` correto + redeploy do deployment existente via API).
+>    **NUNCA entregue links vazios ao usuário.**
+> 8. Quando tiver os dois links reais: avance para a Etapa 6
 
 ---
 
 ## ETAPA 6 — Validar o web app (Bob Esponja)
 
-> **Claude:** comportamento das duas URLs (não confunda):
-> - **`HEAD_URL` (DEV):** serve sempre o código mais recente, mas **só abre
->   para o dono logado na conta Google**. Um `curl` sem sessão recebe a tela
->   de login do Google — isso é **normal**, não é falha.
-> - **`EXEC_URL` (PROD):** pública (com `access: ANYONE_ANONYMOUS`), serve a
->   versão implantada. É a URL que funciona para qualquer pessoa.
+> **Claude:** mostre a mensagem abaixo com os valores reais de `HEAD_URL`
+> e `EXEC_URL` substituídos. Aguarde a confirmação do usuário.
 >
-> Apresente **as duas** ao usuário, como abaixo, e aguarde a confirmação.
-> Se algum link der erro real (404/branco), verifique se `.webapp-urls` tem
-> as URLs preenchidas e se o step summary do bootstrap mostra as mesmas.
+> Lembre-se: `HEAD_URL` (DEV) só abre para o dono logado — isso é normal.
+> `EXEC_URL` (PROD) é a URL pública. Se o usuário ver tela de autorização
+> do Google, é normal na primeira abertura — clique em Avançado → Acessar.
 
 ---
 
-**Etapa 6 de 7 — Confirme que está tudo funcionando!**
+**Etapa 6 de 7 — Pronto! Abra os links e confirme.**
 
-Seu projeto tem dois links — abra os dois e confirme o Bob Esponja 🧽:
+Seu projeto foi criado! Antes de personalizarmos, abra os links abaixo e confirme que o **Bob Esponja 🧽** aparece:
 
-🟢 **Web App DEV** (sempre o código mais recente — só abre para você, logado):
-_(Claude: cole aqui o valor de `HEAD_URL` do `.webapp-urls`)_
+🟢 **DEV** (seu link privado — só abre para você, logado):
+`HEAD_URL_AQUI`
 
-🔵 **Web App PROD** (público — pode compartilhar):
-_(Claude: cole aqui o valor de `EXEC_URL` do `.webapp-urls`)_
+🔵 **PROD** (link público — pode compartilhar com qualquer pessoa):
+`EXEC_URL_AQUI`
 
-Você deve ver o **Bob Esponja 🧽** pulsando com a mensagem _"Olá, Mundo Submarino!"_
+> Se aparecer uma tela de autorização do Google: clique em **Avançado → Acessar**. É o seu próprio projeto — é seguro.
 
-> ⚠️ Se aparecer uma tela pedindo permissão do Google: clique em **Avançado → Acessar (nome do projeto)**. É seguro — o app é seu.
+Quando as páginas abrirem, me diga **"funcionou"** para darmos o nome definitivo! 🎉
 
-Quando as páginas aparecerem, me diga **"funcionou"** para personalizarmos! 🎉
+---
+
+> **Claude:** aguarde a confirmação. Se algum link der erro real (página em
+> branco, 404), investigue silenciosamente — não peça ajuda ao usuário antes
+> de tentar corrigir.
 
 ---
 
 ## ETAPA 7 — Personalizar o projeto com o nome definitivo
 
-> **Claude:** apresente este texto:
+> **Claude:** mostre a pergunta abaixo. Após receber o nome, execute TODO o
+> trabalho de personalização em **silêncio** e só volte ao chat com a mensagem
+> de conclusão e a tabela de links prontos.
 
 ---
 
-**Etapa 7 de 7 — Vamos dar o nome definitivo ao seu projeto!**
+**Etapa 7 de 7 — Qual o nome do seu projeto?**
 
-A infraestrutura está 100% funcionando. Agora personalizamos.
+A infraestrutura está 100% validada. Agora é só dar o nome certo.
 
-**Qual o nome que você quer dar ao projeto?** (ex: _"Controle de Estoque"_)
+**Como você quer chamar esse projeto?** (ex: _"Controle de Estoque"_, _"Painel de Vendas"_)
 
 ---
 
-> **Claude:** aguarde o usuário informar o nome. Chame de `NOME_FINAL`.
+> **Claude:** chame o nome recebido de `NOME_FINAL`. Execute em silêncio:
 >
-> Com `NOME_FINAL` em mãos, faça **tudo isso automaticamente**:
->
-> 1. **Atualize `Código.gs`** — substitua `NOME_REPO` por `NOME_FINAL` no
->    `setTitle()`
->
-> 2. **Crie `.trigger-rename`** com o conteúdo `NOME_FINAL` (só o texto, sem
->    aspas). O workflow `rename-gas-project.yml` vai renomear a planilha Google
->    via Sheets API automaticamente ao detectar esse arquivo no push. Após a
->    execução do workflow ele mesmo apaga o arquivo.
->
-> 3. **Substitua `Index.html`** por uma página de boas-vindas com o nome real:
+> 1. Em `Código.gs`: substitua `NOME_REPO` por `NOME_FINAL` no `setTitle()`
+> 2. Crie `.trigger-rename` com conteúdo `NOME_FINAL` (só o texto)
+> 3. Substitua `Index.html` pelo template abaixo (com `NOME_FINAL` substituído):
 >
 > ```html
 > <!DOCTYPE html>
@@ -932,14 +906,10 @@ A infraestrutura está 100% funcionando. Agora personalizamos.
 >     body {
 >       min-height: 100vh;
 >       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
->       display: flex;
->       flex-direction: column;
->       align-items: center;
+>       display: flex; flex-direction: column; align-items: center;
 >       justify-content: center;
 >       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
->       padding: 20px;
->       text-align: center;
->       color: white;
+>       padding: 20px; text-align: center; color: white;
 >     }
 >     h1 { font-size: 2.4em; font-weight: 800; margin-bottom: 12px; }
 >     p  { font-size: 1.1em; opacity: 0.85; max-width: 420px; line-height: 1.6; }
@@ -953,40 +923,13 @@ A infraestrutura está 100% funcionando. Agora personalizamos.
 > </html>
 > ```
 >
-> 4. **Faça commit e push** em `main` — o CI/CD atualiza o web app e o
->    workflow `rename-gas-project.yml` renomeia a planilha automaticamente:
->    ```bash
->    git add Código.gs Index.html .trigger-rename
->    git commit -m "feat: personaliza projeto com nome definitivo"
->    git push origin main
->    ```
->    O workflow de rename apaga `.trigger-rename` sozinho após executar.
->
-> 5. **Guie o usuário a renomear APENAS o editor GAS** com este texto:
-
----
-
-Quase lá! A planilha Google já foi renomeada automaticamente. Falta só um clique: renomear o projeto no editor Apps Script.
-
-**Editor Apps Script:**
-1. Abra: `https://script.google.com/home/projects/SCRIPT_ID/edit`
-2. Clique no nome do projeto no topo (ao lado do logo do Google)
-3. Digite **"NOME_FINAL"** e pressione Enter
-
-Quando renomear, me diga **"renomeei"**!
-
----
-
-> **Claude:** após a confirmação, aguarde ~30 segundos para o CI/CD terminar
-> o deploy de `Index.html`. Verifique também que o workflow `rename-gas-project.yml`
-> completou com sucesso (planilha renomeada). Então leia os valores reais de:
-> - `SCRIPT_ID` e `PARENT_ID` do arquivo `.clasp.json`
-> - `HEAD_URL` e `EXEC_URL` do arquivo `.webapp-urls`
-> - `GITHUB_USER` e `NOME_REPO` detectados na Etapa 0
->
-> **OBRIGATÓRIO:** apresente TODOS os 6 links abaixo com os valores reais
-> substituídos. Nunca omita nenhum deles, mesmo que alguma URL esteja vazia
-> (nesse caso, investigue antes de continuar).
+> 4. `git add Código.gs Index.html .trigger-rename`
+> 5. `git commit -m "feat: personaliza projeto com nome definitivo"`
+> 6. `git push origin main`
+> 7. Aguarde ~30s para o deploy automático terminar (silêncio)
+> 8. Leia `.clasp.json` (scriptId, parentId) e `.webapp-urls` (HEAD_URL, EXEC_URL)
+> 9. **OBRIGATÓRIO:** apresente a mensagem de conclusão abaixo com TODOS os
+>    valores reais substituídos — nunca omita nenhum link.
 
 ---
 
@@ -998,18 +941,22 @@ Seu projeto **NOME_FINAL** está completamente configurado. Salve estes links:
 |---|---|
 | 📊 **Planilha Google** | `https://docs.google.com/spreadsheets/d/PARENT_ID/edit` |
 | ⚙️ **Editor Apps Script** | `https://script.google.com/home/projects/SCRIPT_ID/edit` |
-| 🟢 **Web App DEV** (código mais recente — só abre para você, logado) | _(Claude: valor de `HEAD_URL` em `.webapp-urls`)_ |
-| 🔵 **Web App PROD** (público — pode compartilhar) | _(Claude: valor de `EXEC_URL` em `.webapp-urls`)_ |
+| 🟢 **Web App DEV** (código mais recente — só você, logado) | `HEAD_URL_AQUI` |
+| 🔵 **Web App PROD** (público — pode compartilhar) | `EXEC_URL_AQUI` |
 | 📦 **Repositório GitHub** | `https://github.com/GITHUB_USER/NOME_REPO` |
 
-> **DEV** sempre serve o código mais recente após cada push.
-> **PROD** serve a última versão implantada explicitamente.
+> **DEV** = sempre o código mais recente após cada push.
+> **PROD** = a última versão publicada.
+
+**Um último clique manual:** renomeie o editor Apps Script
+(a API do Google não permite isso automaticamente):
+
+1. Abra: `https://script.google.com/home/projects/SCRIPT_ID/edit`
+2. Clique no nome do projeto no topo → digite **"NOME_FINAL"** → Enter
 
 **Como funciona daqui em diante:**
 
-Você trabalha aqui comigo no Claude Code. Toda vez que eu fizer uma mudança e você disser OK, o código vai para o Apps Script **automaticamente em ~30 segundos**.
-
-Você nunca mais precisa abrir o GitHub ou o terminal. Só diga o que quer mudar.
+Você trabalha aqui comigo no Claude Code. Toda vez que eu fizer uma mudança e você disser OK, o código vai para o Apps Script **automaticamente em ~30 segundos**. Nunca mais precisa abrir o GitHub ou o terminal.
 
 ---
 
