@@ -606,27 +606,27 @@ jobs:
             curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
               "https://script.googleapis.com/v1/projects/${{ env.SCRIPT_ID }}/deployments?pageSize=50" \
               > /tmp/deployments.json
-            node > /tmp/urls.env <<'PARSE'
-            const data = require('/tmp/deployments.json');
-            const deps = data.deployments || [];
-            let headUrl = '', execUrl = '', headId = '', bestVersion = -1;
-            for (const d of deps) {
-              const isHead = !(d.deploymentConfig && d.deploymentConfig.versionNumber);
-              if (isHead && !headId) headId = d.deploymentId;
-              for (const ep of (d.entryPoints || [])) {
-                if (ep.entryPointType === 'WEB_APP' && ep.webApp && ep.webApp.url) {
-                  if (isHead) { headUrl = ep.webApp.url; headId = d.deploymentId; }
-                  else {
-                    const v = Number(d.deploymentConfig.versionNumber) || 0;
-                    if (v > bestVersion) { bestVersion = v; execUrl = ep.webApp.url; }
+            node -e "
+              const data = require('/tmp/deployments.json');
+              const deps = data.deployments || [];
+              let headUrl = '', execUrl = '', headId = '', bestVersion = -1;
+              for (const d of deps) {
+                const isHead = !(d.deploymentConfig && d.deploymentConfig.versionNumber);
+                if (isHead && !headId) headId = d.deploymentId;
+                for (const ep of (d.entryPoints || [])) {
+                  if (ep.entryPointType === 'WEB_APP' && ep.webApp && ep.webApp.url) {
+                    if (isHead) { headUrl = ep.webApp.url; headId = d.deploymentId; }
+                    else {
+                      const v = Number(d.deploymentConfig.versionNumber) || 0;
+                      if (v > bestVersion) { bestVersion = v; execUrl = ep.webApp.url; }
+                    }
                   }
                 }
               }
-            }
-            console.log('HEAD_URL=' + headUrl);
-            console.log('EXEC_URL=' + execUrl);
-            console.log('HEAD_ID=' + headId);
-PARSE
+              console.log('HEAD_URL=' + headUrl);
+              console.log('EXEC_URL=' + execUrl);
+              console.log('HEAD_ID=' + headId);
+            " > /tmp/urls.env
           }
 
           # Backoff progressivo: na prática a URL aparece em 5-15s; o máximo
@@ -781,27 +781,27 @@ jobs:
 
           parse_urls() {
             fetch_deployments
-            node > /tmp/urls.env <<'PARSE'
-            const data = require('/tmp/deployments.json');
-            const deps = data.deployments || [];
-            let headUrl = '', execUrl = '', headId = '', bestVersion = -1;
-            for (const d of deps) {
-              const isHead = !(d.deploymentConfig && d.deploymentConfig.versionNumber);
-              if (isHead && !headId) headId = d.deploymentId;
-              for (const ep of (d.entryPoints || [])) {
-                if (ep.entryPointType === 'WEB_APP' && ep.webApp && ep.webApp.url) {
-                  if (isHead) { headUrl = ep.webApp.url; headId = d.deploymentId; }
-                  else {
-                    const v = Number(d.deploymentConfig.versionNumber) || 0;
-                    if (v > bestVersion) { bestVersion = v; execUrl = ep.webApp.url; }
+            node -e "
+              const data = require('/tmp/deployments.json');
+              const deps = data.deployments || [];
+              let headUrl = '', execUrl = '', headId = '', bestVersion = -1;
+              for (const d of deps) {
+                const isHead = !(d.deploymentConfig && d.deploymentConfig.versionNumber);
+                if (isHead && !headId) headId = d.deploymentId;
+                for (const ep of (d.entryPoints || [])) {
+                  if (ep.entryPointType === 'WEB_APP' && ep.webApp && ep.webApp.url) {
+                    if (isHead) { headUrl = ep.webApp.url; headId = d.deploymentId; }
+                    else {
+                      const v = Number(d.deploymentConfig.versionNumber) || 0;
+                      if (v > bestVersion) { bestVersion = v; execUrl = ep.webApp.url; }
+                    }
                   }
                 }
               }
-            }
-            console.log('HEAD_URL=' + headUrl);
-            console.log('EXEC_URL=' + execUrl);
-            console.log('HEAD_ID=' + headId);
-PARSE
+              console.log('HEAD_URL=' + headUrl);
+              console.log('EXEC_URL=' + execUrl);
+              console.log('HEAD_ID=' + headId);
+            " > /tmp/urls.env
           }
 
           for WAIT in 5 10 20 30; do
