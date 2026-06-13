@@ -308,58 +308,181 @@ function include(filename) {
   <title>Bob Esponja está online!</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
       min-height: 100vh;
-      background: linear-gradient(180deg, #5BB8F5 0%, #5BB8F5 55%, #F5D76E 55%, #F5D76E 100%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      background: linear-gradient(180deg,
+        #020e1f 0%, #0a2744 30%, #0d4a7a 60%,
+        #1a6b8a 74%, #c8a96e 74%, #d4b483 100%);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
       font-family: 'Comic Sans MS', 'Chalkboard SE', cursive;
-      padding: 20px;
-      text-align: center;
+      padding: 20px; text-align: center; overflow: hidden;
+      position: relative;
     }
+
+    /* ── Algas ─────────────────────────────────────────────── */
+    .seaweed {
+      position: fixed; bottom: 0;
+      background: linear-gradient(180deg, #2d8a4e, #1a5e33);
+      border-radius: 50% 50% 0 0;
+      animation: sway 3s ease-in-out infinite alternate;
+      transform-origin: bottom center;
+    }
+    .seaweed:nth-child(1){left:2%;width:18px;height:90px;animation-delay:0s}
+    .seaweed:nth-child(2){left:5%;width:12px;height:55px;animation-delay:.5s}
+    .seaweed:nth-child(3){left:88%;width:20px;height:100px;animation-delay:.3s}
+    .seaweed:nth-child(4){left:93%;width:14px;height:65px;animation-delay:.8s}
+    .seaweed:nth-child(5){left:20%;width:10px;height:45px;animation-delay:1s}
+    .seaweed:nth-child(6){left:75%;width:16px;height:70px;animation-delay:.6s}
+    @keyframes sway {
+      from { transform: rotate(-14deg); }
+      to   { transform: rotate(14deg); }
+    }
+
+    /* ── Bolhas ─────────────────────────────────────────────── */
+    .bubble {
+      position: fixed; bottom: -60px; border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%,
+        rgba(255,255,255,.75), rgba(255,255,255,.08));
+      border: 1px solid rgba(255,255,255,.35);
+      animation: rise linear infinite;
+    }
+    @keyframes rise {
+      0%   { bottom: -60px; opacity: .7; transform: translateX(0) scale(1); }
+      50%  { opacity: .45;  transform: translateX(18px) scale(1.1); }
+      100% { bottom: 110vh; opacity: 0;  transform: translateX(-18px) scale(.8); }
+    }
+    .bubble:nth-child(1) {left:4%;width:11px;height:11px;animation-duration:7s;animation-delay:0s}
+    .bubble:nth-child(2) {left:13%;width:20px;height:20px;animation-duration:9s;animation-delay:1s}
+    .bubble:nth-child(3) {left:23%;width:8px;height:8px;animation-duration:5s;animation-delay:2s}
+    .bubble:nth-child(4) {left:34%;width:15px;height:15px;animation-duration:8s;animation-delay:.5s}
+    .bubble:nth-child(5) {left:44%;width:10px;height:10px;animation-duration:10s;animation-delay:3s}
+    .bubble:nth-child(6) {left:54%;width:18px;height:18px;animation-duration:6s;animation-delay:1.5s}
+    .bubble:nth-child(7) {left:63%;width:13px;height:13px;animation-duration:8s;animation-delay:2.5s}
+    .bubble:nth-child(8) {left:73%;width:22px;height:22px;animation-duration:7s;animation-delay:.8s}
+    .bubble:nth-child(9) {left:83%;width:9px;height:9px;animation-duration:5s;animation-delay:4s}
+    .bubble:nth-child(10){left:91%;width:16px;height:16px;animation-duration:9s;animation-delay:1.2s}
+    .bubble:nth-child(11){left:8%;width:26px;height:26px;animation-duration:12s;animation-delay:2s}
+    .bubble:nth-child(12){left:50%;width:7px;height:7px;animation-duration:6s;animation-delay:3.5s}
+    .bubble:nth-child(13){left:69%;width:12px;height:12px;animation-duration:8s;animation-delay:.3s}
+    .bubble:nth-child(14){left:30%;width:19px;height:19px;animation-duration:11s;animation-delay:1.8s}
+    .bubble:nth-child(15){left:79%;width:10px;height:10px;animation-duration:7s;animation-delay:4.5s}
+
+    /* ── Peixes ─────────────────────────────────────────────── */
+    .fish {
+      position: fixed; font-size: 26px;
+      animation: swim linear infinite; opacity: .75;
+    }
+    .fish:nth-child(1){top:18%;animation-duration:20s;animation-delay:0s}
+    .fish:nth-child(2){top:52%;animation-duration:25s;animation-delay:9s;font-size:18px}
+    .fish:nth-child(3){top:38%;animation-duration:16s;animation-delay:5s;font-size:14px}
+    @keyframes swim {
+      0%  { left:-80px;  transform:scaleX(1); }
+      49% {              transform:scaleX(1); }
+      50% { left:110vw;  transform:scaleX(-1); }
+      100%{ left:-80px;  transform:scaleX(-1); }
+    }
+
+    /* ── Estrelas do mar ────────────────────────────────────── */
+    .star { position: fixed; bottom: 4px; animation: pulse 2.5s ease-in-out infinite; }
+    .star:nth-child(1){left:7%;font-size:22px;animation-delay:0s}
+    .star:nth-child(2){left:38%;font-size:16px;animation-delay:.7s}
+    .star:nth-child(3){left:60%;font-size:28px;animation-delay:1.2s}
+    .star:nth-child(4){left:89%;font-size:19px;animation-delay:.4s}
+    @keyframes pulse {
+      0%,100%{ transform:scale(1); opacity:.8; }
+      50%    { transform:scale(1.2); opacity:1; }
+    }
+
+    /* ── Card principal ─────────────────────────────────────── */
+    .card {
+      background: rgba(255,255,255,.13);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 2px solid rgba(255,255,255,.28);
+      border-radius: 28px; padding: 44px 52px;
+      max-width: 520px; width: 100%;
+      position: relative; z-index: 10;
+      transition: transform .35s ease, box-shadow .35s ease;
+    }
+    .card:hover {
+      transform: translateY(-10px) scale(1.02);
+      box-shadow: 0 24px 64px rgba(0,0,0,.45);
+    }
+
     .sponge {
-      font-size: 100px;
-      animation: bounce 0.8s ease-in-out infinite alternate;
-      display: block;
-      margin-bottom: 16px;
+      font-size: 96px; display: block; margin-bottom: 14px;
+      animation: bob 1s ease-in-out infinite alternate;
+      cursor: default; transition: font-size .2s;
+      user-select: none;
     }
-    @keyframes bounce {
-      from { transform: translateY(0) rotate(-5deg); }
-      to   { transform: translateY(-24px) rotate(5deg); }
+    .sponge:hover { animation: spin .5s linear; font-size: 120px; }
+    @keyframes bob {
+      from { transform: translateY(0) rotate(-6deg); }
+      to   { transform: translateY(-22px) rotate(6deg); }
     }
+    @keyframes spin {
+      from { transform: rotate(0deg) scale(1.25); }
+      to   { transform: rotate(360deg) scale(1.25); }
+    }
+
     h1 {
-      font-size: 2.2em;
-      color: #2C3E50;
-      text-shadow: 2px 2px 0 #F39C12;
-      margin-bottom: 12px;
+      font-size: 1.9em; color: #fff;
+      text-shadow: 2px 2px 0 #d4700a, 0 0 20px rgba(255,200,0,.5);
+      margin-bottom: 8px; line-height: 1.25;
+    }
+    .location {
+      font-size: .9em; color: #9ad4ea;
+      letter-spacing: 1px; margin-bottom: 18px;
     }
     .subtitle {
-      font-size: 1.1em;
-      color: #2471A3;
-      background: rgba(255,255,255,0.75);
-      border-radius: 14px;
-      padding: 10px 22px;
-      margin-bottom: 20px;
+      font-size: 1em; color: rgba(255,255,255,.88);
+      background: rgba(0,0,0,.22); border-radius: 14px;
+      padding: 10px 18px; margin-bottom: 22px; line-height: 1.65;
     }
     .badge {
-      background: #1E8449;
-      color: #fff;
-      border-radius: 20px;
-      padding: 10px 28px;
-      font-size: 1em;
-      font-weight: bold;
+      display: inline-block;
+      background: linear-gradient(135deg, #1a7a3d, #27ae60);
+      color: #fff; border-radius: 22px; padding: 11px 30px;
+      font-size: 1em; font-weight: bold;
+      box-shadow: 0 4px 18px rgba(0,0,0,.35);
+      transition: transform .2s, box-shadow .2s; cursor: default;
+    }
+    .badge:hover {
+      transform: scale(1.1);
+      box-shadow: 0 8px 24px rgba(0,0,0,.45);
     }
   </style>
 </head>
 <body>
-  <span class="sponge">🧽</span>
-  <h1>Olá, Mundo Submarino!</h1>
-  <p class="subtitle">
-    Seu pipeline GitHub → Google Apps Script<br>está funcionando perfeitamente!
-  </p>
-  <div class="badge">✅ Infraestrutura validada</div>
+  <div class="seaweed"></div><div class="seaweed"></div>
+  <div class="seaweed"></div><div class="seaweed"></div>
+  <div class="seaweed"></div><div class="seaweed"></div>
+
+  <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+  <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+  <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+  <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+  <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+
+  <div class="fish">🐠</div>
+  <div class="fish">🐟</div>
+  <div class="fish">🐡</div>
+
+  <div class="star">⭐</div><div class="star">🌟</div>
+  <div class="star">⭐</div><div class="star">🌟</div>
+
+  <div class="card">
+    <span class="sponge">🧽</span>
+    <h1>Olá, Fenda do Biquíni!</h1>
+    <p class="location">📍 Fenda do Biquíni · Oceano Pacífico</p>
+    <p class="subtitle">
+      Seu pipeline <strong>GitHub → Google Apps Script</strong><br>
+      está funcionando perfeitamente!
+    </p>
+    <div class="badge">✅ Infraestrutura validada</div>
+  </div>
 </body>
 </html>
 ```
