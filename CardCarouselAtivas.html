@@ -127,38 +127,41 @@
                 </div>
               </div>
 
-              <!-- Spot / Dist / Strike mobile -->
-              <div style="display:flex;justify-content:space-around;align-items:center;
-                          padding:0.75rem 0.5rem;margin-bottom:1rem;
+              <!-- Barra Spot/Strike (range bar) mobile -->
+              <div style="padding:0.85rem 0.85rem 1.2rem;margin-bottom:1rem;
                           background:var(--surface-sunken);border-radius:var(--radius-lg);
                           border:1px solid var(--border-subtle);">
-                <div style="text-align:center;flex:1;">
-                  <div style="font-size:0.58rem;font-weight:700;color:var(--text-muted);
-                              text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px;">Spot</div>
-                  <div style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;
-                              font-weight:700;color:var(--text-primary);">
-                    {{ fmtMoeda(op.spotPrice) }}
+                <!-- Numeros legiveis -->
+                <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:0.9rem;">
+                  <div style="text-align:left;">
+                    <div style="font-size:0.55rem;font-weight:700;color:#0891b2;
+                                text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px;">Spot</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:0.95rem;
+                                font-weight:800;color:var(--text-primary);">{{ fmtMoeda(op.spotPrice) }}</div>
+                  </div>
+                  <div style="text-align:center;">
+                    <div style="font-size:0.55rem;font-weight:700;color:var(--text-muted);
+                                text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px;">Dist.</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:0.9rem;font-weight:800;"
+                      :style="(op.distanciaPct || 0) >= 0 ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">{{ fmtDistancia(op.distanciaPct) }}</div>
+                  </div>
+                  <div style="text-align:right;">
+                    <div style="font-size:0.55rem;font-weight:700;color:var(--brand-indigo);
+                                text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px;">Strike</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:0.95rem;
+                                font-weight:800;color:var(--text-primary);">{{ fmtMoeda(op.strike) }}</div>
                   </div>
                 </div>
-                <div style="width:1px;height:2rem;background:var(--border-default);"></div>
-                <div style="text-align:center;flex:1;">
-                  <div style="font-size:0.58rem;font-weight:700;color:var(--text-muted);
-                              text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px;">Dist.</div>
-                  <div style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;font-weight:700;
-                              display:inline-block;padding:1px 6px;border-radius:var(--radius-xs);
-                              background:var(--surface-base);border:1px solid var(--border-subtle);"
-                    :style="(op.distanciaPct || 0) >= 0 ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">
-                    {{ fmtDistancia(op.distanciaPct) }}
-                  </div>
-                </div>
-                <div style="width:1px;height:2rem;background:var(--border-default);"></div>
-                <div style="text-align:center;flex:1;">
-                  <div style="font-size:0.58rem;font-weight:700;color:var(--text-muted);
-                              text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px;">Strike</div>
-                  <div style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;
-                              font-weight:700;color:var(--text-primary);">
-                    {{ fmtMoeda(op.strike) }}
-                  </div>
+                <!-- Trilho -->
+                <div v-if="trackPos(op)" style="position:relative;height:10px;border-radius:99px;
+                            background:linear-gradient(90deg,var(--brand-rose-light),var(--brand-amber-light) 50%,var(--brand-emerald-light));
+                            border:1px solid var(--border-subtle);">
+                  <!-- Zona de exercicio -->
+                  <div :style="'position:absolute;top:0;bottom:0;border-radius:99px;background:var(--brand-rose-muted);opacity:0.5;left:'+trackPos(op).exerLeft+'%;width:'+trackPos(op).exerW+'%;'"></div>
+                  <!-- Marcador strike -->
+                  <div :style="'position:absolute;top:-4px;bottom:-4px;width:3px;border-radius:2px;transform:translateX(-1.5px);background:var(--brand-indigo);left:'+trackPos(op).strikePct+'%;'"></div>
+                  <!-- Marcador spot -->
+                  <div :style="'position:absolute;top:-6px;width:14px;height:14px;border-radius:50%;transform:translateX(-7px);background:#06b6d4;border:2px solid var(--surface-base);box-shadow:var(--shadow-sm);left:'+trackPos(op).spotPct+'%;'"></div>
                 </div>
               </div>
 
@@ -255,37 +258,37 @@
             </div>
           </div>
 
-          <!-- Spot / Dist / Strike desktop -->
-          <div style="display:flex;justify-content:space-around;align-items:center;
-                      padding:0.5rem 0.75rem;background:var(--surface-sunken);
+          <!-- Barra Spot/Strike (range bar) desktop -->
+          <div style="padding:0.6rem 0.85rem 0.95rem;background:var(--surface-sunken);
                       border-bottom:1px solid var(--border-subtle);">
-            <div style="text-align:center;">
-              <div style="font-size:0.55rem;font-weight:700;color:var(--text-muted);
-                          text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px;">Spot</div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;
-                          font-weight:700;color:var(--text-primary);">
-                {{ fmtMoeda(op.spotPrice) }}
+            <!-- Numeros legiveis -->
+            <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:0.7rem;">
+              <div style="text-align:left;">
+                <div style="font-size:0.5rem;font-weight:700;color:#0891b2;
+                            text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1px;">Spot</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;
+                            font-weight:800;color:var(--text-primary);">{{ fmtMoeda(op.spotPrice) }}</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:0.5rem;font-weight:700;color:var(--text-muted);
+                            text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1px;">Dist.</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;font-weight:800;"
+                  :style="(op.distanciaPct || 0) >= 0 ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">{{ fmtDistancia(op.distanciaPct) }}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:0.5rem;font-weight:700;color:var(--brand-indigo);
+                            text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1px;">Strike</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;
+                            font-weight:800;color:var(--text-primary);">{{ fmtMoeda(op.strike) }}</div>
               </div>
             </div>
-            <div style="width:1px;height:1.5rem;background:var(--border-default);"></div>
-            <div style="text-align:center;">
-              <div style="font-size:0.55rem;font-weight:700;color:var(--text-muted);
-                          text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px;">Dist.</div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:700;
-                          padding:1px 5px;border-radius:var(--radius-xs);
-                          background:var(--surface-base);border:1px solid var(--border-subtle);"
-                :style="(op.distanciaPct || 0) >= 0 ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">
-                {{ fmtDistancia(op.distanciaPct) }}
-              </div>
-            </div>
-            <div style="width:1px;height:1.5rem;background:var(--border-default);"></div>
-            <div style="text-align:center;">
-              <div style="font-size:0.55rem;font-weight:700;color:var(--text-muted);
-                          text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px;">Strike</div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;
-                          font-weight:700;color:var(--text-primary);">
-                {{ fmtMoeda(op.strike) }}
-              </div>
+            <!-- Trilho -->
+            <div v-if="trackPos(op)" style="position:relative;height:9px;border-radius:99px;
+                        background:linear-gradient(90deg,var(--brand-rose-light),var(--brand-amber-light) 50%,var(--brand-emerald-light));
+                        border:1px solid var(--border-subtle);">
+              <div :style="'position:absolute;top:0;bottom:0;border-radius:99px;background:var(--brand-rose-muted);opacity:0.5;left:'+trackPos(op).exerLeft+'%;width:'+trackPos(op).exerW+'%;'"></div>
+              <div :style="'position:absolute;top:-4px;bottom:-4px;width:3px;border-radius:2px;transform:translateX(-1.5px);background:var(--brand-indigo);left:'+trackPos(op).strikePct+'%;'"></div>
+              <div :style="'position:absolute;top:-5px;width:13px;height:13px;border-radius:50%;transform:translateX(-6.5px);background:#06b6d4;border:2px solid var(--surface-base);box-shadow:var(--shadow-sm);left:'+trackPos(op).spotPct+'%;'"></div>
             </div>
           </div>
 
@@ -372,6 +375,27 @@ function caFmtDate(v) {
   if (!v) return '--';
   if (v instanceof Date) return v.toLocaleDateString('pt-BR');
   return String(v).split(' ')[0];
+}
+
+// Posicionamento da barra Spot/Strike (range bar legivel)
+// Retorna percentuais 0-100 para os marcadores + zona de exercicio.
+function caTrackPos(op) {
+  var strike = parseFloat(op.strike)    || 0;
+  var spot   = parseFloat(op.spotPrice) || 0;
+  if (!strike || !spot) return null;
+  var mid    = (strike + spot) / 2;
+  var spread = Math.max(Math.abs(spot - strike) * 2.5, strike * 0.06);
+  var min    = mid - spread / 2;
+  var max    = mid + spread / 2;
+  var range  = max - min || 1;
+  var sPct   = Math.max(8, Math.min(92, ((strike - min) / range) * 100));
+  var spPct  = Math.max(8, Math.min(92, ((spot   - min) / range) * 100));
+  var isPut  = String(op.tipoOpcao || '').toUpperCase().indexOf('PUT') >= 0;
+  var exW, exL;
+  // Zona de exercicio: PUT exerce abaixo do strike, CALL acima.
+  if (isPut) { exW = sPct;       exL = 0;    }
+  else       { exW = 100 - sPct; exL = sPct; }
+  return { strikePct: sPct, spotPct: spPct, exerW: exW, exerLeft: exL, isPut: isPut };
 }
 
 function caFmtDistancia(v) {
@@ -516,6 +540,7 @@ window.CardCarouselAtivas = {
       return String(v).split(' ')[0];
     },
     fmtDistancia: caFmtDistancia,
+    trackPos:    caTrackPos,
     getCtx:      caGetCtx,
     getTipoBadge: caGetTipoBadge,
     tipoBadgeLabel: caTipoBadgeLabel,
