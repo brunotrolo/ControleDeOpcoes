@@ -80,20 +80,24 @@
             </div>
           </div>
           <!-- Trilho -->
-          <div v-if="est.trackData" style="position:relative;padding-top:1.1rem;padding-bottom:1rem;">
+          <div v-if="est.trackData" style="padding-top:0.4rem;padding-bottom:0.25rem;">
             <div style="position:relative;height:13px;border-radius:99px;background:linear-gradient(90deg,var(--brand-rose-light),var(--brand-amber-light) 50%,var(--brand-emerald-light));border:1px solid var(--border-default);">
               <!-- Zona entre strikes (spread zone) -->
               <div v-if="est.trackData.spreadZone" :style="'position:absolute;top:0;bottom:0;background:rgba(217,119,6,0.15);border-left:1.5px dashed rgba(217,119,6,0.35);border-right:1.5px dashed rgba(217,119,6,0.35);left:'+est.trackData.spreadZone.left+'%;width:'+est.trackData.spreadZone.width+'%;'"></div>
-              <!-- Linhas de strike por perna -->
+              <!-- Linhas de strike por perna (sem labels flutuantes) -->
               <div v-for="(m, mi) in est.trackData.legMarkers" :key="'lm'+mi"
                 :style="'position:absolute;top:-6px;bottom:-6px;width:3px;border-radius:2px;transform:translateX(-1.5px);z-index:2;left:'+m.pct+'%;' + (m.isVenda ? 'background:var(--brand-rose);' : 'background:var(--brand-indigo);')">
-                <!-- Label acima: preço do strike -->
-                <span :style="'position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:nowrap;font-size:1rem;font-weight:800;font-family:JetBrains Mono,monospace;' + (m.isVenda ? 'color:var(--brand-rose);' : 'color:var(--brand-indigo);')">R${{ m.strike.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) }}</span>
-                <!-- Label abaixo: V/C + tipo -->
-                <span :style="'position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:nowrap;font-size:1rem;font-weight:700;' + (m.isVenda ? 'color:var(--brand-rose);' : 'color:var(--brand-indigo);')">{{ m.isVenda ? 'V' : 'C' }} {{ m.tipoOpcao }}</span>
               </div>
               <!-- Bolinha spot (cor = moneyness das vendas) -->
               <div :style="'position:absolute;top:-5px;width:21px;height:21px;border-radius:50%;transform:translateX(-10.5px);border:3px solid var(--surface-base);z-index:3;left:'+est.trackData.spotPct+'%;background:'+est.moneyTone.cor+';box-shadow:'+est.moneyTone.glow+';'"></div>
+            </div>
+            <!-- Legenda compacta: uma entrada por perna, sem sobreposicao -->
+            <div style="display:flex;flex-wrap:wrap;gap:0.2rem 0.75rem;margin-top:0.55rem;">
+              <span v-for="(m, mi) in est.trackData.legMarkers" :key="'leg'+mi"
+                style="display:inline-flex;align-items:center;gap:0.3rem;white-space:nowrap;">
+                <span :style="'width:10px;height:3px;border-radius:1px;display:inline-block;flex-shrink:0;background:' + (m.isVenda ? 'var(--brand-rose)' : 'var(--brand-indigo)')"></span>
+                <span :style="'font-size:0.72rem;font-weight:700;font-family:JetBrains Mono,monospace;' + (m.isVenda ? 'color:var(--brand-rose)' : 'color:var(--brand-indigo)')">{{ m.isVenda ? 'V' : 'C' }} {{ m.tipoOpcao }} · R${{ m.strike.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) }}</span>
+              </span>
             </div>
           </div>
         </div>
