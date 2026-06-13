@@ -852,7 +852,7 @@ jobs:
       - name: Write clasp credentials
         run: echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
 
-      - name: Renomear planilha via Sheets API
+      - name: Renomear planilha via Drive API
         run: |
           CLIENT_ID=$(node -e "console.log(require(process.env.HOME+'/.clasprc.json').oauth2ClientSettings.clientId)")
           CLIENT_SECRET=$(node -e "console.log(require(process.env.HOME+'/.clasprc.json').oauth2ClientSettings.clientSecret)")
@@ -863,18 +863,18 @@ jobs:
             | node -e "let r='';process.stdin.on('data',d=>r+=d);process.stdin.on('end',()=>console.log(JSON.parse(r).access_token||''))")
           PARENT_ID=$(node -e "const c=require('./.clasp.json'); console.log(Array.isArray(c.parentId)?c.parentId[0]:c.parentId||'')")
 
-          # Usa node para gerar o payload (seguro com nomes que têm acentos ou espaços)
+          # Usa Drive API (PATCH) — a Sheets API pode estar desabilitada no projeto
+          # Google Cloud das credenciais do clasp (SERVICE_DISABLED)
           node -e "
             const name = require('fs').readFileSync('.trigger-rename','utf8').trim();
-            const payload = JSON.stringify({requests:[{updateSpreadsheetProperties:{properties:{title:name},fields:'title'}}]});
-            require('fs').writeFileSync('/tmp/rename_payload.json', payload);
+            require('fs').writeFileSync('/tmp/rename_payload.json', JSON.stringify({name: name}));
           "
 
-          RESULT=$(curl -s -X POST \
+          RESULT=$(curl -s -X PATCH \
             -H "Authorization: Bearer $ACCESS_TOKEN" \
             -H "Content-Type: application/json" \
             -d @/tmp/rename_payload.json \
-            "https://sheets.googleapis.com/v4/spreadsheets/$PARENT_ID:batchUpdate")
+            "https://www.googleapis.com/drive/v3/files/$PARENT_ID?fields=name")
 
           if echo "$RESULT" | node -e "let r='';process.stdin.on('data',d=>r+=d);process.stdin.on('end',()=>{try{const o=JSON.parse(r);process.exit(o.error?1:0)}catch(e){process.exit(1)}})" ; then
             NOME=$(cat .trigger-rename)
