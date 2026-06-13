@@ -973,6 +973,13 @@ Agora vem a parte automática — vou criar sua planilha Google, o projeto Apps 
 > Lembre-se: `HEAD_URL` (DEV) só abre para o dono logado — isso é normal.
 > `EXEC_URL` (PROD) é a URL pública. Se o usuário ver tela de autorização
 > do Google, é normal na primeira abertura — clique em Avançado → Acessar.
+>
+> **As DUAS URLs terminam em `/exec` — isso está correto.** O sufixo `/dev`
+> só existe na interface do editor GAS; a API do Google retorna a URL do
+> deployment HEAD (DEV) no formato `/exec` com **ID curto** (~46 caracteres),
+> enquanto o PROD tem ID longo (~76 caracteres). Não "corrija" a URL e não
+> estranhe o formato — o que define DEV é servir sempre o código mais
+> recente, não o sufixo.
 
 ---
 
@@ -1099,6 +1106,7 @@ Você trabalha aqui comigo no Claude Code. Toda vez que eu fizer uma mudança e 
 | Etapa 6: página em branco ou erro 404 | O bootstrap pode ter falhado ao capturar o HEAD ID — verifique o step summary do workflow no GitHub Actions |
 | `HEAD_URL`/`EXEC_URL` vazios após bootstrap | `clasp create` sobrescreveu o `appsscript.json` (sem seção `webapp`) antes do push — o workflow faz backup/restore, mas se falhar: `clasp push --force` com o manifest correto + redeploy resolve |
 | `curl` na `HEAD_URL` retorna tela de login | **Normal** — a URL DEV (HEAD) só abre para o dono logado no browser; a URL pública é a `EXEC_URL` |
+| Link DEV termina em `/exec` em vez de `/dev` | **Correto** — a API do Google retorna a URL do HEAD nesse formato (ID curto ~46 chars). O `/dev` só existe na interface do editor GAS. O link serve sempre o código mais recente, que é o que importa |
 | Bootstrap falhou com `invalid_grant` | As credenciais expiraram — repita a Etapa 2 e atualize o secret |
 | Bootstrap falhou com `Apps Script API disabled` | Repita a Etapa 1 — o toggle precisa estar ativo |
 | Deploy pulado após bootstrap | Normal na primeira vez — o segundo commit (do scriptId) dispara o deploy real |
