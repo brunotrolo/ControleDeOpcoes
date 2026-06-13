@@ -607,17 +607,18 @@ jobs:
 PARSE
           }
 
-          # Tenta até 4 vezes (a API do Google pode demorar ~30s para popular entryPoints)
-          for attempt in 1 2 3 4; do
+          # Backoff progressivo: na prática a URL aparece em 5-15s; o máximo
+          # (5+10+20+30=65s de espera) cobre os casos lentos da API do Google
+          for WAIT in 5 10 20 30; do
             parse_urls
             HEAD_URL_VAL=$(grep '^HEAD_URL=' /tmp/urls.env | cut -d= -f2)
             EXEC_URL_VAL=$(grep '^EXEC_URL=' /tmp/urls.env | cut -d= -f2)
             if [ -n "$HEAD_URL_VAL" ] && [ -n "$EXEC_URL_VAL" ]; then
-              echo "URLs capturadas na tentativa $attempt"
+              echo "URLs capturadas"
               break
             fi
-            echo "Tentativa $attempt: URLs ainda vazias. Aguardando 20s..."
-            sleep 20
+            echo "URLs ainda vazias. Aguardando ${WAIT}s..."
+            sleep $WAIT
           done
 
           cat /tmp/urls.env
@@ -781,12 +782,12 @@ jobs:
 PARSE
           }
 
-          for attempt in 1 2 3; do
+          for WAIT in 5 10 20 30; do
             parse_urls
             HEAD_URL_VAL=$(grep '^HEAD_URL=' /tmp/urls.env | cut -d= -f2)
             if [ -n "$HEAD_URL_VAL" ]; then break; fi
-            echo "Tentativa $attempt: URLs vazias. Aguardando 15s..."
-            sleep 15
+            echo "URLs vazias. Aguardando ${WAIT}s..."
+            sleep $WAIT
           done
 
           cat /tmp/urls.env

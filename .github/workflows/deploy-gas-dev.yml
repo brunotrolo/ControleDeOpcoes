@@ -138,12 +138,12 @@ jobs:
 PARSE
           }
 
-          for attempt in 1 2 3; do
+          for WAIT in 5 10 20 30; do
             parse_urls
             HEAD_URL_VAL=$(grep '^HEAD_URL=' /tmp/urls.env | cut -d= -f2)
             if [ -n "$HEAD_URL_VAL" ]; then break; fi
-            echo "Tentativa $attempt: URLs vazias. Aguardando 15s..."
-            sleep 15
+            echo "URLs vazias. Aguardando ${WAIT}s..."
+            sleep $WAIT
           done
 
           cat /tmp/urls.env
