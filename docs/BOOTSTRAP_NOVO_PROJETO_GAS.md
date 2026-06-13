@@ -357,11 +357,11 @@ Aqui está tudo o que acabou de ser criado para você:
 
 | | Link |
 |---|---|
-| 📊 **Planilha Google** | `https://docs.google.com/spreadsheets/d/PARENT_ID/edit` |
-| ⚙️ **Editor Apps Script** | `https://script.google.com/home/projects/SCRIPT_ID/edit` |
-| 🟢 **Web App DEV** (seu link privado — só abre para você, logado) | `HEAD_URL_AQUI` |
-| 🔵 **Web App PROD** (link público — pode compartilhar) | `EXEC_URL_AQUI` |
-| 📦 **Repositório GitHub** | `https://github.com/GITHUB_USER/NOME_REPO` |
+| 📊 **Planilha Google** | https://docs.google.com/spreadsheets/d/PARENT_ID/edit |
+| ⚙️ **Editor Apps Script** | https://script.google.com/home/projects/SCRIPT_ID/edit |
+| 🟢 **Web App DEV** (seu link privado — só abre para você, logado) | HEAD_URL_AQUI |
+| 🔵 **Web App PROD** (link público — pode compartilhar) | EXEC_URL_AQUI |
+| 📦 **Repositório GitHub** | https://github.com/GITHUB_USER/NOME_REPO |
 
 Agora **abra os dois links de Web App** e confirme que a página do seu projeto aparece (o conteúdo vindo do `Index.html` do template).
 
@@ -418,11 +418,11 @@ Seu projeto **NOME_FINAL** está completamente configurado. Salve estes links:
 
 | | Link |
 |---|---|
-| 📊 **Planilha Google** | `https://docs.google.com/spreadsheets/d/PARENT_ID/edit` |
-| ⚙️ **Editor Apps Script** | `https://script.google.com/home/projects/SCRIPT_ID/edit` |
-| 🟢 **Web App DEV** (código mais recente — só você, logado) | `HEAD_URL_AQUI` |
-| 🔵 **Web App PROD** (público — pode compartilhar) | `EXEC_URL_AQUI` |
-| 📦 **Repositório GitHub** | `https://github.com/GITHUB_USER/NOME_REPO` |
+| 📊 **Planilha Google** | https://docs.google.com/spreadsheets/d/PARENT_ID/edit |
+| ⚙️ **Editor Apps Script** | https://script.google.com/home/projects/SCRIPT_ID/edit |
+| 🟢 **Web App DEV** (código mais recente — só você, logado) | HEAD_URL_AQUI |
+| 🔵 **Web App PROD** (público — pode compartilhar) | EXEC_URL_AQUI |
+| 📦 **Repositório GitHub** | https://github.com/GITHUB_USER/NOME_REPO |
 
 > **DEV** = sempre o código mais recente após cada push.
 > **PROD** = a última versão publicada.
@@ -430,7 +430,7 @@ Seu projeto **NOME_FINAL** está completamente configurado. Salve estes links:
 **Um último clique manual:** renomeie o editor Apps Script
 (a API do Google não permite isso automaticamente):
 
-1. Abra: `https://script.google.com/home/projects/SCRIPT_ID/edit`
+1. Abra: https://script.google.com/home/projects/SCRIPT_ID/edit
 2. Clique no nome do projeto no topo → digite **"NOME_FINAL"** → Enter
 
 **Como funciona daqui em diante:**
