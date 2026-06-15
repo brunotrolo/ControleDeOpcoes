@@ -874,6 +874,92 @@
          style="display: grid; gap: 1.5rem; margin-top: 1rem;"
          :style="isMobile ? 'grid-template-columns: 1fr; padding-bottom: 6rem;' : 'grid-template-columns: repeat(3, 1fr); padding-bottom: 8rem;'">
 
+      <!-- HERO: trava mais eficiente aprovada na Regra 3 (largura total) -->
+      <div style="grid-column: 1 / -1;">
+
+        <!-- Há trava aprovada -->
+        <div v-if="rankingTravaEficiente.id" class="premium-card comp-resultado-card"
+             style="position: relative; overflow: hidden; border: 2px solid var(--brand-emerald);
+                    background: linear-gradient(135deg, var(--brand-emerald-light), var(--surface-base) 65%);"
+             :style="isMobile ? 'padding: 1.5rem;' : 'padding: 2rem 2.5rem;'">
+          <div style="position: absolute; right: -1rem; top: -2.5rem; font-size: 8rem; font-weight: 800;
+                      font-style: italic; color: var(--brand-emerald); opacity: 0.07;
+                      pointer-events: none; font-family: 'Syne', sans-serif; line-height: 1;">R3</div>
+
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+            <span style="padding: 0.375rem 0.875rem; background: var(--brand-emerald); color: #fff;
+                          border-radius: var(--radius-md); font-weight: 700; text-transform: uppercase;
+                          letter-spacing: 0.12em; display: inline-flex; align-items: center; gap: 0.375rem;"
+                  :style="isMobile ? 'font-size: 16px;' : 'font-size: 10px;'">
+              <i data-lucide="award" style="width: 1rem; height: 1rem;"></i> Mais Eficiente · Aprovada na Regra 3
+            </span>
+            <span class="comp-tip t-label-sm" style="color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;"
+                  data-tip="Entre as travas que respeitam o limite de custo de hedge, esta é a de maior ROC anualizado.">
+              custo hedge ≤ {{ custoHedgeMaxPct }}%
+            </span>
+          </div>
+
+          <div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.75rem 1.5rem;">
+            <h3 class="font-mono-data" style="font-weight: 700; color: var(--text-primary); letter-spacing: -0.03em;"
+                :style="isMobile ? 'font-size: 2rem;' : 'font-size: 2.25rem;'">{{ rankingTravaEficiente.label }}</h3>
+            <span class="font-mono-data" style="font-weight: 700; color: var(--brand-emerald);"
+                  :style="isMobile ? 'font-size: 1.75rem;' : 'font-size: 1.5rem;'">{{ formatPct(rankingTravaEficiente.rocAnualizado) }} a.a.</span>
+          </div>
+
+          <!-- Métricas em linha -->
+          <div style="display: flex; flex-wrap: wrap; gap: 1rem 2.5rem; margin-top: 1.25rem;">
+            <div>
+              <div class="t-label-sm" style="color: var(--brand-emerald); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem;">Custo de Hedge</div>
+              <div class="font-mono-data" style="font-weight: 700; color: var(--brand-emerald);" :style="isMobile ? 'font-size: 1.5rem;' : 'font-size: 1.125rem;'">
+                {{ rankingTravaEficiente.custoHedge }}% <span style="color: var(--text-muted); font-weight: 600; font-size: 0.7em;">· líq. {{ rankingTravaEficiente.premioLiquido }}%</span>
+              </div>
+            </div>
+            <div>
+              <div class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem;">Crédito Líq.</div>
+              <div class="font-mono-data" style="font-weight: 700; color: var(--text-primary);" :style="isMobile ? 'font-size: 1.5rem;' : 'font-size: 1.125rem;'">{{ formatMoney(rankingTravaEficiente.creditoLiquido) }}</div>
+            </div>
+            <div>
+              <div class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem;">ROC Bruto</div>
+              <div class="font-mono-data" style="font-weight: 700; color: var(--text-primary);" :style="isMobile ? 'font-size: 1.5rem;' : 'font-size: 1.125rem;'">{{ formatPct(rankingTravaEficiente.rocBruto) }}</div>
+            </div>
+            <div>
+              <div class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem;">R/R</div>
+              <div class="font-mono-data" style="font-weight: 700; color: #d97706;" :style="isMobile ? 'font-size: 1.5rem;' : 'font-size: 1.125rem;'">{{ rankingTravaEficiente.rr ? rankingTravaEficiente.rr.toFixed(2) : '---' }}</div>
+            </div>
+            <div>
+              <div class="t-label-sm" style="color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem;">Margem de Queda</div>
+              <div class="font-mono-data" style="font-weight: 700; color: var(--brand-indigo);" :style="isMobile ? 'font-size: 1.5rem;' : 'font-size: 1.125rem;'">{{ formatPct(rankingTravaEficiente.margemQueda) }}</div>
+            </div>
+          </div>
+
+          <!-- Nota: a campeã de ROC absoluto foi reprovada? -->
+          <div v-if="rankingTravaRoc.id && rankingTravaEficiente.id !== rankingTravaRoc.id"
+               style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1.25rem; padding: 0.625rem 0.875rem;
+                      background: #fef3c7; border: 1px solid #fde68a; border-radius: var(--radius-md);">
+            <i data-lucide="info" style="width: 0.95rem; height: 0.95rem; color: #d97706; flex-shrink: 0;"></i>
+            <span style="font-weight: 600; color: #92400e; line-height: 1.5;" :style="isMobile ? 'font-size: 15px;' : 'font-size: 11px;'">
+              A trava de maior ROC absoluto (<strong>{{ rankingTravaRoc.label }}</strong>, {{ formatPct(rankingTravaRoc.rocAnualizado) }} a.a.)
+              foi <strong>reprovada na Regra 3</strong> — gasta mais que {{ custoHedgeMaxPct }}% do prêmio bruto no hedge.
+            </span>
+          </div>
+        </div>
+
+        <!-- Nenhuma trava aprovada -->
+        <div v-else class="premium-card"
+             style="border: 1px solid var(--brand-rose-muted); background: var(--brand-rose-light);
+                    display: flex; align-items: center; gap: 0.875rem;"
+             :style="isMobile ? 'padding: 1.25rem;' : 'padding: 1.5rem 2rem;'">
+          <i data-lucide="shield-alert" style="width: 1.75rem; height: 1.75rem; color: var(--brand-rose); flex-shrink: 0;"></i>
+          <div>
+            <div class="t-label" style="color: var(--brand-rose); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">Nenhuma trava aprovada na Regra 3</div>
+            <div class="t-body" style="color: var(--text-secondary); line-height: 1.6;">
+              Todas as travas comparadas gastam mais que <strong>{{ custoHedgeMaxPct }}%</strong> do prêmio bruto no hedge.
+              Aumente o limite no topo ou escolha pernas COMPRA mais baratas.
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Maior ROC -->
       <div class="premium-card comp-resultado-card"
            style="border-color: var(--brand-emerald-muted); background: var(--surface-base); position: relative; overflow: hidden;"
@@ -1036,6 +1122,7 @@ window.ComparativoView = {
       rankingTravaRoc: {},
       rankingTravaSeguranca: {},
       rankingTravaRR: {},
+      rankingTravaEficiente: {},   // melhor trava (maior ROC a.a.) que passa na Regra 3
       cacheCarregadoComDados: false
     };
   },
@@ -1391,6 +1478,8 @@ window.ComparativoView = {
     },
     ajustarCustoHedgeMax(delta) {
       this.custoHedgeMaxPct = Math.min(95, Math.max(5, this.custoHedgeMaxPct + delta));
+      // Recalcula o ranking de eficiência se a batalha já estiver visível
+      if (this.mostrarResultadosTrava) this.processarComparacaoTrava();
       clearTimeout(this._saveTravaTimer);
       this._saveTravaTimer = setTimeout(() => this.salvarCacheTrava(), 800);
     },
@@ -1513,11 +1602,19 @@ window.ComparativoView = {
         riscoMax:       this.calcRiscoMax(c),
         rr:             this.calcRR(c),
         dte:            c.venda.api.dte || 0,
-        spot:           c.venda.api.spotPrice || 0
+        spot:           c.venda.api.spotPrice || 0,
+        custoHedge:     this.calcCustoHedgePct(c),
+        premioLiquido:  this.calcPremioLiquidoPct(c),
+        aprovadaR3:     !this.hedgeAcimaDoLimite(c)
       }));
       this.rankingTravaRoc       = [...analise].sort((a, b) => b.rocAnualizado - a.rocAnualizado)[0];
       this.rankingTravaSeguranca = [...analise].sort((a, b) => b.margemQueda - a.margemQueda)[0];
       this.rankingTravaRR        = [...analise].sort((a, b) => b.rr - a.rr)[0];
+      // Regra 3: entre as aprovadas (custo de hedge dentro do limite), a de maior ROC a.a.
+      const aprovadasR3          = analise.filter(a => a.aprovadaR3);
+      this.rankingTravaEficiente = aprovadasR3.length
+        ? [...aprovadasR3].sort((a, b) => b.rocAnualizado - a.rocAnualizado)[0]
+        : {};
       this.mostrarResultadosTrava = true;
       if (this.ordenarPor === 'padrao') { this.ordenarPor = 'roc'; this.ordenarArena(); }
       this.$nextTick(() => lucide.createIcons());
