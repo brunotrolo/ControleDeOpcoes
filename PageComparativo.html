@@ -83,6 +83,31 @@
           </select>
         </div>
 
+        <!-- Regra 3: Custo de Hedge Máximo (só Trava de Alta) — padrão 35%, ajustável -->
+        <template v-if="modo === 'TRAVA_ALTA'">
+          <div style="width: 1px; height: 1.5rem; background: var(--border-subtle);"></div>
+          <div style="display: flex; align-items: center; background: var(--surface-base);
+                      border: 1px solid var(--border-default); border-radius: var(--radius-md);
+                      padding: 0.375rem 0.5rem; gap: 0.5rem;">
+            <i data-lucide="shield-half" style="width: 0.875rem; height: 0.875rem; color: var(--text-muted); flex-shrink: 0;"></i>
+            <span class="comp-tip" style="font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.1em; white-space: nowrap;"
+                  data-tip="Regra 3 — Custo de hedge máximo. Se a perna COMPRA custar mais que este % do prêmio bruto recebido na VENDA, a trava é reprovada: o prêmio líquido cai abaixo de (100 − X)% e não compensa o risco."
+                  :style="isMobile ? 'font-size: 14px;' : 'font-size: 10px;'">Hedge Máx</span>
+            <button @click="ajustarCustoHedgeMax(-1)"
+                    style="display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);
+                           background: var(--surface-overlay); border: 1px solid var(--border-default);
+                           color: var(--text-secondary); cursor: pointer; font-weight: 700;"
+                    :style="isMobile ? 'width: 2.25rem; height: 2.25rem; font-size: 1.25rem;' : 'width: 1.5rem; height: 1.5rem; font-size: 0.95rem;'">−</button>
+            <span class="font-mono-data" style="font-weight: 700; color: var(--brand-emerald); text-align: center;"
+                  :style="isMobile ? 'font-size: 1.75rem; min-width: 3.5rem;' : 'font-size: 1rem; min-width: 2.75rem;'">{{ custoHedgeMaxPct }}%</span>
+            <button @click="ajustarCustoHedgeMax(1)"
+                    style="display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);
+                           background: var(--surface-overlay); border: 1px solid var(--border-default);
+                           color: var(--text-secondary); cursor: pointer; font-weight: 700;"
+                    :style="isMobile ? 'width: 2.25rem; height: 2.25rem; font-size: 1.25rem;' : 'width: 1.5rem; height: 1.5rem; font-size: 0.95rem;'">+</button>
+          </div>
+        </template>
+
         <div style="width: 1px; height: 1.5rem; background: var(--border-subtle);"></div>
 
         <button @click="modo === 'PUT_SECO' ? limparArena() : limparArenaTrava()"
@@ -627,6 +652,34 @@
                   </span>
                 </div>
 
+                <!-- Regra 3: Custo de Hedge (aprovado/reprovado) -->
+                <div style="display: flex; justify-content: space-between; align-items: center;
+                             padding: 0.5rem 0.75rem; border-radius: var(--radius-md);"
+                     :style="hedgeAcimaDoLimite(card)
+                       ? 'background: var(--brand-rose-light); border: 1px solid var(--brand-rose-muted);'
+                       : 'background: var(--brand-emerald-light); border: 1px solid var(--brand-emerald-muted);'">
+                  <div style="display: flex; flex-direction: column; gap: 0.125rem;">
+                    <span class="comp-tip t-label-sm" style="text-transform: uppercase; font-weight: 700; letter-spacing: 0.08em;"
+                          data-tip="Regra 3 — Custo de hedge máximo. A perna COMPRA não deve consumir mais que o limite (% do prêmio bruto recebido na VENDA). Acima disso, o prêmio líquido não compensa o risco."
+                          :style="hedgeAcimaDoLimite(card) ? 'color: var(--brand-rose);' : 'color: var(--brand-emerald);'">
+                      Custo de Hedge
+                    </span>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--text-muted);"
+                          :style="isMobile ? 'font-size: 13px;' : 'font-size: 9px;'">
+                      Líq. {{ calcPremioLiquidoPct(card) }}% · limite {{ custoHedgeMaxPct }}%
+                    </span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 0.375rem;">
+                    <span class="font-mono-data" style="font-weight: 700;"
+                          :style="[hedgeAcimaDoLimite(card) ? 'color: var(--brand-rose);' : 'color: var(--brand-emerald);', isMobile ? 'font-size: 2rem;' : 'font-size: 1.25rem;']">
+                      {{ calcCustoHedgePct(card) }}%
+                    </span>
+                    <i :data-lucide="hedgeAcimaDoLimite(card) ? 'x-circle' : 'check-circle'"
+                       style="width: 1.125rem; height: 1.125rem; flex-shrink: 0;"
+                       :style="hedgeAcimaDoLimite(card) ? 'color: var(--brand-rose);' : 'color: var(--brand-emerald);'"></i>
+                  </div>
+                </div>
+
                 <!-- Warnings -->
                 <div v-for="w in getTravaWarnings(card)" :key="w"
                      style="display: flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.625rem;
@@ -976,6 +1029,7 @@ window.ComparativoView = {
 
       // ── Trava de Alta ──
       modo: 'PUT_SECO',
+      custoHedgeMaxPct: 35,   // Regra 3 — custo de hedge máximo (% do prêmio bruto), ajustável
       cardTravaCounter: 2,
       cardsTrava: [],
       mostrarResultadosTrava: false,
@@ -1120,7 +1174,7 @@ window.ComparativoView = {
         var compra = Object.assign({}, c.compra, { loading: false, error: '' });
         return Object.assign({}, c, { venda: venda, compra: compra });
       });
-      localStorage.setItem('arena_trava_cache', JSON.stringify({ cardsTrava: snapshot, cardTravaCounter: this.cardTravaCounter, modo: this.modo }));
+      localStorage.setItem('arena_trava_cache', JSON.stringify({ cardsTrava: snapshot, cardTravaCounter: this.cardTravaCounter, modo: this.modo, custoHedgeMaxPct: this.custoHedgeMaxPct }));
     },
     carregarCacheTrava() {
       const raw = localStorage.getItem('arena_trava_cache');
@@ -1128,6 +1182,7 @@ window.ComparativoView = {
         const p = JSON.parse(raw);
         this.cardsTrava = p.cardsTrava || [];
         this.cardTravaCounter = p.cardTravaCounter || 2;
+        if (typeof p.custoHedgeMaxPct === 'number') this.custoHedgeMaxPct = p.custoHedgeMaxPct;
         if (p.modo === 'TRAVA_ALTA') {
           this.modo = 'TRAVA_ALTA';
           if (this.cardsTrava.some(c => this.isTravaValida(c))) {
@@ -1319,6 +1374,27 @@ window.ComparativoView = {
       const risco = larg - cred;
       return risco > 0 ? parseFloat((cred / risco).toFixed(2)) : 0;
     },
+
+    // ── Regra 3: Custo de Hedge máximo ──
+    // Prêmio bruto = prêmio recebido na VENDA; custo de hedge = prêmio pago na COMPRA.
+    // Se o hedge consome mais que o limite (%), a trava é reprovada.
+    calcCustoHedgePct(c) {
+      const bruto = c.venda.api.premioAtual  || 0;
+      const hedge = c.compra.api.premioAtual || 0;
+      return bruto > 0 ? parseFloat(((hedge / bruto) * 100).toFixed(1)) : 0;
+    },
+    calcPremioLiquidoPct(c) {
+      return parseFloat((100 - this.calcCustoHedgePct(c)).toFixed(1));
+    },
+    hedgeAcimaDoLimite(c) {
+      return this.calcCustoHedgePct(c) > this.custoHedgeMaxPct;
+    },
+    ajustarCustoHedgeMax(delta) {
+      this.custoHedgeMaxPct = Math.min(95, Math.max(5, this.custoHedgeMaxPct + delta));
+      clearTimeout(this._saveTravaTimer);
+      this._saveTravaTimer = setTimeout(() => this.salvarCacheTrava(), 800);
+    },
+
     // Delta líquido do spread: short PUT (flip sign) + long PUT
     rebuscarTodos() {
       if (this.modo === 'PUT_SECO') {
