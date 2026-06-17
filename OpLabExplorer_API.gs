@@ -98,8 +98,14 @@ function runOpLabDiagnostic() {
   }
 
   var headers = { "Access-Token": token.trim(), "Accept": "application/json" };
+  var BUDGET_MS = 50000; // 50s total: se um endpoint travar, os restantes são marcados como SKIP
+  var diagStart = new Date().getTime();
 
   function probe(label, path, critical) {
+    // Orçamento global: se já gastamos demais, não faz mais chamadas
+    if (new Date().getTime() - diagStart > BUDGET_MS) {
+      return { label: label, path: path, critical: critical, ok: false, status: "SKIP", elapsed: 0, preview: null, error: "Orçamento de tempo atingido — API possivelmente indisponível", _parsed: null };
+    }
     var start = new Date().getTime();
     try {
       var resp = UrlFetchApp.fetch(OPLAB_BASE_URL + path, { method: "get", headers: headers, muteHttpExceptions: true });
@@ -107,14 +113,14 @@ function runOpLabDiagnostic() {
       var status = resp.getResponseCode();
       var body = resp.getContentText();
       var ok = (status === 200 || status === 204);
-      var preview = null, errorMsg = null;
+      var preview = null, errorMsg = null, parsed = null;
       if (ok && body) {
         try {
-          var d = JSON.parse(body);
-          if (Array.isArray(d)) preview = "Array: " + d.length + " item(s)";
-          else if (d && typeof d === "object") {
-            var keys = Object.keys(d).slice(0, 4);
-            preview = "{" + keys.join(", ") + (Object.keys(d).length > 4 ? ", ..." : "") + "}";
+          parsed = JSON.parse(body);
+          if (Array.isArray(parsed)) preview = "Array: " + parsed.length + " item(s)";
+          else if (parsed && typeof parsed === "object") {
+            var keys = Object.keys(parsed).slice(0, 4);
+            preview = "{" + keys.join(", ") + (Object.keys(parsed).length > 4 ? ", ..." : "") + "}";
           }
         } catch(_) {}
       }
@@ -128,31 +134,46 @@ function runOpLabDiagnostic() {
           if (body && body.length < 300) errorMsg += " — " + body.substring(0, 200);
         }
       }
-      return { label: label, path: path, critical: critical, ok: ok, status: status, elapsed: elapsed, preview: preview, error: errorMsg };
+      return { label: label, path: path, critical: critical, ok: ok, status: status, elapsed: elapsed, preview: preview, error: errorMsg, _parsed: parsed };
     } catch(e) {
-      return { label: label, path: path, critical: critical, ok: false, status: "ERR", elapsed: new Date().getTime() - start, preview: null, error: e.message };
+      return { label: label, path: path, critical: critical, ok: false, status: "ERR", elapsed: new Date().getTime() - start, preview: null, error: e.message, _parsed: null };
     }
   }
 
-  // Busca um símbolo de opção real de PETR4 para endpoints que exigem ticker de opção
-  var liveOptionSymbol = null;
-  try {
-    var optResp = UrlFetchApp.fetch(OPLAB_BASE_URL + "/market/options/PETR4", { method: "get", headers: headers, muteHttpExceptions: true });
-    if (optResp.getResponseCode() === 200) {
-      var opts = JSON.parse(optResp.getContentText());
-      if (Array.isArray(opts) && opts.length > 0 && opts[0].symbol) liveOptionSymbol = opts[0].symbol;
-    }
-  } catch(_) {}
+  function clean(r) {
+    return { label: r.label, path: r.path, critical: r.critical, ok: r.ok, status: r.status, elapsed: r.elapsed, preview: r.preview, error: r.error };
+  }
 
-  var results = [
-    probe("Status do Mercado",         "/market/status",                                                          true),
-    probe("Dados de Ação (PETR4)",     "/market/stocks/PETR4",                                                    true),
-    probe("Opções por Ativo (PETR4)",  "/market/options/PETR4",                                                   true),
-    probe("Histórico Ação (PETR4)",    "/market/historical/PETR4/1d?amount=5&smooth=true&df=iso",                 true),
-    probe("Histórico de Opções",       "/market/historical/options/PETR4/2024-01-02/2024-01-31",                  false),
-    probe("Detalhes de Opção",         "/market/options/details/" + (liveOptionSymbol || "PETRA260"),             false),
-    probe("Black-Scholes (BS)",        "/market/options/bs?symbol=" + (liveOptionSymbol || "PETRA260"),           false)
-  ];
+  // Probes executadas em sequência para que a #3 forneça o símbolo de opção para as #6 e #7
+  var results = [];
+
+  var r1 = probe("Status do Mercado",        "/market/status",                                             true);
+  results.push(clean(r1));
+
+  var r2 = probe("Dados de Ação (PETR4)",    "/market/stocks/PETR4",                                       true);
+  results.push(clean(r2));
+
+  // Probe #3: também extrai o símbolo de opção para os testes seguintes
+  var r3 = probe("Opções por Ativo (PETR4)", "/market/options/PETR4",                                      true);
+  var liveOptionSymbol = null;
+  if (r3.ok && Array.isArray(r3._parsed) && r3._parsed.length > 0 && r3._parsed[0].symbol) {
+    liveOptionSymbol = r3._parsed[0].symbol;
+  }
+  results.push(clean(r3));
+
+  var r4 = probe("Histórico Ação (PETR4)",   "/market/historical/PETR4/1d?amount=5&smooth=true&df=iso",   true);
+  results.push(clean(r4));
+
+  var r5 = probe("Histórico de Opções",      "/market/historical/options/PETR4/2024-01-02/2024-01-31",    false);
+  results.push(clean(r5));
+
+  var optSymbol = liveOptionSymbol || "PETRA260";
+
+  var r6 = probe("Detalhes de Opção",        "/market/options/details/" + optSymbol,                       false);
+  results.push(clean(r6));
+
+  var r7 = probe("Black-Scholes (BS)",       "/market/options/bs?symbol=" + optSymbol,                     false);
+  results.push(clean(r7));
 
   var failedCount = results.filter(function(r) { return !r.ok; }).length;
 

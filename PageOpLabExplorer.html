@@ -212,7 +212,8 @@
         <div>
           <h3 class="t-label" style="color: var(--text-primary); font-size: 1.1rem;">Diagnóstico das APIs OPLab</h3>
           <p class="t-body" style="color: var(--text-secondary); margin-top: 0.25rem; max-width: 440px;">
-            Testa todos os endpoints consumidos pelo projeto (<code style="font-family: monospace; font-size: 0.8em;">000_CoreServiceAPIClient.gs</code>) e reporta status, latência e erros de cada um.
+            Testa todos os 7 endpoints consumidos pelo projeto (<code style="font-family: monospace; font-size: 0.8em;">000_CoreServiceAPIClient.gs</code>) e reporta status, latência e erros.
+            Se a API estiver lenta ou fora, pode demorar até 60s — os endpoints pendentes são marcados como <strong>SKIP</strong>.
           </p>
         </div>
         <button @click="runDiagnostic" :disabled="isDiagnosticRunning"
@@ -221,7 +222,8 @@
                 style="padding: 0.75rem 2rem; min-width: 240px; display: flex; align-items: center; justify-content: center; gap: 8px;">
           <span v-if="isDiagnosticRunning" style="width: 1rem; height: 1rem; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: comp-spin 0.8s linear infinite; flex-shrink: 0; display: block;"></span>
           <span v-else style="display: block; width: 1rem; height: 1rem; font-size: 1rem; text-align: center; line-height: 1rem; flex-shrink: 0;">▶</span>
-          {{ isDiagnosticRunning ? 'Executando diagnóstico...' : 'Executar Diagnóstico' }}
+          <span v-if="isDiagnosticRunning">Executando... {{ diagnosticElapsed }}s</span>
+          <span v-else>Executar Diagnóstico</span>
         </button>
       </div>
 
@@ -786,6 +788,8 @@ window.OpLabExplorerView = {
       activeTab: 'explorer',
       isDiagnosticRunning: false,
       diagnosticResult: null,
+      diagnosticElapsed: 0,
+      _diagnosticTimer: null,
       searchQuery: '',
       selectedTag: null,
       selectedEp: null,
@@ -960,14 +964,34 @@ window.OpLabExplorerView = {
     runDiagnostic() {
       this.isDiagnosticRunning = true;
       this.diagnosticResult = null;
+      this.diagnosticElapsed = 0;
+      if (this._diagnosticTimer) clearInterval(this._diagnosticTimer);
+      this._diagnosticTimer = setInterval(() => { this.diagnosticElapsed++; }, 1000);
+
       const self = this;
+      const _reqTimeout = setTimeout(() => {
+        if (!self.isDiagnosticRunning) return;
+        clearInterval(self._diagnosticTimer);
+        self.isDiagnosticRunning = false;
+        self.diagnosticResult = {
+          tokenOk: false, error: 'Timeout após 90s — o GAS não respondeu. Tente novamente.',
+          results: [], allOk: false, criticalOk: false, failedCount: 0, totalCount: 0,
+          testedAt: new Date().toISOString()
+        };
+      }, 90000);
+
       google.script.run
         .withSuccessHandler((res) => {
+          clearTimeout(_reqTimeout);
+          clearInterval(self._diagnosticTimer);
+          self._diagnosticTimer = null;
           self.diagnosticResult = res;
           self.isDiagnosticRunning = false;
-          self.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
         })
         .withFailureHandler((err) => {
+          clearTimeout(_reqTimeout);
+          clearInterval(self._diagnosticTimer);
+          self._diagnosticTimer = null;
           self.diagnosticResult = {
             tokenOk: false, error: String(err), results: [],
             allOk: false, criticalOk: false, failedCount: 0, totalCount: 0,
