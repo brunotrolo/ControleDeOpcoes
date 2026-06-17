@@ -417,7 +417,7 @@ const app = createApp({
         'necton-import':   { data:      db.value.necton || [] },
         'automation-view': { logs:      db.value.logs   || [] },
         'wheel-manager':   { dadosWheel: cuboOlap.value.custodiaWheel || [] },
-        'bancodedados-view': { dbRaw: db.value.raw || {}, isLoading: isLoading.value },
+        // 'bancodedados-view': { dbRaw: db.value.raw || {}, isLoading: isLoading.value },
         'settings-view':   { configItems: db.value.configGlobalArray || [], isMobile: isMobile.value, isLoading: isLoading.value }
       };
 
@@ -497,7 +497,7 @@ const COMPONENTES_V6 = [
   ['automation-view',        window.AutomationView],
   ['wheel-manager',          window.WheelManager],
 
-  ['bancodedados-view',      window.BancoDeDadosView],
+  // ['bancodedados-view',      window.BancoDeDadosView],
   ['oplab-explorer-view',    window.OpLabExplorerView],
   ['settings-view',          window.SettingsView],
   ['calculadora-bs',         window.CalculadoraBS]
