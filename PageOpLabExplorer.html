@@ -234,7 +234,7 @@
         <p class="t-body" style="color: var(--text-secondary); margin-top: 0.25rem;">{{ diagnosticResult.error }}</p>
       </div>
 
-      <div v-if="diagnosticResult && diagnosticResult.tokenOk" class="premium-card" style="padding: 1.25rem 1.5rem;">
+      <div v-if="diagnosticResult && diagnosticResult.tokenOk && !isDiagnosticRunning" class="premium-card" style="padding: 1.25rem 1.5rem;">
         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
           <div style="display: flex; align-items: center; gap: 0.75rem;">
             <div style="padding: 0.5rem; border-radius: var(--radius-md);"
@@ -276,7 +276,7 @@
         <div v-for="r in diagnosticResult.results" :key="r.label"
              class="premium-card"
              style="padding: 1.25rem 1.5rem; border-left: 3px solid; display: flex; flex-direction: column; gap: 0.6rem;"
-             :style="r.ok ? 'border-left-color: var(--brand-emerald);' : 'border-left-color: var(--brand-rose);'">
+             :style="r.pending ? 'border-left-color: var(--brand-amber); opacity: 0.75;' : (r.ok ? 'border-left-color: var(--brand-emerald);' : 'border-left-color: var(--brand-rose);')">
 
           <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
             <div style="flex: 1; min-width: 0;">
@@ -284,16 +284,20 @@
               <p style="font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-tertiary); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
                  :title="r.path">{{ r.path }}</p>
             </div>
-            <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--text-muted); white-space: nowrap; padding-top: 2px;">{{ r.elapsed }}ms</span>
+            <span v-if="!r.pending" style="font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--text-muted); white-space: nowrap; padding-top: 2px;">{{ r.elapsed }}ms</span>
+            <span v-else style="width: 0.85rem; height: 0.85rem; border: 2px solid var(--brand-amber); border-top-color: transparent; border-radius: 50%; animation: comp-spin 0.8s linear infinite; flex-shrink: 0; display: block; margin-top: 2px;"></span>
           </div>
 
           <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-            <span style="padding: 0.2rem 0.6rem; border-radius: var(--radius-full); font-size: 0.65rem; font-weight: 800; font-family: 'JetBrains Mono', monospace;"
+            <span v-if="r.pending" style="padding: 0.2rem 0.6rem; border-radius: var(--radius-full); font-size: 0.65rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; background: var(--brand-amber-light); color: var(--brand-amber);">
+              ⋯ TESTANDO
+            </span>
+            <span v-else style="padding: 0.2rem 0.6rem; border-radius: var(--radius-full); font-size: 0.65rem; font-weight: 800; font-family: 'JetBrains Mono', monospace;"
                   :style="r.ok ? 'background: var(--brand-emerald-light); color: var(--brand-emerald);' : 'background: var(--brand-rose-light); color: var(--brand-rose);'">
               {{ r.ok ? '✓ OK' : '✗ FALHOU' }}
             </span>
-            <span style="padding: 0.2rem 0.5rem; border-radius: var(--radius-full); font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; background: var(--surface-overlay); color: var(--text-tertiary);">
-              HTTP {{ r.status }}
+            <span v-if="!r.pending" style="padding: 0.2rem 0.5rem; border-radius: var(--radius-full); font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; background: var(--surface-overlay); color: var(--text-tertiary);">
+              {{ (r.status === 'TIMEOUT' || r.status === 'ERR') ? r.status : 'HTTP ' + r.status }}
             </span>
             <span v-if="r.critical" style="padding: 0.2rem 0.5rem; border-radius: var(--radius-full); font-size: 0.6rem; font-weight: 800; background: var(--brand-indigo-light); color: var(--brand-indigo); font-family: 'JetBrains Mono', monospace;">
               CRÍTICO
@@ -961,45 +965,145 @@ window.OpLabExplorerView = {
       setTimeout(() => { this.isCopied = false; }, 2000);
     },
 
+    // Diagnóstico dirigido pelo frontend: cada endpoint é uma execução GAS
+    // isolada (callOpLabAPI), com timeout próprio no cliente. Assim nenhum
+    // endpoint travado bloqueia o painel — ele aparece como TIMEOUT e os
+    // demais continuam. Resultados aparecem em tempo real conforme retornam.
     runDiagnostic() {
-      this.isDiagnosticRunning = true;
-      this.diagnosticResult = null;
-      this.diagnosticElapsed = 0;
-      if (this._diagnosticTimer) clearInterval(this._diagnosticTimer);
-      this._diagnosticTimer = setInterval(() => { this.diagnosticElapsed++; }, 1000);
-
       const self = this;
-      const _reqTimeout = setTimeout(() => {
-        if (!self.isDiagnosticRunning) return;
-        clearInterval(self._diagnosticTimer);
-        self.isDiagnosticRunning = false;
-        self.diagnosticResult = {
-          tokenOk: false, error: 'Timeout após 90s — o GAS não respondeu. Tente novamente.',
-          results: [], allOk: false, criticalOk: false, failedCount: 0, totalCount: 0,
-          testedAt: new Date().toISOString()
-        };
-      }, 90000);
+      const PER_CALL_TIMEOUT = 35000; // 35s por endpoint
 
-      google.script.run
-        .withSuccessHandler((res) => {
-          clearTimeout(_reqTimeout);
-          clearInterval(self._diagnosticTimer);
-          self._diagnosticTimer = null;
-          self.diagnosticResult = res;
-          self.isDiagnosticRunning = false;
-        })
-        .withFailureHandler((err) => {
-          clearTimeout(_reqTimeout);
-          clearInterval(self._diagnosticTimer);
-          self._diagnosticTimer = null;
-          self.diagnosticResult = {
-            tokenOk: false, error: String(err), results: [],
-            allOk: false, criticalOk: false, failedCount: 0, totalCount: 0,
-            testedAt: new Date().toISOString()
-          };
-          self.isDiagnosticRunning = false;
-        })
-        .runOpLabDiagnostic();
+      // Definição dos 7 endpoints consumidos por 000_CoreServiceAPIClient.gs
+      const tests = [
+        { label: 'Status do Mercado',        path: '/market/status',                                      qp: {},                                  critical: true  },
+        { label: 'Dados de Ação (PETR4)',    path: '/market/stocks/PETR4',                                qp: {},                                  critical: true  },
+        { label: 'Opções por Ativo (PETR4)', path: '/market/options/PETR4',                               qp: {},                                  critical: true, yieldsSymbol: true },
+        { label: 'Histórico Ação (PETR4)',   path: '/market/historical/PETR4/1d',                         qp: { amount: 5, smooth: true, df: 'iso' }, critical: true  },
+        { label: 'Histórico de Opções',      path: '/market/historical/options/PETR4/2024-01-02/2024-01-31', qp: {},                               critical: false },
+        { label: 'Detalhes de Opção',        path: '/market/options/details/{sym}',                       qp: {},                                  critical: false, needsSymbol: true },
+        { label: 'Black-Scholes (BS)',       path: '/market/options/bs',                                  qp: { symbol: '{sym}' },                 critical: false, needsSymbol: true }
+      ];
+
+      this.isDiagnosticRunning = true;
+      this.diagnosticElapsed = 0;
+      this._diagOptionSymbol = null;
+      this._diagCompleted = 0;
+      this._diagTotal = tests.length;
+      if (this._diagnosticTimer) clearInterval(this._diagnosticTimer);
+      this._diagnosticTimer = setInterval(() => { self.diagnosticElapsed++; }, 1000);
+
+      // Placeholders pendentes (UI já mostra a grade enquanto testa)
+      this.diagnosticResult = {
+        tokenOk: true,
+        allOk: false, criticalOk: false, failedCount: 0, totalCount: tests.length,
+        liveOptionSymbol: null,
+        testedAt: new Date().toISOString(),
+        results: tests.map(t => ({
+          label: t.label, path: t.path, critical: t.critical,
+          ok: false, status: '...', elapsed: 0, preview: null, error: null, pending: true
+        }))
+      };
+
+      const finalize = () => {
+        if (!self.isDiagnosticRunning) return;
+        if (self._diagnosticTimer) { clearInterval(self._diagnosticTimer); self._diagnosticTimer = null; }
+        self.isDiagnosticRunning = false;
+        const rs = self.diagnosticResult.results;
+        const failed = rs.filter(r => !r.ok).length;
+        self.diagnosticResult.failedCount = failed;
+        self.diagnosticResult.allOk = failed === 0;
+        self.diagnosticResult.criticalOk = rs.filter(r => r.critical).every(r => r.ok);
+        self.diagnosticResult.liveOptionSymbol = self._diagOptionSymbol;
+      };
+
+      const onComplete = () => {
+        self._diagCompleted++;
+        if (self._diagCompleted >= self._diagTotal) finalize();
+      };
+
+      // Executa um teste; resolvedPath/resolvedQp já com símbolo substituído
+      const runTest = (idx, resolvedPath, resolvedQp) => {
+        const test = tests[idx];
+        let settled = false;
+        const to = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          Object.assign(self.diagnosticResult.results[idx], {
+            ok: false, status: 'TIMEOUT', elapsed: PER_CALL_TIMEOUT,
+            preview: null, error: 'Sem resposta após ' + (PER_CALL_TIMEOUT / 1000) + 's — endpoint travado ou API fora.', pending: false
+          });
+          onComplete();
+        }, PER_CALL_TIMEOUT);
+
+        google.script.run
+          .withSuccessHandler((res) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(to);
+            const status = res.status;
+            const ok = (status === 200 || status === 204);
+            let preview = null, error = null;
+            if (ok) {
+              const d = res.data;
+              if (Array.isArray(d)) preview = 'Array: ' + d.length + ' item(s)';
+              else if (d && typeof d === 'object') {
+                const keys = Object.keys(d).slice(0, 4);
+                preview = '{' + keys.join(', ') + (Object.keys(d).length > 4 ? ', ...' : '') + '}';
+              } else if (typeof d === 'string' && d) preview = d.substring(0, 60);
+              // Extrai símbolo de opção real para os endpoints dependentes
+              if (test.yieldsSymbol && Array.isArray(d) && d.length && d[0].symbol) {
+                self._diagOptionSymbol = d[0].symbol;
+              }
+            } else {
+              error = 'HTTP ' + status;
+              const d = res.data;
+              if (d && typeof d === 'object') {
+                if (d.message) error += ': ' + d.message;
+                else if (d.error) error += ': ' + d.error;
+              } else if (typeof d === 'string' && d) error += ' — ' + d.substring(0, 160);
+            }
+            Object.assign(self.diagnosticResult.results[idx], {
+              ok: ok, status: status, elapsed: res.elapsed || 0, preview: preview, error: error, pending: false
+            });
+            onComplete();
+          })
+          .withFailureHandler((err) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(to);
+            Object.assign(self.diagnosticResult.results[idx], {
+              ok: false, status: 'ERR', elapsed: 0, preview: null,
+              error: 'Falha na comunicação com o GAS: ' + String(err), pending: false
+            });
+            onComplete();
+          })
+          .callOpLabAPI(resolvedPath, resolvedQp);
+      };
+
+      // Dispara os testes independentes; os dependentes de símbolo esperam o #3
+      const symbolDependents = [];
+      tests.forEach((t, i) => {
+        if (t.needsSymbol) { symbolDependents.push(i); return; }
+        runTest(i, t.path, t.qp);
+      });
+
+      // Quando o teste que produz o símbolo (#3) terminar, dispara os dependentes
+      const symbolIdx = tests.findIndex(t => t.yieldsSymbol);
+      const waitForSymbol = () => {
+        if (self.diagnosticResult.results[symbolIdx].pending && self.isDiagnosticRunning) {
+          setTimeout(waitForSymbol, 300);
+          return;
+        }
+        const sym = self._diagOptionSymbol || 'PETRA260';
+        symbolDependents.forEach(i => {
+          const t = tests[i];
+          const rp = t.path.replace('{sym}', sym);
+          const rqp = {};
+          Object.keys(t.qp).forEach(k => { rqp[k] = String(t.qp[k]).replace('{sym}', sym); });
+          runTest(i, rp, rqp);
+        });
+      };
+      setTimeout(waitForSymbol, 300);
     },
 
     // Repete uma consulta do histórico
