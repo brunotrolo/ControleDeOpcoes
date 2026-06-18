@@ -157,10 +157,11 @@ const app = createApp({
     checkMobileStatus();
 
     let resizeTimer;
-    window.addEventListener('resize', () => {
+    const _handleResize = () => {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(checkMobileStatus, 150);
-    });
+    };
+    window.addEventListener('resize', _handleResize);
 
     const mobileLayoutSplit = computed(() => {
       const layout = currentLayout.value;
@@ -440,6 +441,9 @@ const app = createApp({
 
     onBeforeUnmount(() => {
       if (pollingInterval) clearInterval(pollingInterval);
+      window.removeEventListener('resize', _handleResize);
+      clearTimeout(resizeTimer);
+      clearTimeout(_lucideTimer);
     });
 
     // ====================================================================
