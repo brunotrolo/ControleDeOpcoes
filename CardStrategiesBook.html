@@ -1,12 +1,3 @@
-<style>
-  /* Tipografia confortavel para o Livro de Estruturas */
-  .csb-root .t-label-sm { font-size: 1.1rem !important; letter-spacing: 0.05em; }
-  .csb-root .t-value-sm { font-size: 1.25rem !important; }
-  /* Tabela de pernas: fontes menores para caber os dados */
-  .csb-root table .t-label-sm { font-size: 0.62rem !important; letter-spacing: 0.03em; }
-  .csb-root table .t-value-sm { font-size: 0.68rem !important; }
-</style>
-
 <template id="card-strategies-book-template">
   <div class="premium-card csb-root" style="overflow:hidden;">
 
@@ -17,7 +8,7 @@
           <i data-lucide="layers" style="width:18px;height:18px;display:block;"></i>
         </div>
         <div>
-          <h3 class="t-subtitle" style="color:var(--text-primary);">Livro de Estruturas</h3>
+          <h3 class="t-subtitle" style="color:var(--text-primary);">Livro de Estruturas <span style="font-size:0.45rem;opacity:0.25;color:var(--text-muted);font-weight:400;vertical-align:super;">v1</span></h3>
           <p class="t-label-sm" style="color:var(--text-muted);margin-top:0.125rem;">
             {{ estrategias.length }} estrutura{{ estrategias.length !== 1 ? 's' : '' }} ativa{{ estrategias.length !== 1 ? 's' : '' }}
           </p>
@@ -32,7 +23,7 @@
           :style="filtroAtivo === f.key
             ? 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);'
             : 'background:var(--surface-base);color:var(--text-muted);border-color:var(--border-default);'"
-          style="padding:0.3rem 0.75rem;border-radius:var(--radius-full);border:1px solid;font-size:1.1rem;font-weight:700;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;transition:all 0.15s;"
+          style="padding:0.3rem 0.75rem;border-radius:var(--radius-full);border:1px solid;font-size:0.65rem;font-weight:700;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;transition:all 0.15s;"
         >{{ f.label }}<span v-if="f.count > 0" style="opacity:0.65;margin-left:0.25rem;">({{ f.count }})</span></button>
       </div>
     </div>
@@ -50,11 +41,11 @@
         <!-- Card Header: badge+ticker empilhados | DTE+data à direita -->
         <div :style="'padding:0.875rem 1rem;display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;border-bottom:1px solid var(--border-subtle);background:' + est.corFundo + ';'">
           <div style="display:flex;flex-direction:column;gap:0.35rem;min-width:0;">
-            <span :style="'display:inline-block;width:fit-content;padding:0.2rem 0.6rem;border-radius:var(--radius-xs);font-size:1.1rem;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;border:1px solid;white-space:nowrap;background:' + est.corBadge + ';color:' + est.corTexto + ';border-color:' + est.corBorda + ';'">{{ est.tipoEstrutura }}</span>
-            <span style="font-size:2.2rem;font-weight:800;color:var(--text-primary);letter-spacing:0.03em;line-height:1.1;">{{ est.ticker }}</span>
+            <span :style="'display:inline-block;width:fit-content;padding:0.2rem 0.6rem;border-radius:var(--radius-xs);font-size:0.6rem;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;border:1px solid;white-space:nowrap;background:' + est.corBadge + ';color:' + est.corTexto + ';border-color:' + est.corBorda + ';'">{{ est.tipoEstrutura }}</span>
+            <span style="font-size:1.4rem;font-weight:800;color:var(--text-primary);letter-spacing:0.03em;line-height:1.15;">{{ est.ticker }}</span>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.35rem;flex-shrink:0;">
-            <span :style="'padding:0.2rem 0.55rem;border-radius:var(--radius-xs);font-size:1.2rem;font-weight:700;' + (est.dte <= 7 ? 'background:var(--brand-rose-light);color:var(--brand-rose);' : est.dte <= 21 ? 'background:var(--brand-amber-light);color:var(--brand-amber);' : 'background:var(--surface-overlay);color:var(--text-muted);')">{{ est.dte }}d</span>
+            <span :style="'padding:0.2rem 0.55rem;border-radius:var(--radius-xs);font-size:0.68rem;font-weight:700;' + (est.dte <= 7 ? 'background:var(--brand-rose-light);color:var(--brand-rose);' : est.dte <= 21 ? 'background:var(--brand-amber-light);color:var(--brand-amber);' : 'background:var(--surface-overlay);color:var(--text-muted);')">{{ est.dte }}d</span>
             <span class="t-label-sm" style="color:var(--text-tertiary);">{{ fmtDate(est.vencimento) }}</span>
           </div>
         </div>
@@ -64,18 +55,18 @@
           <!-- Linha de valores: Spot | Badge moneyness | Strike/P&L -->
           <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:0.85rem;">
             <div>
-              <div :style="'font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1px;color:'+est.moneyTone.cor">Spot</div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:800;color:var(--text-primary);">{{ fmt(est.spotAtual) }}</div>
+              <div :style="'font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1px;color:'+est.moneyTone.cor">Spot</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:800;color:var(--text-primary);">{{ fmt(est.spotAtual) }}</div>
             </div>
-            <div :style="'font-size:1.1rem;font-weight:800;letter-spacing:0.08em;padding:4px 14px;border-radius:99px;background:'+est.moneyTone.light+';color:'+est.moneyTone.cor+';border:1px solid '+est.moneyTone.muted">{{ est.moneyTone.label }}</div>
+            <div :style="'font-size:0.65rem;font-weight:800;letter-spacing:0.08em;padding:3px 10px;border-radius:99px;background:'+est.moneyTone.light+';color:'+est.moneyTone.cor+';border:1px solid '+est.moneyTone.muted">{{ est.moneyTone.label }}</div>
             <div style="text-align:right;">
               <template v-if="est.pernas.length === 1">
-                <div style="font-size:1.1rem;font-weight:700;color:var(--brand-indigo);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1px;">Strike</div>
-                <div style="font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:800;color:var(--text-primary);">{{ fmt(est.pernas[0].strike) }}</div>
+                <div style="font-size:0.58rem;font-weight:700;color:var(--brand-indigo);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1px;">Strike</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:800;color:var(--text-primary);">{{ fmt(est.pernas[0].strike) }}</div>
               </template>
               <template v-else>
-                <div style="font-size:1.1rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1px;">P/L Total</div>
-                <div style="font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:800;" :style="est.plTotal >= 0 ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">{{ fmtSigned(est.plTotal) }}</div>
+                <div style="font-size:0.58rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1px;">P/L Total</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:800;" :style="est.plTotal >= 0 ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">{{ fmtSigned(est.plTotal) }}</div>
               </template>
             </div>
           </div>
