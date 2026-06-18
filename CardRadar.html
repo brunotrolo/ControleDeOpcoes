@@ -301,12 +301,12 @@
       <div v-else :class="isMobile ? 'radar-grid-1col' : 'radar-grid-2col'"
         style="gap:1px;background:var(--border-subtle);">
 
-        <!-- BLOCO A — CICLO DE VENCIMENTO -->
-        <div style="background:var(--surface-base);padding:1.25rem 1.5rem;">
+        <!-- BLOCO A — CICLO DE VENCIMENTO (full width, hero) -->
+        <div style="background:var(--surface-base);padding:1.25rem 1.5rem;grid-column:1/-1;order:1;">
 
           <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
             <div style="width:10px;height:10px;border-radius:50%;background:var(--brand-indigo);flex-shrink:0;"></div>
-            <span class="cr-tip" data-tip="Agrupa suas posicoes pelo mes de vencimento. Cada linha mostra o nocional total e o P/L acumulado naquele ciclo, com breakdown OTM/ATM/ITM. Clique no mes para ver todas as operacoes. Clique nas celulas coloridas para filtrar por moneyness." style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);cursor:help;">Ciclo de Vencimento</span>
+            <span class="cr-tip" data-tip="Agrupa suas posicoes pelo mes de vencimento. Cada linha mostra o nocional total e o P/L acumulado naquele ciclo, com breakdown OTM/ATM/ITM. Clique no mes para ver todas as operacoes. Clique nas celulas coloridas para filtrar por moneyness." style="font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);cursor:help;">Ciclo de Vencimento</span>
           </div>
 
           <!-- DESKTOP: grid 6 colunas px original -->
@@ -462,7 +462,7 @@
         </div>
 
         <!-- BLOCO C — MONEYNESS + P/L (lado a lado) -->
-        <div style="background:var(--surface-base);padding:1.25rem 1.5rem;">
+        <div style="background:var(--surface-base);padding:1.25rem 1.5rem;order:3;">
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
 
@@ -592,7 +592,7 @@
 
 
         <!-- BLOCO B — CONCENTRACAO POR ATIVO -->
-        <div style="background:var(--surface-base);padding:1.25rem 1.5rem;">
+        <div style="background:var(--surface-base);padding:1.25rem 1.5rem;order:4;">
 
           <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
             <div style="width:10px;height:10px;border-radius:50%;background:var(--brand-amber);flex-shrink:0;"></div>
@@ -736,13 +736,13 @@
 
 
 
-        <!-- BLOCO E — PREMIO CAPTURADO POR ATIVO -->
-        <div style="background:var(--surface-base);padding:1.25rem 1.5rem;">
+        <!-- BLOCO E — PREMIO CAPTURADO POR ATIVO (full width, segunda prioridade) -->
+        <div style="background:var(--surface-base);padding:1.25rem 1.5rem;grid-column:1/-1;order:2;">
 
           <!-- Titulo com icone de info tooltip -->
           <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
             <div style="width:10px;height:10px;border-radius:50%;background:#7C3AED;flex-shrink:0;"></div>
-            <span style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);">Premio Capturado por Ativo</span>
+            <span style="font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);">Premio Capturado por Ativo</span>
             <span class="cr-tip" data-tip="Quanto do premio maximo ja foi realizado em cada ativo. Max Premio = soma de todos os premios recebidos se as opcoes virarem po. Barra verde = percentual ja capturado. Vermelho = posicao no prejuizo. Clique em qualquer linha para ver as operacoes." style="cursor:help;display:flex;align-items:center;">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--text-muted);opacity:0.5;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             </span>
