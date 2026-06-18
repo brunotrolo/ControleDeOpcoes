@@ -171,21 +171,72 @@
 
     <!-- OVERLAY DE EXECUCAO -->
     <div v-if="running"
-      style="position:fixed;inset:0;background:rgba(0,0,0,0.45);backdrop-filter:blur(6px);z-index:100;display:flex;align-items:center;justify-content:center;">
-      <div class="premium-card" style="padding:2.5rem;text-align:center;max-width:22rem;width:100%;">
+      style="position:fixed;inset:0;background:rgba(0,0,0,0.45);backdrop-filter:blur(6px);z-index:100;display:flex;align-items:center;justify-content:center;padding:1rem;">
+      <div class="premium-card" style="padding:2rem;max-width:26rem;width:100%;overflow:hidden;">
 
-        <div v-if="!finished">
-          <div style="width:3rem;height:3rem;border:3px solid var(--border-subtle);border-top-color:var(--brand-indigo);border-radius:50%;animation:auto-spin 0.8s linear infinite;margin:0 auto 1.5rem;"></div>
-          <h4 class="t-subtitle" style="color:var(--text-primary);margin-bottom:0.75rem;">Processando...</h4>
-          <p class="t-body" style="color:var(--text-tertiary);line-height:1.6;">A rotina esta sendo executada no Google Sheets.<br>Aguarde um momento...</p>
+        <!-- Cabeçalho: ícone + título + tempo -->
+        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;">
+          <div v-if="!finished"
+            style="width:2.5rem;height:2.5rem;border:3px solid var(--border-subtle);border-top-color:var(--brand-indigo);border-radius:50%;animation:auto-spin 0.8s linear infinite;flex-shrink:0;"></div>
+          <div v-else
+            style="width:2.5rem;height:2.5rem;background:var(--brand-emerald-light);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid var(--brand-emerald);font-size:1.2rem;line-height:1;">✓</div>
+          <div style="flex:1;min-width:0;">
+            <h4 class="t-subtitle" :style="finished ? 'color:var(--brand-emerald);' : 'color:var(--text-primary);'">
+              {{ finished ? 'Concluído!' : 'Processando...' }}
+            </h4>
+            <p class="t-label-sm" style="color:var(--text-muted);margin-top:0.2rem;">{{ formatElapsed }}</p>
+          </div>
         </div>
 
-        <div v-else>
-          <div style="width:3rem;height:3rem;background:var(--brand-emerald-light);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;border:2px solid var(--brand-emerald);">
-            <i data-lucide="check" style="width:1.5rem;height:1.5rem;color:var(--brand-emerald);display:block;"></i>
+        <!-- Barra de progresso (só quando há etapas) -->
+        <div v-if="totalEtapas > 0" style="margin-bottom:1rem;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:0.4rem;">
+            <span class="t-label-sm" style="color:var(--text-muted);">
+              {{ finished ? 'Concluído' : ('Etapa ' + etapaAtual + ' de ' + totalEtapas) }}
+            </span>
+            <span class="t-label-sm" style="color:var(--text-muted);">{{ progressPct }}%</span>
           </div>
-          <h4 class="t-subtitle" style="color:var(--brand-emerald);margin-bottom:0.75rem;">Concluido!</h4>
-          <p class="t-body" style="color:var(--text-tertiary);line-height:1.6;">A rotina foi finalizada com sucesso.</p>
+          <div style="height:6px;background:var(--border-subtle);border-radius:99px;overflow:hidden;">
+            <div :style="'height:100%;border-radius:99px;transition:width 0.6s ease;' +
+              (finished ? 'background:var(--brand-emerald);' : 'background:var(--brand-indigo);') +
+              'width:' + progressPct + '%;'"></div>
+          </div>
+        </div>
+
+        <!-- Etapa em execução -->
+        <div v-if="!finished && etapaNomeAtual"
+          style="background:var(--brand-indigo-light);border:1px solid var(--brand-indigo-muted);border-radius:var(--radius-md);padding:0.55rem 0.85rem;margin-bottom:1rem;">
+          <p class="t-label-sm" style="color:var(--brand-indigo);font-weight:700;">▶ {{ etapaNomeAtual }}</p>
+        </div>
+
+        <!-- Lista de etapas -->
+        <div v-if="fluxoEtapas.length > 0"
+          style="display:flex;flex-direction:column;gap:0.25rem;max-height:13rem;overflow-y:auto;">
+          <div v-for="(etapa, idx) in fluxoEtapas" :key="idx"
+            style="display:flex;align-items:center;gap:0.6rem;padding:0.35rem 0.5rem;border-radius:var(--radius-sm);"
+            :style="idx + 1 === etapaAtual && !finished ? 'background:var(--brand-indigo-light);' : ''">
+            <!-- concluída -->
+            <span v-if="finished || idx + 1 < etapaAtual"
+              style="width:1.1rem;height:1.1rem;flex-shrink:0;color:var(--brand-emerald);font-size:0.85rem;text-align:center;line-height:1.1rem;">✓</span>
+            <!-- em execução -->
+            <span v-else-if="idx + 1 === etapaAtual"
+              style="display:inline-block;width:1.1rem;height:1.1rem;flex-shrink:0;border:2px solid var(--brand-indigo-muted);border-top-color:var(--brand-indigo);border-radius:50%;animation:auto-spin 0.8s linear infinite;"></span>
+            <!-- pendente -->
+            <span v-else
+              style="width:1.1rem;height:1.1rem;flex-shrink:0;color:var(--text-muted);font-size:0.75rem;text-align:center;line-height:1.1rem;">○</span>
+            <span class="t-label-sm"
+              :style="(finished || idx + 1 < etapaAtual) ? 'color:var(--text-tertiary);' :
+                      (idx + 1 === etapaAtual ? 'color:var(--brand-indigo);font-weight:700;' : 'color:var(--text-muted);')">
+              {{ etapa.displayName }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Fallback quando não há lista de etapas -->
+        <div v-if="!finished && fluxoEtapas.length === 0 && totalEtapas === 0" style="text-align:center;padding-top:0.5rem;">
+          <p class="t-body" style="color:var(--text-tertiary);line-height:1.6;">
+            A rotina esta sendo executada no Google Sheets.<br>Aguarde um momento...
+          </p>
         </div>
 
       </div>
@@ -224,10 +275,31 @@ window.AutomationView = {
   props: ['logs'],
   data() {
     return {
-      running:       false,
-      finished:      false,
-      exportandoCSV: null
+      running:         false,
+      finished:        false,
+      exportandoCSV:   null,
+      fluxoEtapas:     [],
+      etapaAtual:      0,
+      totalEtapas:     0,
+      etapaNomeAtual:  '',
+      elapsedSecs:     0,
+      _fluxoAtivo:     null,
+      _elapsedTimer:   null,
+      _pollTimer:      null,
     };
+  },
+  computed: {
+    progressPct() {
+      if (this.finished) return 100;
+      if (this.totalEtapas === 0 || this.etapaAtual === 0) return 0;
+      return Math.round(((this.etapaAtual - 1) / this.totalEtapas) * 100);
+    },
+    formatElapsed() {
+      const s = this.elapsedSecs;
+      if (s < 60) return s + 's decorridos';
+      const m = Math.floor(s / 60);
+      return m + 'min ' + (s % 60) + 's decorridos';
+    }
   },
   mounted() {
     if (window.refreshIcons) window.refreshIcons();
@@ -283,15 +355,67 @@ window.AutomationView = {
 
     run(functionName) {
       const self = this;
-      self.running  = true;
-      self.finished = false;
+      const isFluxo = (functionName === 'executarFluxoSequencial' || functionName === 'executarSequenciaScanner');
+      const fluxoParam = functionName === 'executarSequenciaScanner' ? 'scanner' : 'mestre';
+
+      self.running        = true;
+      self.finished       = false;
+      self.fluxoEtapas    = [];
+      self.etapaAtual     = 0;
+      self.totalEtapas    = 0;
+      self.etapaNomeAtual = '';
+      self.elapsedSecs    = 0;
+      self._fluxoAtivo    = functionName;
+
+      self._elapsedTimer = setInterval(() => { self.elapsedSecs++; }, 1000);
+
+      const cleanup = () => {
+        clearInterval(self._elapsedTimer);
+        clearInterval(self._pollTimer);
+        self._elapsedTimer = null;
+        self._pollTimer    = null;
+        self._fluxoAtivo   = null;
+      };
+
+      if (typeof google === 'undefined') {
+        setTimeout(() => { cleanup(); self.running = false; self.finished = false; }, 1500);
+        return;
+      }
+
+      if (isFluxo) {
+        google.script.run
+          .withSuccessHandler((steps) => {
+            if (!steps) return;
+            self.fluxoEtapas = steps;
+            self.totalEtapas = steps.length;
+          })
+          .withFailureHandler(() => {})
+          .getFluxoSteps(fluxoParam);
+
+        self._pollTimer = setInterval(() => {
+          if (!self.running || self.finished) { clearInterval(self._pollTimer); return; }
+          google.script.run
+            .withSuccessHandler((prog) => {
+              if (!prog || !prog.ativo) return;
+              self.etapaAtual     = prog.etapa;
+              self.totalEtapas    = prog.total;
+              self.etapaNomeAtual = prog.nomeEtapa;
+            })
+            .withFailureHandler(() => {})
+            .getProgressoAtual();
+        }, 2000);
+      }
+
       google.script.run
         .withSuccessHandler(() => {
+          if (self.totalEtapas > 0) { self.etapaAtual = self.totalEtapas; self.etapaNomeAtual = ''; }
           self.finished = true;
+          cleanup();
           self.$emit('refresh');
           setTimeout(() => { self.running = false; self.finished = false; }, 3000);
         })
         .withFailureHandler((err) => {
+          cleanup();
           self.running  = false;
           self.finished = false;
           alert('[x] Erro: ' + err);

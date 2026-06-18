@@ -4,6 +4,21 @@
  * INTEGRAÇÃO: Orquestra os Motores usando a Infraestrutura (000-004).
  */
 
+// Mapa de nomes de exibição para cada função da sequência
+const _STEP_DISPLAY_NAMES = {
+  'AtualizarNecton_Menu':              'Atualizar Portfolio (Necton)',
+  'AtualizarDadosAtivos_Menu':         'Sincronizar Ativos',
+  'AtualizarDetalhes_Menu':            'Sincronizar Detalhes de Opções',
+  'AtualizarGregasAPI_Menu':           'Gregas via API OPLab',
+  'CalcularGregasNativo_Menu':         'Gregas Nativo (Black-Scholes)',
+  'AtualizarScannerOpcoes_Menu':       'Scanner de Opções',
+  'SyncHighestOptionsVolume_Menu':     'Maiores Volumes (PUT/CALL)',
+  'SyncM9M21Ranking_Menu':             'Ranking Tendência M9M21',
+  'SyncCorrelIbovRanking_Menu':        'Correlação IBOV',
+  'SyncBestCoveredOptionsRates_Menu':  'Melhores Taxas Cobertas',
+  'ScreenerQuantitativo_Menu':         'Screener Quantitativo (PUT)',
+};
+
 const CoreOrchestrator = {
   _serviceName: "CoreOrchestrator",
 
@@ -159,12 +174,15 @@ const CoreOrchestrator = {
 
     // MARCADOR DE TERRITÓRIO: INÍCIO DO FLUXO
     SysLogger.log(this._serviceName, "START", ">>> INICIANDO FLUXO MESTRE DINÂMICO <<<", JSON.stringify({ sequencia_encontrada: sequencia }));
+    this._limparProgresso();
 
     // Captura o ambiente global do Apps Script para conseguir chamar funções pelo nome em texto
     const contextoGlobal = (function() { return this; })();
 
     for (let i = 0; i < sequencia.length; i++) {
       const nomeFuncao = sequencia[i];
+      const nomeDisplay = _STEP_DISPLAY_NAMES[nomeFuncao] || nomeFuncao;
+      this._anotarProgresso(i + 1, sequencia.length, nomeDisplay);
       // Exibe no canto da tela: "Passo 1/2: atualizarNecton..."
       UIHandler.notify("Passo " + (i+1) + "/" + (sequencia.length) + ": Executando " + (nomeFuncao) + "...", "Orquestrador");
       
@@ -193,6 +211,7 @@ const CoreOrchestrator = {
     // MARCADOR DE TERRITÓRIO: FINALIZAÇÃO
     SysLogger.log(this._serviceName, "FINISH", ">>> FLUXO MESTRE CONCLUÍDO COM SUCESSO <<<", JSON.stringify({ total_passos: sequencia.length }));
     SysLogger.flush();
+    this._limparProgresso();
     UIHandler.alert("Fluxo Concluído", "Sincronização global concluída!\nPassos executados: " + (sequencia.join(", ")));
   },
 
@@ -208,11 +227,14 @@ const CoreOrchestrator = {
     }
 
     SysLogger.log(this._serviceName, "START", ">>> INICIANDO SEQUÊNCIA SCANNER <<<", JSON.stringify({ sequencia_encontrada: sequencia }));
+    this._limparProgresso();
 
     const contextoGlobal = (function() { return this; })();
 
     for (let i = 0; i < sequencia.length; i++) {
       const nomeFuncao = sequencia[i];
+      const nomeDisplay = _STEP_DISPLAY_NAMES[nomeFuncao] || nomeFuncao;
+      this._anotarProgresso(i + 1, sequencia.length, nomeDisplay);
       UIHandler.notify("Scanner " + (i+1) + "/" + sequencia.length + ": " + nomeFuncao + "...", "Scanner");
       try {
         const funcaoAlvo = contextoGlobal[nomeFuncao];
@@ -233,7 +255,20 @@ const CoreOrchestrator = {
 
     SysLogger.log(this._serviceName, "FINISH", ">>> SEQUÊNCIA SCANNER CONCLUÍDA <<<", JSON.stringify({ total_passos: sequencia.length }));
     SysLogger.flush();
+    this._limparProgresso();
     UIHandler.alert("Scanner Concluído", "Sequência concluída!\nPassos: " + sequencia.join(", "));
+  },
+
+  _anotarProgresso(etapa, total, nomeEtapa) {
+    try {
+      PropertiesService.getScriptProperties().setProperty('ORQUESTRADOR_PROGRESSO', JSON.stringify({
+        ativo: true, etapa: etapa, total: total, nomeEtapa: nomeEtapa || '', ts: new Date().toISOString()
+      }));
+    } catch(_) {}
+  },
+
+  _limparProgresso() {
+    try { PropertiesService.getScriptProperties().deleteProperty('ORQUESTRADOR_PROGRESSO'); } catch(_) {}
   },
 
 };
@@ -250,5 +285,34 @@ function executarFluxoSequencial() {
 /** Roda a sequência definida em Orquestrador_Sequencia_Scanner no Config_Global */
 function executarSequenciaScanner() {
   CoreOrchestrator.runFluxoScanner();
+}
+
+/**
+ * Retorna a lista de etapas de um fluxo a partir do Config_Global.
+ * @param {string} fluxo - 'mestre' ou 'scanner'
+ * @returns {Array<{nome: string, displayName: string}>}
+ */
+function getFluxoSteps(fluxo) {
+  const chave = fluxo === 'scanner'
+    ? 'Orquestrador_Sequencia_Scanner'
+    : 'Orquestrador_Sequencia_Padrao';
+  const sequencia = CoreOrchestrator.getSequenciaDinamica(chave);
+  return sequencia.map(function(fn) {
+    return { nome: fn, displayName: _STEP_DISPLAY_NAMES[fn] || fn };
+  });
+}
+
+/**
+ * Lê o progresso atual do orquestrador gravado nas ScriptProperties.
+ * @returns {{ativo: boolean, etapa: number, total: number, nomeEtapa: string, ts: string}|null}
+ */
+function getProgressoAtual() {
+  try {
+    const raw = PropertiesService.getScriptProperties().getProperty('ORQUESTRADOR_PROGRESSO');
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(_) {
+    return null;
+  }
 }
 
