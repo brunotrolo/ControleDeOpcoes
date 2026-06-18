@@ -202,15 +202,18 @@ function apiAdicionarLinhas(nomeAba, dadosMatriz) {
     if (!sheet) throw new Error(`Aba [${nomeAba}] não existe no banco de dados.`);
     if (!dadosMatriz || dadosMatriz.length === 0) return { success: true, message: "Nenhum dado para inserir." };
 
-    // 🔧 FIX: getLastRow() conta linhas que já tiveram conteúdo (mesmo deletadas),
-    //         causando gaps quando rows são excluídas. A solução correta é varrer
-    //         a coluna A e encontrar a primeira célula realmente vazia.
-    const colA = sheet.getRange(1, 1, sheet.getMaxRows(), 1).getValues();
-    let startRow = colA.length + 1; // fallback: fim da aba
-    for (let i = 0; i < colA.length; i++) {
-      if (String(colA[i][0]).trim() === '') {
-        startRow = i + 1; // índice 1-based
-        break;
+    // Limita o scan à área com conteúdo (getLastRow), não ao tamanho físico da aba
+    // (getMaxRows pode ser 1M+). Gaps por clearContent() ainda são detectados dentro
+    // da área de dados.
+    const lastDataRow = sheet.getLastRow();
+    let startRow = lastDataRow + 1; // fallback: append após última linha com conteúdo
+    if (lastDataRow > 0) {
+      const colA = sheet.getRange(1, 1, lastDataRow, 1).getValues();
+      for (let i = 0; i < colA.length; i++) {
+        if (String(colA[i][0]).trim() === '') {
+          startRow = i + 1;
+          break;
+        }
       }
     }
 
@@ -237,13 +240,19 @@ function apiAtualizarChaveValor(nomeAba, payload) {
     const chavesNovas = Object.keys(payload);
     let atualizacoes = 0;
 
-    // Percorre a planilha procurando as chaves enviadas
+    // Copia coluna 2 para edição em memória — Config_Global usa apenas valores
+    const colB = data.map(row => [row[1]]);
     for (let i = 0; i < data.length; i++) {
       const chavePlanilha = String(data[i][0]).trim();
       if (chavesNovas.includes(chavePlanilha)) {
-        sheet.getRange(i + 1, 2).setValue(payload[chavePlanilha]);
+        colB[i][0] = payload[chavePlanilha];
         atualizacoes++;
       }
+    }
+
+    // Escreve coluna 2 inteira em um único setValues (batch)
+    if (atualizacoes > 0) {
+      sheet.getRange(1, 2, colB.length, 1).setValues(colB);
     }
 
     SpreadsheetApp.flush();
@@ -517,12 +526,23 @@ function parsearImagemOrdens(base64, mimeType) {
       ]}]
     };
 
-    var response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    var response = null;
+    var fetchOpts = {
       method: 'post',
       headers: { 'x-api-key': claudeKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       payload: JSON.stringify(payload),
       muteHttpExceptions: true
-    });
+    };
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', fetchOpts);
+        if (response.getResponseCode() !== 429) break;
+      } catch (eFetch) {
+        if (attempt === 2) throw new Error('Falha de conexão com Claude API: ' + eFetch.message);
+      }
+      Utilities.sleep(Math.pow(2, attempt + 1) * 1000); // 2s, 4s
+    }
+    if (!response) return { success: false, error: 'Sem resposta da Claude API após 3 tentativas.' };
 
     var code = response.getResponseCode();
     if (code !== 200) return { success: false, error: 'Erro na API Claude (HTTP ' + code + '): ' + response.getContentText().substring(0, 200) };
