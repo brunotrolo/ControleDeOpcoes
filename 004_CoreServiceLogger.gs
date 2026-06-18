@@ -34,6 +34,9 @@ const SysLogger = {
 
       this._buffer.push([timestamp, servico || "SISTEMA", nivel || "INFO", mensagem || "", ctxFormatado]);
 
+      // Auto-flush ao atingir 500 entradas (previne crescimento ilimitado em runs longos)
+      if (this._buffer.length >= 500) this.flush();
+
       // Erros críticos forçam gravação imediata
       if (nivel === "CRITICO") this.flush();
 

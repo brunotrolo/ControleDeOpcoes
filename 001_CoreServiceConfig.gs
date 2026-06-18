@@ -101,8 +101,12 @@ const ConfigManager = {
         const key = String(data[i][0]).trim();
         let val = data[i][1];
         if (key && !key.startsWith("//")) {
-          configs[key] = (typeof val === 'string' && val.includes(',')) ?
-                          parseFloat(String(val).replace(/\./g, '').replace(',', '.')) : val;
+          if (typeof val === 'string' && val.includes(',')) {
+            const parsed = parseFloat(String(val).replace(/\./g, '').replace(',', '.'));
+            configs[key] = isNaN(parsed) ? val : parsed;
+          } else {
+            configs[key] = val;
+          }
         }
       }
 
