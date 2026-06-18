@@ -48,16 +48,7 @@ function onOpen(e) {
 /**
  * Ponto de entrada para o Web App (Dashboard HTML).
  */
-function doGet(e) {
-  // Se acessado sem cache-buster, redireciona para a URL com ?v=timestamp
-  // para forçar o CDN do Google a servir o HTML mais recente.
-  if (!e || !e.parameter || !e.parameter.v) {
-    const ts = Date.now();
-    const scriptUrl = ScriptApp.getService().getUrl();
-    return HtmlService.createHtmlOutput(
-      `<script>window.location.replace('${scriptUrl}?v=${ts}');</script>`
-    );
-  }
+function doGet() {
   return HtmlService.createTemplateFromFile('Index')
       .evaluate()
       .setTitle('Stock Options | Intelligence')
