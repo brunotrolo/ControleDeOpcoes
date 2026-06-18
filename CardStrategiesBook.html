@@ -1,3 +1,12 @@
+<style>
+  /* CSB: calibra o sistema de tipos para métricas (fora da tabela) */
+  .csb-root .t-label-sm { font-size: 0.75rem !important; }
+  .csb-root .t-value-sm { font-size: 0.85rem !important; }
+  /* Tabela de pernas: mais compacta para caber colunas */
+  .csb-root table .t-label-sm { font-size: 0.62rem !important; }
+  .csb-root table .t-value-sm { font-size: 0.68rem !important; }
+</style>
+
 <template id="card-strategies-book-template">
   <div class="premium-card csb-root" style="overflow:hidden;">
 
@@ -8,7 +17,7 @@
           <i data-lucide="layers" style="width:18px;height:18px;display:block;"></i>
         </div>
         <div>
-          <h3 class="t-subtitle" style="color:var(--text-primary);">Livro de Estruturas <span style="font-size:0.45rem;opacity:0.25;color:var(--text-muted);font-weight:400;vertical-align:super;">v1</span></h3>
+          <h3 class="t-subtitle" style="color:var(--text-primary);">Livro de Estruturas <span style="font-size:0.45rem;opacity:0.25;color:var(--text-muted);font-weight:400;vertical-align:super;">v2</span></h3>
           <p class="t-label-sm" style="color:var(--text-muted);margin-top:0.125rem;">
             {{ estrategias.length }} estrutura{{ estrategias.length !== 1 ? 's' : '' }} ativa{{ estrategias.length !== 1 ? 's' : '' }}
           </p>
