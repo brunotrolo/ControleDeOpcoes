@@ -225,7 +225,7 @@
                   padding:1rem 1.5rem;border-bottom:1px solid var(--border-subtle);">
         <div style="display:flex;align-items:center;gap:0.875rem;">
           <span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;
-                       letter-spacing:0.05em;color:var(--text-muted);white-space:nowrap;">Radar de Portfólio <span style="font-size:0.45rem;opacity:0.25;color:var(--text-muted);font-weight:400;vertical-align:super;">v3</span></span>
+                       letter-spacing:0.05em;color:var(--text-muted);white-space:nowrap;">Radar de Portfólio <span style="font-size:0.45rem;opacity:0.25;color:var(--text-muted);font-weight:400;vertical-align:super;">v4</span></span>
           <span v-if="!isLoading"
             style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:99px;
                    background:var(--brand-indigo-light);color:var(--brand-indigo);
@@ -396,14 +396,11 @@
                   {{ cv.label }}
                 </div>
                 <div @click="abrirDrawer('ciclo', cv.chave, cv.label)" style="cursor:pointer;">
-                  <div style="background:var(--surface-sunken);border-radius:99px;height:3px;overflow:hidden;margin-bottom:3px;">
-                    <div :style="'width:' + cv.pctNoc + '%;'" :class="cv.barClass"
-                      style="height:100%;border-radius:99px;transition:width 0.5s;opacity:0.4;"></div>
+                  <div style="font-size:0.92rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;white-space:nowrap;line-height:1.2;">
+                    {{ fmtK(cv.nocional) }}
                   </div>
-                  <div style="font-size:0.75rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;white-space:nowrap;">
-                    {{ fmtK(cv.nocional) }} <span style="color:var(--text-muted);font-size:0.65rem;">{{ cv.count }}p</span>
-                  </div>
-                  <div v-if="cv.nocionalDesmont > 0" style="font-size:0.55rem;color:var(--brand-amber);">&minus;{{ fmtK(cv.nocionalDesmont) }} desmont.</div>
+                  <div style="font-size:0.68rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">{{ cv.count }}p</div>
+                  <div v-if="cv.nocionalDesmont > 0" style="font-size:0.58rem;color:var(--brand-amber);">&minus;{{ fmtK(cv.nocionalDesmont) }}</div>
                 </div>
                 <div @click="cv.OTM && cv.OTM.count > 0 && abrirDrawer('cicloMoney', cv.chave + '|OTM', cv.label + ' OTM')"
                   style="border-radius:var(--radius-xs);padding:3px 1px;text-align:center;transition:all 0.15s;"
@@ -482,13 +479,13 @@
                 <span :style="mv.badgeStyle"
                   style="font-size:0.72rem;font-weight:800;padding:2px 8px;border-radius:99px;
                          border:2px solid;min-width:42px;text-align:center;flex-shrink:0;">{{ mv.code }}</span>
-                <div style="flex:1;background:var(--surface-sunken);border-radius:99px;height:3px;overflow:hidden;">
+                <div v-if="!isMobile" style="flex:1;background:var(--surface-sunken);border-radius:99px;height:3px;overflow:hidden;">
                   <div :style="'width:' + mv.pct + '%;background:' + mv.color + ';'"
                     style="height:100%;border-radius:99px;transition:width 0.5s;opacity:0.5;"></div>
                 </div>
                 <div style="text-align:right;min-width:64px;">
-                  <div style="font-size:0.95rem;font-weight:800;color:var(--text-primary);font-family:'JetBrains Mono',monospace;line-height:1.1;">{{ mv.count }}<span style="font-size:0.6rem;color:var(--text-muted);margin-left:2px;">pos</span></div>
-                  <div style="font-size:0.75rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">{{ fmtK(mv.nocional) }}</div>
+                  <div style="font-size:1.1rem;font-weight:800;color:var(--text-primary);font-family:'JetBrains Mono',monospace;line-height:1.1;">{{ mv.count }}<span style="font-size:0.65rem;color:var(--text-muted);margin-left:2px;">pos</span></div>
+                  <div style="font-size:0.82rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">{{ fmtK(mv.nocional) }}</div>
                 </div>
               </div>
 
@@ -530,15 +527,15 @@
                 <span class="cr-tip" data-tip="Quantas posicoes estao no lucro, neutras (breakeven) ou no prejuizo agora. A barra tricolor mostra a proporcao visual. Clique em cada card para ver as operacoes daquele status." style="font-size:0.85rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-secondary);cursor:help;white-space:nowrap;">Lucro vs. Prejuizo</span>
               </div>
 
-              <!-- Gauge tricolor -->
-              <div style="display:flex;border-radius:99px;height:5px;overflow:hidden;gap:2px;opacity:0.6;">
+              <!-- Gauge tricolor — desktop only -->
+              <div v-if="!isMobile" style="display:flex;border-radius:99px;height:5px;overflow:hidden;gap:2px;opacity:0.6;">
                 <div :style="'flex:' + plVisao.pctLucro + ';background:var(--brand-emerald);'" style="min-width:4px;border-radius:99px 0 0 99px;transition:flex 0.6s;"></div>
                 <div :style="'flex:' + plVisao.pctBreakeven + ';background:var(--brand-amber);'" style="min-width:0;transition:flex 0.6s;"></div>
                 <div :style="'flex:' + plVisao.pctPrejuizo + ';background:var(--brand-rose);'" style="min-width:4px;border-radius:0 99px 99px 0;transition:flex 0.6s;"></div>
               </div>
               <div style="display:flex;justify-content:space-between;">
-                <span style="font-size:0.68rem;font-weight:700;color:var(--brand-emerald);">{{ plVisao.pctLucro }}% lucro</span>
-                <span style="font-size:0.68rem;font-weight:700;color:var(--brand-rose);">{{ plVisao.pctPrejuizo }}% prej.</span>
+                <span style="font-size:0.78rem;font-weight:700;color:var(--brand-emerald);">{{ plVisao.pctLucro }}% lucro</span>
+                <span style="font-size:0.78rem;font-weight:700;color:var(--brand-rose);">{{ plVisao.pctPrejuizo }}% prej.</span>
               </div>
 
               <!-- Cards Lucro / Neutro / Prejuizo -->
@@ -690,12 +687,10 @@
                   <span style="font-size:0.85rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.02em;white-space:nowrap;">{{ tv.ticker }}</span>
                 </div>
                 <div @click="abrirDrawer('ticker', tv.ticker, tv.ticker)" style="cursor:pointer;">
-                  <div style="background:var(--surface-sunken);border-radius:99px;height:3px;overflow:hidden;margin-bottom:3px;">
-                    <div :style="'width:' + tv.pct + '%;background:var(--brand-amber);'" style="height:100%;border-radius:99px;transition:width 0.5s;opacity:0.4;"></div>
-                  </div>
-                  <div style="font-size:0.7rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;white-space:nowrap;">
+                  <div style="font-size:0.85rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;white-space:nowrap;line-height:1.2;">
                     {{ fmtK(tv.nocional) }}
                   </div>
+                  <div style="font-size:0.65rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">{{ tv.pct }}%</div>
                 </div>
                 <div @click="tv.OTM && tv.OTM.count > 0 && abrirDrawer('heatmap', tv.ticker + '|OTM', tv.ticker + ' OTM')"
                   style="border-radius:var(--radius-xs);padding:2px 1px;text-align:center;transition:all 0.15s;"
@@ -816,13 +811,6 @@
                       {{ rv.pctCap.toFixed(0) }}%
                     </span>
                   </div>
-                </div>
-                <div style="background:var(--surface-sunken);border-radius:99px;height:3px;overflow:hidden;position:relative;">
-                  <div v-if="rv.pctCap >= 0"
-                    :style="'width:' + rv.barPct + '%;background:' + (rv.pctCap >= 75 ? 'var(--brand-emerald)' : 'var(--brand-amber)') + ';'"
-                    style="height:100%;border-radius:99px;transition:width 0.5s;opacity:0.4;"></div>
-                  <div v-else :style="'width:' + rv.negPct + '%;'"
-                    style="height:100%;border-radius:99px;background:var(--brand-rose);transition:width 0.5s;opacity:0.4;"></div>
                 </div>
               </div>
             </div>
