@@ -225,7 +225,7 @@
                   padding:1rem 1.5rem;border-bottom:1px solid var(--border-subtle);">
         <div style="display:flex;align-items:center;gap:0.875rem;">
           <span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;
-                       letter-spacing:0.05em;color:var(--text-muted);white-space:nowrap;">Radar de Portfólio <span style="font-size:0.45rem;opacity:0.25;color:var(--text-muted);font-weight:400;vertical-align:super;">v2</span></span>
+                       letter-spacing:0.05em;color:var(--text-muted);white-space:nowrap;">Radar de Portfólio <span style="font-size:0.45rem;opacity:0.25;color:var(--text-muted);font-weight:400;vertical-align:super;">v3</span></span>
           <span v-if="!isLoading"
             style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:99px;
                    background:var(--brand-indigo-light);color:var(--brand-indigo);
@@ -331,12 +331,12 @@
                   {{ cv.label }}
                 </div>
                 <div @click="abrirDrawer('ciclo', cv.chave, cv.label)" style="cursor:pointer;">
-                  <div style="background:var(--surface-sunken);border-radius:99px;height:6px;overflow:hidden;margin-bottom:2px;">
+                  <div style="background:var(--surface-sunken);border-radius:99px;height:3px;overflow:hidden;margin-bottom:3px;">
                     <div :style="'width:' + cv.pctNoc + '%;'" :class="cv.barClass"
-                      style="height:100%;border-radius:99px;transition:width 0.5s;opacity:0.7;"></div>
+                      style="height:100%;border-radius:99px;transition:width 0.5s;opacity:0.4;"></div>
                   </div>
-                  <div style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">
-                    {{ fmtK(cv.nocional) }} <span style="color:var(--text-muted);font-size:0.62rem;">{{ cv.count }}p</span>
+                  <div style="font-size:0.78rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">
+                    {{ fmtK(cv.nocional) }} <span style="color:var(--text-muted);font-size:0.65rem;">{{ cv.count }}p</span>
                   </div>
                   <div v-if="cv.nocionalDesmont > 0" style="font-size:0.58rem;color:var(--brand-amber);">&minus;{{ fmtK(cv.nocionalDesmont) }} desmont.</div>
                 </div>
@@ -396,12 +396,12 @@
                   {{ cv.label }}
                 </div>
                 <div @click="abrirDrawer('ciclo', cv.chave, cv.label)" style="cursor:pointer;">
-                  <div style="background:var(--surface-sunken);border-radius:99px;height:5px;overflow:hidden;margin-bottom:2px;">
+                  <div style="background:var(--surface-sunken);border-radius:99px;height:3px;overflow:hidden;margin-bottom:3px;">
                     <div :style="'width:' + cv.pctNoc + '%;'" :class="cv.barClass"
-                      style="height:100%;border-radius:99px;transition:width 0.5s;opacity:0.7;"></div>
+                      style="height:100%;border-radius:99px;transition:width 0.5s;opacity:0.4;"></div>
                   </div>
-                  <div style="font-size:0.65rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;white-space:nowrap;">
-                    {{ fmtK(cv.nocional) }} <span style="color:var(--text-muted);font-size:0.58rem;">{{ cv.count }}p</span>
+                  <div style="font-size:0.75rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;white-space:nowrap;">
+                    {{ fmtK(cv.nocional) }} <span style="color:var(--text-muted);font-size:0.65rem;">{{ cv.count }}p</span>
                   </div>
                   <div v-if="cv.nocionalDesmont > 0" style="font-size:0.55rem;color:var(--brand-amber);">&minus;{{ fmtK(cv.nocionalDesmont) }} desmont.</div>
                 </div>
@@ -409,8 +409,8 @@
                   style="border-radius:var(--radius-xs);padding:3px 1px;text-align:center;transition:all 0.15s;"
                   :style="cv.OTM && cv.OTM.count > 0 ? 'background:var(--brand-emerald-light);border:1.5px solid var(--brand-emerald-muted);cursor:pointer;' : 'background:var(--surface-sunken);border:1.5px solid var(--border-subtle);'">
                   <div v-if="cv.OTM && cv.OTM.count > 0">
-                    <div style="font-size:0.6rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-emerald);">{{ fmtK(cv.OTM.nocional) }}</div>
-                    <div style="font-size:0.55rem;font-weight:700;color:var(--brand-emerald);opacity:0.8;">{{ cv.OTM.count }}p</div>
+                    <div style="font-size:0.68rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-emerald);">{{ fmtK(cv.OTM.nocional) }}</div>
+                    <div style="font-size:0.62rem;font-weight:700;color:var(--brand-emerald);opacity:0.8;">{{ cv.OTM.count }}p</div>
                   </div>
                   <div v-else style="font-size:0.65rem;color:var(--border-strong);">-</div>
                 </div>
@@ -418,8 +418,8 @@
                   style="border-radius:var(--radius-xs);padding:3px 1px;text-align:center;transition:all 0.15s;"
                   :style="cv.ATM && cv.ATM.count > 0 ? 'background:var(--brand-amber-light);border:1.5px solid var(--brand-amber-muted);cursor:pointer;' : 'background:var(--surface-sunken);border:1.5px solid var(--border-subtle);'">
                   <div v-if="cv.ATM && cv.ATM.count > 0">
-                    <div style="font-size:0.6rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-amber);">{{ fmtK(cv.ATM.nocional) }}</div>
-                    <div style="font-size:0.55rem;font-weight:700;color:var(--brand-amber);opacity:0.8;">{{ cv.ATM.count }}p</div>
+                    <div style="font-size:0.68rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-amber);">{{ fmtK(cv.ATM.nocional) }}</div>
+                    <div style="font-size:0.62rem;font-weight:700;color:var(--brand-amber);opacity:0.8;">{{ cv.ATM.count }}p</div>
                   </div>
                   <div v-else style="font-size:0.65rem;color:var(--border-strong);">-</div>
                 </div>
@@ -427,13 +427,13 @@
                   style="border-radius:var(--radius-xs);padding:3px 1px;text-align:center;transition:all 0.15s;"
                   :style="cv.ITM && cv.ITM.count > 0 ? 'background:var(--brand-rose-light);border:1.5px solid var(--brand-rose-muted);cursor:pointer;' : 'background:var(--surface-sunken);border:1.5px solid var(--border-subtle);'">
                   <div v-if="cv.ITM && cv.ITM.count > 0">
-                    <div style="font-size:0.6rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-rose);">{{ fmtK(cv.ITM.nocional) }}</div>
-                    <div style="font-size:0.55rem;font-weight:700;color:var(--brand-rose);opacity:0.8;">{{ cv.ITM.count }}p</div>
+                    <div style="font-size:0.68rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-rose);">{{ fmtK(cv.ITM.nocional) }}</div>
+                    <div style="font-size:0.62rem;font-weight:700;color:var(--brand-rose);opacity:0.8;">{{ cv.ITM.count }}p</div>
                   </div>
                   <div v-else style="font-size:0.65rem;color:var(--border-strong);">-</div>
                 </div>
                 <div @click="abrirDrawer('ciclo', cv.chave, cv.label)" style="cursor:pointer;text-align:right;">
-                  <div :style="cv.plStyle" style="font-size:0.7rem;font-weight:800;font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtK(cv.pl) }}</div>
+                  <div :style="cv.plStyle" style="font-size:0.8rem;font-weight:800;font-family:'JetBrains Mono',monospace;white-space:nowrap;">{{ fmtK(cv.pl) }}</div>
                 </div>
               </div>
             </div>
@@ -482,9 +482,9 @@
                 <span :style="mv.badgeStyle"
                   style="font-size:0.72rem;font-weight:800;padding:2px 8px;border-radius:99px;
                          border:2px solid;min-width:42px;text-align:center;flex-shrink:0;">{{ mv.code }}</span>
-                <div style="flex:1;background:var(--surface-sunken);border-radius:99px;height:7px;overflow:hidden;">
+                <div style="flex:1;background:var(--surface-sunken);border-radius:99px;height:3px;overflow:hidden;">
                   <div :style="'width:' + mv.pct + '%;background:' + mv.color + ';'"
-                    style="height:100%;border-radius:99px;transition:width 0.5s;"></div>
+                    style="height:100%;border-radius:99px;transition:width 0.5s;opacity:0.5;"></div>
                 </div>
                 <div style="text-align:right;min-width:64px;">
                   <div style="font-size:0.95rem;font-weight:800;color:var(--text-primary);font-family:'JetBrains Mono',monospace;line-height:1.1;">{{ mv.count }}<span style="font-size:0.6rem;color:var(--text-muted);margin-left:2px;">pos</span></div>
@@ -531,7 +531,7 @@
               </div>
 
               <!-- Gauge tricolor -->
-              <div style="display:flex;border-radius:99px;height:10px;overflow:hidden;gap:2px;">
+              <div style="display:flex;border-radius:99px;height:5px;overflow:hidden;gap:2px;opacity:0.6;">
                 <div :style="'flex:' + plVisao.pctLucro + ';background:var(--brand-emerald);'" style="min-width:4px;border-radius:99px 0 0 99px;transition:flex 0.6s;"></div>
                 <div :style="'flex:' + plVisao.pctBreakeven + ';background:var(--brand-amber);'" style="min-width:0;transition:flex 0.6s;"></div>
                 <div :style="'flex:' + plVisao.pctPrejuizo + ';background:var(--brand-rose);'" style="min-width:4px;border-radius:0 99px 99px 0;transition:flex 0.6s;"></div>
@@ -548,8 +548,8 @@
                        background:var(--brand-emerald-light);border:1.5px solid var(--brand-emerald);transition:box-shadow 0.15s;"
                 onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='none'">
                 <div>
-                  <div style="font-size:0.58rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-emerald);">Lucro</div>
-                  <div style="font-size:1.3rem;font-weight:800;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;line-height:1;">{{ plVisao.lucro }}</div>
+                  <div style="font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-emerald);">Lucro</div>
+                  <div style="font-size:1.5rem;font-weight:800;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;line-height:1;">{{ plVisao.lucro }}</div>
                 </div>
                 <div style="font-size:0.82rem;font-weight:800;color:var(--brand-emerald);font-family:'JetBrains Mono',monospace;">{{ fmtK(plVisao.nocionalLucro) }}</div>
               </div>
@@ -560,8 +560,8 @@
                        background:var(--brand-amber-light);border:1.5px solid var(--brand-amber);transition:box-shadow 0.15s;"
                 onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='none'">
                 <div>
-                  <div style="font-size:0.58rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-amber);">Neutro</div>
-                  <div style="font-size:1.3rem;font-weight:800;color:var(--brand-amber);font-family:'JetBrains Mono',monospace;line-height:1;">{{ plVisao.breakeven }}</div>
+                  <div style="font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-amber);">Neutro</div>
+                  <div style="font-size:1.5rem;font-weight:800;color:var(--brand-amber);font-family:'JetBrains Mono',monospace;line-height:1;">{{ plVisao.breakeven }}</div>
                 </div>
                 <div style="font-size:0.82rem;font-weight:800;color:var(--brand-amber);font-family:'JetBrains Mono',monospace;">{{ fmtK(plVisao.nocionalBreakeven) }}</div>
               </div>
@@ -572,8 +572,8 @@
                        background:var(--brand-rose-light);border:1.5px solid var(--brand-rose);transition:box-shadow 0.15s;"
                 onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='none'">
                 <div>
-                  <div style="font-size:0.58rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-rose);">Prejuizo</div>
-                  <div style="font-size:1.3rem;font-weight:800;color:var(--brand-rose);font-family:'JetBrains Mono',monospace;line-height:1;">{{ plVisao.prejuizo }}</div>
+                  <div style="font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-rose);">Prejuizo</div>
+                  <div style="font-size:1.5rem;font-weight:800;color:var(--brand-rose);font-family:'JetBrains Mono',monospace;line-height:1;">{{ plVisao.prejuizo }}</div>
                 </div>
                 <div style="font-size:0.82rem;font-weight:800;color:var(--brand-rose);font-family:'JetBrains Mono',monospace;">{{ fmtK(plVisao.nocionalPrejuizo) }}</div>
               </div>
@@ -623,11 +623,11 @@
                   <span style="font-size:0.85rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.02em;">{{ tv.ticker }}</span>
                 </div>
                 <div @click="abrirDrawer('ticker', tv.ticker, tv.ticker)" style="cursor:pointer;">
-                  <div style="background:var(--surface-sunken);border-radius:99px;height:5px;overflow:hidden;margin-bottom:2px;">
-                    <div :style="'width:' + tv.pct + '%;background:var(--brand-amber);'" style="height:100%;border-radius:99px;transition:width 0.5s;opacity:0.8;"></div>
+                  <div style="background:var(--surface-sunken);border-radius:99px;height:3px;overflow:hidden;margin-bottom:3px;">
+                    <div :style="'width:' + tv.pct + '%;background:var(--brand-amber);'" style="height:100%;border-radius:99px;transition:width 0.5s;opacity:0.4;"></div>
                   </div>
-                  <div style="font-size:0.68rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">
-                    {{ fmtK(tv.nocional) }} <span style="color:var(--text-muted);font-size:0.58rem;">{{ tv.pct }}%</span>
+                  <div style="font-size:0.75rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;">
+                    {{ fmtK(tv.nocional) }} <span style="color:var(--text-muted);font-size:0.65rem;">{{ tv.pct }}%</span>
                   </div>
                 </div>
                 <div @click="tv.OTM && tv.OTM.count > 0 && abrirDrawer('heatmap', tv.ticker + '|OTM', tv.ticker + ' OTM')"
@@ -670,11 +670,11 @@
           <template v-else>
             <div style="display:grid;grid-template-columns:1fr 2fr 4fr 2fr 2fr 2fr 3fr;gap:3px;margin-bottom:6px;padding:0 2px;align-items:center;">
               <div></div><div></div>
-              <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Nocional</div>
-              <div style="text-align:center;"><span style="font-size:0.62rem;font-weight:800;color:var(--brand-emerald);">OTM</span></div>
-              <div style="text-align:center;"><span style="font-size:0.62rem;font-weight:800;color:var(--brand-amber);">ATM</span></div>
-              <div style="text-align:center;"><span style="font-size:0.62rem;font-weight:800;color:var(--brand-rose);">ITM</span></div>
-              <div style="text-align:right;font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">P/L</div>
+              <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">Nocional</div>
+              <div style="text-align:center;"><span style="font-size:0.65rem;font-weight:800;color:var(--brand-emerald);">OTM</span></div>
+              <div style="text-align:center;"><span style="font-size:0.65rem;font-weight:800;color:var(--brand-amber);">ATM</span></div>
+              <div style="text-align:center;"><span style="font-size:0.65rem;font-weight:800;color:var(--brand-rose);">ITM</span></div>
+              <div style="text-align:right;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);">P/L</div>
             </div>
             <div style="display:flex;flex-direction:column;gap:3px;">
               <div v-for="(tv, idx) in tickerVisoes" :key="tv.ticker"
@@ -687,13 +687,13 @@
                   <span style="font-size:0.5rem;font-weight:800;" :style="idx<3?'color:#fff;':'color:var(--text-muted);'">#{{ idx+1 }}</span>
                 </div>
                 <div @click="abrirDrawer('ticker', tv.ticker, tv.ticker)" style="cursor:pointer;overflow:hidden;">
-                  <span style="font-size:0.75rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.02em;white-space:nowrap;">{{ tv.ticker }}</span>
+                  <span style="font-size:0.85rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.02em;white-space:nowrap;">{{ tv.ticker }}</span>
                 </div>
                 <div @click="abrirDrawer('ticker', tv.ticker, tv.ticker)" style="cursor:pointer;">
-                  <div style="background:var(--surface-sunken);border-radius:99px;height:4px;overflow:hidden;margin-bottom:2px;">
-                    <div :style="'width:' + tv.pct + '%;background:var(--brand-amber);'" style="height:100%;border-radius:99px;transition:width 0.5s;opacity:0.8;"></div>
+                  <div style="background:var(--surface-sunken);border-radius:99px;height:3px;overflow:hidden;margin-bottom:3px;">
+                    <div :style="'width:' + tv.pct + '%;background:var(--brand-amber);'" style="height:100%;border-radius:99px;transition:width 0.5s;opacity:0.4;"></div>
                   </div>
-                  <div style="font-size:0.6rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;white-space:nowrap;">
+                  <div style="font-size:0.7rem;font-weight:700;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;white-space:nowrap;">
                     {{ fmtK(tv.nocional) }}
                   </div>
                 </div>
@@ -701,33 +701,33 @@
                   style="border-radius:var(--radius-xs);padding:2px 1px;text-align:center;transition:all 0.15s;"
                   :style="tv.OTM && tv.OTM.count > 0 ? 'background:var(--brand-emerald-light);border:1.5px solid var(--brand-emerald-muted);cursor:pointer;' : 'background:var(--surface-sunken);border:1.5px solid var(--border-subtle);'">
                   <div v-if="tv.OTM && tv.OTM.count > 0">
-                    <div style="font-size:0.55rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-emerald);">{{ fmtK(tv.OTM.nocional) }}</div>
-                    <div style="font-size:0.5rem;font-weight:700;color:var(--brand-emerald);opacity:0.8;">{{ tv.OTM.count }}p</div>
+                    <div style="font-size:0.65rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-emerald);">{{ fmtK(tv.OTM.nocional) }}</div>
+                    <div style="font-size:0.58rem;font-weight:700;color:var(--brand-emerald);opacity:0.8;">{{ tv.OTM.count }}p</div>
                   </div>
-                  <div v-else style="font-size:0.6rem;color:var(--border-strong);">-</div>
+                  <div v-else style="font-size:0.65rem;color:var(--border-strong);">-</div>
                 </div>
                 <div @click="tv.ATM && tv.ATM.count > 0 && abrirDrawer('heatmap', tv.ticker + '|ATM', tv.ticker + ' ATM')"
                   style="border-radius:var(--radius-xs);padding:2px 1px;text-align:center;transition:all 0.15s;"
                   :style="tv.ATM && tv.ATM.count > 0 ? 'background:var(--brand-amber-light);border:1.5px solid var(--brand-amber-muted);cursor:pointer;' : 'background:var(--surface-sunken);border:1.5px solid var(--border-subtle);'">
                   <div v-if="tv.ATM && tv.ATM.count > 0">
-                    <div style="font-size:0.55rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-amber);">{{ fmtK(tv.ATM.nocional) }}</div>
-                    <div style="font-size:0.5rem;font-weight:700;color:var(--brand-amber);opacity:0.8;">{{ tv.ATM.count }}p</div>
+                    <div style="font-size:0.65rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-amber);">{{ fmtK(tv.ATM.nocional) }}</div>
+                    <div style="font-size:0.58rem;font-weight:700;color:var(--brand-amber);opacity:0.8;">{{ tv.ATM.count }}p</div>
                   </div>
-                  <div v-else style="font-size:0.6rem;color:var(--border-strong);">-</div>
+                  <div v-else style="font-size:0.65rem;color:var(--border-strong);">-</div>
                 </div>
                 <div @click="tv.ITM && tv.ITM.count > 0 && abrirDrawer('heatmap', tv.ticker + '|ITM', tv.ticker + ' ITM')"
                   style="border-radius:var(--radius-xs);padding:2px 1px;text-align:center;transition:all 0.15s;"
                   :style="tv.ITM && tv.ITM.count > 0 ? 'background:var(--brand-rose-light);border:1.5px solid var(--brand-rose-muted);cursor:pointer;' : 'background:var(--surface-sunken);border:1.5px solid var(--border-subtle);'">
                   <div v-if="tv.ITM && tv.ITM.count > 0">
-                    <div style="font-size:0.55rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-rose);">{{ fmtK(tv.ITM.nocional) }}</div>
-                    <div style="font-size:0.5rem;font-weight:700;color:var(--brand-rose);opacity:0.8;">{{ tv.ITM.count }}p</div>
+                    <div style="font-size:0.65rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-rose);">{{ fmtK(tv.ITM.nocional) }}</div>
+                    <div style="font-size:0.58rem;font-weight:700;color:var(--brand-rose);opacity:0.8;">{{ tv.ITM.count }}p</div>
                   </div>
-                  <div v-else style="font-size:0.6rem;color:var(--border-strong);">-</div>
+                  <div v-else style="font-size:0.65rem;color:var(--border-strong);">-</div>
                 </div>
                 <div @click="abrirDrawer('ticker', tv.ticker, tv.ticker)" style="cursor:pointer;text-align:right;">
-                  <div style="font-size:0.65rem;font-weight:800;font-family:'JetBrains Mono',monospace;white-space:nowrap;"
+                  <div style="font-size:0.75rem;font-weight:800;font-family:'JetBrains Mono',monospace;white-space:nowrap;"
                     :style="tv.pl >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'">{{ fmtK(tv.pl) }}</div>
-                  <div style="font-size:0.5rem;font-weight:600;color:var(--text-muted);">{{ tv.plPct }}%</div>
+                  <div style="font-size:0.58rem;font-weight:600;color:var(--text-muted);">{{ tv.plPct }}%</div>
                 </div>
               </div>
             </div>
@@ -777,12 +777,12 @@
                     </span>
                   </div>
                 </div>
-                <div style="background:var(--surface-sunken);border-radius:99px;height:6px;overflow:hidden;position:relative;">
+                <div style="background:var(--surface-sunken);border-radius:99px;height:3px;overflow:hidden;position:relative;">
                   <div v-if="rv.pctCap >= 0"
                     :style="'width:' + rv.barPct + '%;background:' + (rv.pctCap >= 75 ? 'var(--brand-emerald)' : 'var(--brand-amber)') + ';'"
-                    style="height:100%;border-radius:99px;transition:width 0.5s;"></div>
+                    style="height:100%;border-radius:99px;transition:width 0.5s;opacity:0.4;"></div>
                   <div v-else :style="'width:' + rv.negPct + '%;'"
-                    style="height:100%;border-radius:99px;background:var(--brand-rose);transition:width 0.5s;"></div>
+                    style="height:100%;border-radius:99px;background:var(--brand-rose);transition:width 0.5s;opacity:0.4;"></div>
                 </div>
               </div>
             </div>
@@ -791,10 +791,10 @@
           <!-- MOBILE: grid 4 colunas fr proporcionais -->
           <template v-else>
             <div style="display:grid;grid-template-columns:2fr 3fr 3fr 2fr;gap:4px;margin-bottom:6px;padding:0 2px;align-items:center;">
-              <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">Ativo</div>
-              <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#7C3AED;">Max Premio</div>
-              <div style="font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">P/L Atual</div>
-              <div style="text-align:right;font-size:0.58rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">%</div>
+              <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">Ativo</div>
+              <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#7C3AED;">Max Premio</div>
+              <div style="font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">P/L Atual</div>
+              <div style="text-align:right;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">%</div>
             </div>
             <div style="display:flex;flex-direction:column;gap:6px;">
               <div v-for="rv in riscoPorAtivo" :key="rv.ticker"
@@ -803,26 +803,26 @@
                 onmouseover="this.style.background='var(--surface-overlay)'"
                 onmouseout="this.style.background='transparent'">
                 <div style="display:grid;grid-template-columns:2fr 3fr 3fr 2fr;gap:4px;align-items:center;margin-bottom:4px;">
-                  <span style="font-size:0.8rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.02em;">{{ rv.ticker }}</span>
+                  <span style="font-size:0.9rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.02em;">{{ rv.ticker }}</span>
                   <div>
-                    <span style="font-size:0.72rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:#7C3AED;">{{ fmtK(rv.ganhoMax) }}</span>
-                    <span style="font-size:0.55rem;color:var(--text-muted);margin-left:2px;">{{ rv.count }}p</span>
+                    <span style="font-size:0.82rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:#7C3AED;">{{ fmtK(rv.ganhoMax) }}</span>
+                    <span style="font-size:0.62rem;color:var(--text-muted);margin-left:2px;">{{ rv.count }}p</span>
                   </div>
                   <div :style="rv.plAtual >= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'"
-                    style="font-size:0.72rem;font-weight:800;font-family:'JetBrains Mono',monospace;">{{ fmtK(rv.plAtual) }}</div>
+                    style="font-size:0.82rem;font-weight:800;font-family:'JetBrains Mono',monospace;">{{ fmtK(rv.plAtual) }}</div>
                   <div style="text-align:right;">
-                    <span style="font-size:0.75rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
+                    <span style="font-size:0.85rem;font-weight:800;font-family:'JetBrains Mono',monospace;"
                       :style="rv.pctCap >= 75 ? 'color:var(--brand-emerald);' : rv.pctCap >= 0 ? 'color:var(--brand-amber);' : 'color:var(--brand-rose);'">
                       {{ rv.pctCap.toFixed(0) }}%
                     </span>
                   </div>
                 </div>
-                <div style="background:var(--surface-sunken);border-radius:99px;height:5px;overflow:hidden;position:relative;">
+                <div style="background:var(--surface-sunken);border-radius:99px;height:3px;overflow:hidden;position:relative;">
                   <div v-if="rv.pctCap >= 0"
                     :style="'width:' + rv.barPct + '%;background:' + (rv.pctCap >= 75 ? 'var(--brand-emerald)' : 'var(--brand-amber)') + ';'"
-                    style="height:100%;border-radius:99px;transition:width 0.5s;"></div>
+                    style="height:100%;border-radius:99px;transition:width 0.5s;opacity:0.4;"></div>
                   <div v-else :style="'width:' + rv.negPct + '%;'"
-                    style="height:100%;border-radius:99px;background:var(--brand-rose);transition:width 0.5s;"></div>
+                    style="height:100%;border-radius:99px;background:var(--brand-rose);transition:width 0.5s;opacity:0.4;"></div>
                 </div>
               </div>
             </div>
