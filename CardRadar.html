@@ -225,7 +225,7 @@
                   padding:1rem 1.5rem;border-bottom:1px solid var(--border-subtle);">
         <div style="display:flex;align-items:center;gap:0.875rem;">
           <span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;
-                       letter-spacing:0.15em;color:var(--text-muted);">Radar de Portfólio <span style="font-size:0.45rem;opacity:0.25;color:var(--text-muted);font-weight:400;vertical-align:super;">v1</span></span>
+                       letter-spacing:0.05em;color:var(--text-muted);white-space:nowrap;">Radar de Portfólio <span style="font-size:0.45rem;opacity:0.25;color:var(--text-muted);font-weight:400;vertical-align:super;">v2</span></span>
           <span v-if="!isLoading"
             style="font-size:0.7rem;font-weight:700;padding:2px 8px;border-radius:99px;
                    background:var(--brand-indigo-light);color:var(--brand-indigo);
@@ -306,7 +306,7 @@
 
           <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
             <div style="width:10px;height:10px;border-radius:50%;background:var(--brand-indigo);flex-shrink:0;"></div>
-            <span class="cr-tip" data-tip="Agrupa suas posicoes pelo mes de vencimento. Cada linha mostra o nocional total e o P/L acumulado naquele ciclo, com breakdown OTM/ATM/ITM. Clique no mes para ver todas as operacoes. Clique nas celulas coloridas para filtrar por moneyness." style="font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);cursor:help;">Ciclo de Vencimento</span>
+            <span class="cr-tip" data-tip="Agrupa suas posicoes pelo mes de vencimento. Cada linha mostra o nocional total e o P/L acumulado naquele ciclo, com breakdown OTM/ATM/ITM. Clique no mes para ver todas as operacoes. Clique nas celulas coloridas para filtrar por moneyness." style="font-size:0.85rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-secondary);cursor:help;white-space:nowrap;">Ciclo de Vencimento</span>
           </div>
 
           <!-- DESKTOP: grid 6 colunas px original -->
@@ -470,7 +470,7 @@
             <div style="display:flex;flex-direction:column;gap:0.625rem;">
               <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">
                 <div style="width:10px;height:10px;border-radius:50%;background:var(--brand-emerald);flex-shrink:0;"></div>
-                <span class="cr-tip" data-tip="Distribuicao das posicoes por distancia do strike em relacao ao preco atual do ativo. OTM (Out of the Money) = opcao tende a expirar sem valor -- zona segura para o vendedor. ATM (At the Money) = zona de atencao. ITM (In the Money) = risco de exercicio." style="font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);cursor:help;">Moneyness</span>
+                <span class="cr-tip" data-tip="Distribuicao das posicoes por distancia do strike em relacao ao preco atual do ativo. OTM (Out of the Money) = opcao tende a expirar sem valor -- zona segura para o vendedor. ATM (At the Money) = zona de atencao. ITM (In the Money) = risco de exercicio." style="font-size:0.85rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-secondary);cursor:help;white-space:nowrap;">Moneyness</span>
               </div>
 
               <div v-for="mv in moneynessVisoes" :key="mv.code"
@@ -527,7 +527,7 @@
               <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">
                 <div style="width:10px;height:10px;border-radius:50%;flex-shrink:0;"
                   :style="plVisao.pctLucro >= 50 ? 'background:var(--brand-emerald);' : 'background:var(--brand-rose);'"></div>
-                <span class="cr-tip" data-tip="Quantas posicoes estao no lucro, neutras (breakeven) ou no prejuizo agora. A barra tricolor mostra a proporcao visual. Clique em cada card para ver as operacoes daquele status." style="font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);cursor:help;">Lucro vs. Prejuizo</span>
+                <span class="cr-tip" data-tip="Quantas posicoes estao no lucro, neutras (breakeven) ou no prejuizo agora. A barra tricolor mostra a proporcao visual. Clique em cada card para ver as operacoes daquele status." style="font-size:0.85rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-secondary);cursor:help;white-space:nowrap;">Lucro vs. Prejuizo</span>
               </div>
 
               <!-- Gauge tricolor -->
@@ -596,7 +596,7 @@
 
           <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
             <div style="width:10px;height:10px;border-radius:50%;background:var(--brand-amber);flex-shrink:0;"></div>
-            <span class="cr-tip" data-tip="Ranking de ativos por nocional total exposto. A barra mostra o peso percentual de cada ativo na carteira. Colunas OTM/ATM/ITM mostram a distribuicao de moneyness por ativo. P/L = resultado acumulado naquele ativo." style="font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);cursor:help;">Concentracao por Ativo</span>
+            <span class="cr-tip" data-tip="Ranking de ativos por nocional total exposto. A barra mostra o peso percentual de cada ativo na carteira. Colunas OTM/ATM/ITM mostram a distribuicao de moneyness por ativo. P/L = resultado acumulado naquele ativo." style="font-size:0.85rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-secondary);cursor:help;white-space:nowrap;">Concentracao por Ativo</span>
           </div>
 
           <!-- DESKTOP: grid 7 colunas px original -->
@@ -742,7 +742,7 @@
           <!-- Titulo com icone de info tooltip -->
           <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
             <div style="width:10px;height:10px;border-radius:50%;background:#7C3AED;flex-shrink:0;"></div>
-            <span style="font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);">Premio Capturado por Ativo</span>
+            <span style="font-size:0.85rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-secondary);white-space:nowrap;">Premio Capturado por Ativo</span>
             <span class="cr-tip" data-tip="Quanto do premio maximo ja foi realizado em cada ativo. Max Premio = soma de todos os premios recebidos se as opcoes virarem po. Barra verde = percentual ja capturado. Vermelho = posicao no prejuizo. Clique em qualquer linha para ver as operacoes." style="cursor:help;display:flex;align-items:center;">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--text-muted);opacity:0.5;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             </span>
