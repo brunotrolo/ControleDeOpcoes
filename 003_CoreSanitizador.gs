@@ -161,40 +161,43 @@ function limparPassadoNecton() {
   const colunasAtivas = colunasAlvo.filter(a => colMap[a.nome]);
   if (colunasAtivas.length === 0) return;
 
-  const colNums = colunasAtivas.map(a => colMap[a.nome]);
-  const minCol  = Math.min(...colNums);
-  const maxCol  = Math.max(...colNums);
-  const nCols   = maxCol - minCol + 1;
-  const nRows   = maxRows - 1;
-
-  // Batch read: 3 API calls for the entire data range
-  const dataRange  = aba.getRange(2, minCol, nRows, nCols);
-  const allValues  = dataRange.getValues();
-  const allFormulas = dataRange.getFormulas();
-  const allFormats = dataRange.getNumberFormats();
-
-  const outValues  = allValues.map(r => r.slice());
-  const outFormats = allFormats.map(r => r.slice());
+  const nRows = maxRows - 1;
   let celulasLavadas = 0;
 
+  // ⚠️ Lê e ESCREVE uma coluna-alvo por vez. NUNCA gravar um range contíguo que
+  // englobe colunas fora da lista: entre QUANTITY e STRIKE ficam as colunas de
+  // FÓRMULA (TOTAL_PREMIUM, ID_TRADE, ID_STRATEGY = P, Q, R), que um setValues de
+  // span destruiria. Aqui só tocamos exatamente nas colunas-alvo de dados brutos.
   colunasAtivas.forEach(alvo => {
-    const offset = colMap[alvo.nome] - minCol;
+    const colNum   = colMap[alvo.nome];
+    const colRange = aba.getRange(2, colNum, nRows, 1);
+    const colVals  = colRange.getValues();
+    const colForms = colRange.getFormulas();
+    const colFmts  = colRange.getNumberFormats();
+
+    const outVals = colVals.map(r => r.slice());
+    const outFmts = colFmts.map(r => r.slice());
+    let mudou = false;
+
     for (let r = 0; r < nRows; r++) {
-      if (allFormulas[r][offset] !== '') continue;
-      const valorBruto = allValues[r][offset];
+      // Preserva células com fórmula (restaura a fórmula original, não o valor)
+      if (colForms[r][0] !== '') { outVals[r][0] = colForms[r][0]; continue; }
+      const valorBruto = colVals[r][0];
       if (valorBruto === '' || valorBruto === null) continue;
 
-      outValues[r][offset]  = (alvo.tipo === 'data')
+      outVals[r][0] = (alvo.tipo === 'data')
         ? Sanitizador.dataPura(valorBruto)
         : Sanitizador.numeroPuro(valorBruto);
-      outFormats[r][offset] = alvo.mascara;
+      outFmts[r][0] = alvo.mascara;
       celulasLavadas++;
+      mudou = true;
+    }
+
+    if (mudou) {
+      colRange.setValues(outVals);
+      try { colRange.setNumberFormats(outFmts); } catch(e) {}
     }
   });
-
-  // Batch write: 2 API calls instead of rows × cols × 4
-  dataRange.setValues(outValues);
-  dataRange.setNumberFormats(outFormats);
 
   SpreadsheetApp.getUi().alert(`✅ Limpeza Concluída!\nForam lavadas e convertidas ${celulasLavadas} células.`);
 }

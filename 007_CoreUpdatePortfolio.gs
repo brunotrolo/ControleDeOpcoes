@@ -151,35 +151,21 @@ const PortfolioUpdater = {
       const alvosAtivos = colunasAlvo.filter(a => colMap[a.nome]);
       if (alvosAtivos.length === 0) return;
 
-      // Batch read: single call covers all target columns
-      const colNums = alvosAtivos.map(a => colMap[a.nome]);
-      const minCol = Math.min(...colNums);
-      const maxCol = Math.max(...colNums);
-      const span = aba.getRange(linha, minCol, 1, maxCol - minCol + 1);
-      const formulas = span.getFormulas()[0];
-      const valores  = span.getValues()[0];
-
-      const newValues  = valores.slice();
-      const newFormats = valores.map(() => '');
-      let hasChanges   = false;
-
+      // ⚠️ Escreve SOMENTE nas colunas-alvo, célula a célula. NUNCA gravar um
+      // range contíguo (span): entre as colunas-alvo (QUANTITY..STRIKE) existem
+      // colunas de FÓRMULA (TOTAL_PREMIUM, ID_TRADE, ID_STRATEGY = P, Q, R) que
+      // seriam destruídas por um setValues de span. Só tocamos no que é alvo.
       alvosAtivos.forEach(alvo => {
-        const offset = colMap[alvo.nome] - minCol;
-        if (formulas[offset] !== "") return;
-        const valorBruto = valores[offset];
+        const cel = aba.getRange(linha, colMap[alvo.nome]);
+        if (cel.getFormula() !== "") return;            // não toca em fórmula
+        const valorBruto = cel.getValue();
         if (valorBruto === "" || valorBruto === null) return;
 
-        newValues[offset]  = (alvo.tipo === "data")
+        cel.setValue((alvo.tipo === "data")
           ? Sanitizador.dataPura(valorBruto)
-          : Sanitizador.numeroPuro(valorBruto);
-        newFormats[offset] = alvo.mascara;
-        hasChanges = true;
+          : Sanitizador.numeroPuro(valorBruto));
+        try { cel.setNumberFormat(alvo.mascara); } catch(e) {}
       });
-
-      if (hasChanges) {
-        span.setValues([newValues]);
-        try { span.setNumberFormats([newFormats]); } catch(e) {}
-      }
     }
 };
 
