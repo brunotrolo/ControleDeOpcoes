@@ -219,6 +219,9 @@ function apiAdicionarLinhas(nomeAba, dadosMatriz) {
       }
     }
 
+    // Se a 1ª coluna já for fórmula, não há onde gravar com segurança
+    if (safeMaxCols < 1) throw new Error("Coluna 1 contém fórmula; nada pode ser gravado com segurança nesta aba.");
+
     // Normaliza todas as linhas para exatamente safeMaxCols colunas (trim/pad)
     const writeCols  = safeMaxCols;
     const normalizado = dadosMatriz.map(function(row) {
@@ -358,7 +361,7 @@ function apiExcluirLinhasEmLote(nomeAba, listaLinhas) {
 function apiLimparAba(nomeAba, manterLinhasTop = 1, mensagemAuditoria = null) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName(nomeAba);
+    const sheet = getPlanilhaDinamica(ss, nomeAba); // case-insensitive (consistente com o resto)
     if (!sheet) throw new Error(`Aba [${nomeAba}] não existe no banco de dados.`);
 
     const lastRow = sheet.getLastRow();
@@ -600,9 +603,15 @@ function parsearImagemOrdens(base64, mimeType) {
     // Fallback de data: hoje em ISO (mesmo formato do Ctrl+V) para o Sanitizador preservar a hora
     var hojeISO = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss");
     var linhas = ordens.map(function(o) {
+      // Tolerante a vírgula decimal caso o modelo desobedeça o formato ("1,34" → 1.34)
+      var parsePreco = function(v) {
+        if (v === null || v === undefined || v === '') return '';
+        var n = parseFloat(String(v).replace(',', '.'));
+        return isNaN(n) ? '' : n;
+      };
       var qty    = parseInt(o.quantity) || 0;
-      var price  = (o.entry_price !== null && o.entry_price !== undefined && o.entry_price !== '') ? parseFloat(o.entry_price) : '';
-      var last   = (o.last_price  !== null && o.last_price  !== undefined && o.last_price  !== '') ? parseFloat(o.last_price)  : price;
+      var price  = parsePreco(o.entry_price);
+      var last   = (o.last_price !== null && o.last_price !== undefined && o.last_price !== '') ? parsePreco(o.last_price) : price;
       // Title case: "Executada" (1ª maiúscula, resto minúsculo)
       var statusRaw = String(o.status || 'Executada');
       var status = statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1).toLowerCase();

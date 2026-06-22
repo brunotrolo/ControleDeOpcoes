@@ -165,8 +165,10 @@ window.Agregador = {
            return acc + getNum(op.premioMedio || op.entryPrice);
         }, 0);
 
-        // 4. ROC E TERMÔMETRO
-        cofre.yieldEstrategia = (cofre.premiosRecebidos / cofre.custoTotalAlocado) * 100;
+        // 4. ROC E TERMÔMETRO (guarda contra custoTotalAlocado <= 0 -> Infinity/NaN)
+        cofre.yieldEstrategia = cofre.custoTotalAlocado > 0
+          ? (cofre.premiosRecebidos / cofre.custoTotalAlocado) * 100
+          : 0;
         cofre.progressoCampanha = cofre.yieldEstrategia;
         
         // Cotação Atual

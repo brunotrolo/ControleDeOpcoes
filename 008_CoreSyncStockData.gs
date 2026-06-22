@@ -171,7 +171,7 @@ const StockDataSync = {
           // SysLogger.log(this._serviceName, "WARN", `API Response VAZIO/ERRO: Nenhum dado retornado para ${ticker}`);
         }
         
-        if (tickersAlvo.length > 5 && i % 5 === 0) Utilities.sleep(600); 
+        if (tickersAlvo.length > 5 && i > 0 && i % 5 === 0) Utilities.sleep(600);
       });
 
       updatesEmLote.forEach(update => {

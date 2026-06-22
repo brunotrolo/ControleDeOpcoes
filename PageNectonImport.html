@@ -643,7 +643,9 @@ window.NectonImport = {
 
         if (line.includes('\t')) {
           const numCols = line.split('\t').map(c => c.trim());
-          if (numCols.length >= 8 && i >= 4) {
+          // Precisa de 10 campos: o código acessa numCols[8] (LAST_PREMIUM) e
+          // numCols[9] (ORDER_DATE). Threshold menor gravava ordem sem data.
+          if (numCols.length >= 10 && i >= 4) {
             let direcao = lines[i - 1].trim().toUpperCase();
             // Necton adicionou coluna "Bolsa" (ex: "B3") na mesma linha que o Tipo,
             // separada por tab: "B3\tLimitada\t". Ignoramos a bolsa pegando o último
@@ -694,6 +696,7 @@ window.NectonImport = {
     },
 
     salvar() {
+      if (this.isSaving) return; // anti reentrância: evita inserção duplicada por duplo clique
       if (this.parsedData.length === 0) return;
       this.isSaving = true;
 

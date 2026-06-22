@@ -79,9 +79,14 @@ const Sanitizador = {
     // CRITICO: new Date("2026-04-17") interpreta como UTC midnight.
     // No fuso America/Sao_Paulo (UTC-3) isso vira 2026-04-16T21:00 -- um dia antes.
     // Fix: detectar formato ISO YYYY-MM-DD e construir via componentes locais.
-    const isoData = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    // Preserva a HORA quando presente (ex: "2026-06-05T14:14:00") — senão a hora
+    // da ordem (import via print) seria zerada.
+    const isoData = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?/);
     if (isoData) {
-      return new Date(parseInt(isoData[1]), parseInt(isoData[2]) - 1, parseInt(isoData[3]));
+      return new Date(
+        parseInt(isoData[1]), parseInt(isoData[2]) - 1, parseInt(isoData[3]),
+        parseInt(isoData[4] || 0), parseInt(isoData[5] || 0), parseInt(isoData[6] || 0)
+      );
     }
     const d = new Date(valor);
     return isNaN(d.getTime()) ? "" : d;
@@ -112,12 +117,13 @@ const Sanitizador = {
       return `${y}-${m}-${d}`;
     }
 
-    // Fallback: tenta converter e extrair
+    // Fallback: tenta converter e extrair (componentes LOCAIS, como o ramo Date acima,
+    // para não retornar o dia anterior no fuso America/Sao_Paulo)
     const d = new Date(valor);
     if (!isNaN(d.getTime())) {
-      const y = d.getUTCFullYear();
-      const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-      const dd = String(d.getUTCDate()).padStart(2, '0');
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
       return `${y}-${m}-${dd}`;
     }
 

@@ -476,6 +476,10 @@ window.BancoDeDadosView = {
 
     solicitarExclusao(rowIndex) {
       const rowData = this.hot.getSourceDataAtRow(rowIndex);
+      if (!rowData || !rowData.linhaRealExcel) {
+        this.ultimoErro = 'Linha inválida para exclusão. Recarregue a aba e tente de novo.';
+        return;
+      }
       const linhaReal = rowData.linhaRealExcel;
       const primeiraColuna = this.hot.getColHeader(0);
       const valorA = rowData[primeiraColuna] || 'Registro';
@@ -497,11 +501,21 @@ window.BancoDeDadosView = {
         }
       });
 
-      const linhasReais = linhasGrelha.map(idx => this.hot.getSourceDataAtRow(idx).linhaRealExcel);
+      // Guarda contra linhas sem linhaRealExcel (spare row, re-render em curso)
+      const linhasValidas = [];
+      const linhasReais = [];
+      linhasGrelha.forEach(idx => {
+        const rd = this.hot.getSourceDataAtRow(idx);
+        if (rd && rd.linhaRealExcel) { linhasValidas.push(idx); linhasReais.push(rd.linhaRealExcel); }
+      });
+      if (linhasReais.length === 0) {
+        this.ultimoErro = 'Nenhuma linha válida selecionada para exclusão.';
+        return;
+      }
 
       this.modalExcluir.mensagem = `Excluir ${linhasReais.length} registos selecionados?`;
       this.modalExcluir.visivel = true;
-      this.modalExcluir.callback = () => this.executarExclusaoLote(linhasGrelha, linhasReais);
+      this.modalExcluir.callback = () => this.executarExclusaoLote(linhasValidas, linhasReais);
       this.$nextTick(() => { if (window.refreshIcons) window.refreshIcons(); });
     },
 
@@ -593,6 +607,13 @@ window.BancoDeDadosView = {
 
     abrirModalAdd() {
       if (!this.hot) return;
+      // COCKPIT: linhas 1-9 são o painel de resumo e o cabeçalho fica na linha 10.
+      // apiAdicionarLinhas insere na 1ª célula vazia da coluna A, o que cairia em
+      // cima do painel. Bloqueamos "Novo" nessa aba para não corromper o resumo.
+      if (this.abaAtiva.toUpperCase() === 'COCKPIT') {
+        this.ultimoErro = 'Inserção manual desabilitada no COCKPIT (aba de resumo com fórmulas).';
+        return;
+      }
       const colunas = this.hot.getColHeader();
       const novoForm = {};
       colunas.forEach(col => { if (col !== 'AÇÕES') novoForm[col] = ""; });
@@ -614,10 +635,11 @@ window.BancoDeDadosView = {
       if (typeof google !== 'undefined') {
         google.script.run
           .withSuccessHandler((res) => {
-            if (res.success) {
+            if (res && res.success) {
+               this.syncBusy = false;
                this.$emit('refresh');
             }
-            else { alert("Erro ao salvar: " + res.error); this.syncBusy = false; }
+            else { alert("Erro ao salvar: " + (res ? res.error : 'desconhecido')); this.syncBusy = false; }
           })
           .withFailureHandler((err) => {
             alert("Falha de comunicação com o servidor.");

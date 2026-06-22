@@ -304,6 +304,13 @@ window.AutomationView = {
   mounted() {
     if (window.refreshIcons) window.refreshIcons();
   },
+  unmounted() {
+    // Evita timers órfãos se o usuário sair da tela com um fluxo em andamento
+    clearInterval(this._elapsedTimer);
+    clearInterval(this._pollTimer);
+    this._elapsedTimer = null;
+    this._pollTimer    = null;
+  },
   methods: {
     exportarCSV(nomeAba, label) {
       if (this.exportandoCSV) return;

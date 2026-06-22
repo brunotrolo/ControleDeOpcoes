@@ -23,7 +23,8 @@ const CoreScannerOptions = {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
 
     // 1. LEITURA DE REGRAS E SELIC (Config_Global)
-    const abaConfig = ss.getSheetByName("Config_Global");
+    const abaConfig = getPlanilhaDinamica(ss, "Config_Global");
+    if (!abaConfig) throw new Error("Aba Config_Global não encontrada.");
     const dataConfig = abaConfig.getDataRange().getValues();
     const config = {};
     dataConfig.forEach(row => { if (row[0]) config[String(row[0]).trim()] = row[1]; });

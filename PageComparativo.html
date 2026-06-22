@@ -1557,7 +1557,7 @@ window.ComparativoView = {
     calcNotional(c)      { return (c.api.strike || 0) * (c.qtd || 0); },
     calcLucroPct(c)      { return c.api.strike ? (c.api.premioAtual / c.api.strike) * 100 : 0; },
     getDistanciaNumerica(c) {
-      if (!c.api.strike) return -999;
+      if (!c.api.strike || !c.api.spotPrice) return -999; // sem spot -> evita NaN%
       const be = c.api.strike - c.api.premioAtual;
       return ((c.api.spotPrice - be) / c.api.spotPrice) * 100;
     },
