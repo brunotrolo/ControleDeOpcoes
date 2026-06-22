@@ -72,8 +72,9 @@ const PortfolioUpdater = {
             rangeEnriquecido.setValues([dadosNovos]);
             
             // B) APLICA MÁSCARA VISUAL NO STRIKE E VENCIMENTO
+            // STRIKE em formato plain (0.00) — idêntico às linhas antigas (ex: 69.30)
             try {
-              aba.getRange(item.linha, col["TICKER"] + 2).setNumberFormat('"R$ "#,##0.00'); 
+              aba.getRange(item.linha, col["TICKER"] + 2).setNumberFormat('0.00');
               aba.getRange(item.linha, col["TICKER"] + 1).setNumberFormat('dd/MM/yyyy');
             } catch(eVisual) { }
 
@@ -138,12 +139,14 @@ const PortfolioUpdater = {
     * 🧹 NORMALIZAÇÃO RETROATIVA: Varre os dados que você colou da corretora.
     */
     _normalizarDadosImportados(aba, linha, colMap) {
+      // Formato PLAIN (sem "R$" nem separador de milhar) para ficar idêntico às
+      // linhas antigas e garantir que as fórmulas (ex: TOTAL_PREMIUM) leiam números.
       const colunasAlvo = [
-        { nome: "ENTRY_PRICE",  tipo: "numero", mascara: '"R$ "#,##0.00' },
-        { nome: "LAST_PREMIUM", tipo: "numero", mascara: '"R$ "#,##0.00' },
-        { nome: "LIMIT_PRICE",  tipo: "numero", mascara: '"R$ "#,##0.00' },
-        { nome: "STRIKE",       tipo: "numero", mascara: '"R$ "#,##0.00' },
-        { nome: "QUANTITY",     tipo: "numero", mascara: '#,##0' },
+        { nome: "ENTRY_PRICE",  tipo: "numero", mascara: '0.00' },
+        { nome: "LAST_PREMIUM", tipo: "numero", mascara: '0.00' },
+        { nome: "LIMIT_PRICE",  tipo: "numero", mascara: '0.00' },
+        { nome: "STRIKE",       tipo: "numero", mascara: '0.00' },
+        { nome: "QUANTITY",     tipo: "numero", mascara: '0' },
         { nome: "ORDER_DATE",   tipo: "data",   mascara: 'dd/MM/yyyy HH:mm:ss' },
         { nome: "EXPIRY",       tipo: "data",   mascara: 'dd/MM/yyyy' }
       ];

@@ -593,22 +593,28 @@ window.NectonImport = {
         return;
       }
 
-      // 🔧 FIX Quantidade: remove separador de milhar BR (ponto) antes de enviar
-      // "1.500" da Necton → "1500" (o GAS recebe como número inteiro limpo)
+      // 🔧 FIX Quantidade: retorna SEMPRE inteiro numérico limpo.
+      // A Necton mudou o separador de milhar de ponto ("3.200") para vírgula
+      // ("3,200"). Ambos viram 3200. Enviar número (não texto) garante que a
+      // fórmula TOTAL_PREMIUM (QUANTITY × ENTRY_PRICE) funcione no Sheets.
       const sanitizarQtd = (val) => {
-        if (!val || val === '-') return val;
+        if (val === null || val === undefined || val === '' || val === '-') return val;
         const s = String(val).trim();
-        // Padrão milhar BR: dígitos + ponto + exatamente 3 dígitos
-        return s.replace(/^(\d{1,3})(\.\d{3})+$/, m => m.replace(/\./g, ''));
+        if (/^\d{1,3}([.,]\d{3})+$/.test(s)) return parseInt(s.replace(/[.,]/g, ''), 10); // milhar . ou ,
+        if (/^\d+$/.test(s)) return parseInt(s, 10);
+        return s;
       };
 
-      // 🔧 FIX Preço: normaliza vírgula decimal BR para ponto (ex: "0,15" → "0.15")
-      // Evita que o GAS interprete como texto ou erro
+      // 🔧 FIX Preço: retorna SEMPRE número limpo (float).
+      // Remove prefixo "R$ " (novo formato Necton) e trata vírgula/ponto decimal.
+      // Sem isso o valor entra como texto e quebra as fórmulas do banco.
       const sanitizarPreco = (val) => {
-        if (!val || val === '-') return val;
-        const s = String(val).trim();
-        // Formato BR com vírgula decimal: "0,15" → 0.15
-        if (/^\d+,\d+$/.test(s)) return parseFloat(s.replace(',', '.'));
+        if (val === null || val === undefined || val === '' || val === '-') return val;
+        let s = String(val).trim().replace(/R\$/gi, '').replace(/\s/g, '');
+        if (s === '' || s === '-') return val;
+        if (/^\d{1,3}(\.\d{3})+,\d+$/.test(s)) return parseFloat(s.replace(/\./g, '').replace(',', '.')); // 1.234,56
+        if (/^\d+,\d+$/.test(s)) return parseFloat(s.replace(',', '.'));   // 0,50
+        if (/^\d+(\.\d+)?$/.test(s)) return parseFloat(s);                 // 0.50 ou 5
         return s;
       };
 

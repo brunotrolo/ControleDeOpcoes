@@ -148,12 +148,13 @@ function limparPassadoNecton() {
   });
 
   // 🚀 AGORA COM TIPAGEM: Define se o alvo é 'numero' ou 'data'
+  // Formato PLAIN (sem "R$" nem milhar) — idêntico às linhas antigas.
   const colunasAlvo = [
-    { nome: "ENTRY_PRICE", tipo: "numero", mascara: '"R$ "#,##0.00' },
-    { nome: "LAST_PREMIUM", tipo: "numero", mascara: '"R$ "#,##0.00' },
-    { nome: "LIMIT_PRICE", tipo: "numero", mascara: '"R$ "#,##0.00' },
-    { nome: "STRIKE", tipo: "numero", mascara: '"R$ "#,##0.00' },
-    { nome: "QUANTITY", tipo: "numero", mascara: '#,##0' },
+    { nome: "ENTRY_PRICE", tipo: "numero", mascara: '0.00' },
+    { nome: "LAST_PREMIUM", tipo: "numero", mascara: '0.00' },
+    { nome: "LIMIT_PRICE", tipo: "numero", mascara: '0.00' },
+    { nome: "STRIKE", tipo: "numero", mascara: '0.00' },
+    { nome: "QUANTITY", tipo: "numero", mascara: '0' },
     { nome: "ORDER_DATE", tipo: "data", mascara: 'dd/MM/yyyy HH:mm:ss' },
     { nome: "EXPIRY", tipo: "data", mascara: 'dd/MM/yyyy' }
   ];
