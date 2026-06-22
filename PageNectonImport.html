@@ -370,6 +370,22 @@
       </div>
     </div>
 
+    <!-- BANNER DE ERRO DE EXCLUSÃO -->
+    <transition name="fade">
+      <div v-if="deletarErro"
+        style="position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:9998;max-width:32rem;width:calc(100% - 2rem);
+               background:#fff1f2;color:#be123c;border:1px solid #fecdd3;border-radius:var(--radius-lg);
+               padding:0.875rem 1.25rem;display:flex;align-items:flex-start;gap:0.75rem;box-shadow:0 8px 30px rgba(0,0,0,0.15);">
+        <i data-lucide="alert-circle" style="width:18px;height:18px;flex-shrink:0;margin-top:0.1rem;"></i>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.2rem;">Erro na Exclusão</div>
+          <div style="font-size:0.8rem;word-break:break-word;">{{ deletarErro }}</div>
+        </div>
+        <button @click="deletarErro = null"
+          style="flex-shrink:0;background:none;border:none;color:#be123c;cursor:pointer;padding:0.1rem;line-height:1;">✕</button>
+      </div>
+    </transition>
+
     <!-- MODAL — estrutura idêntica à versão estável, sem teleport -->
     <transition name="fade">
       <div v-if="modalExclusao.isOpen"
@@ -436,6 +452,7 @@ window.NectonImport = {
       printErro: null,
       isSaving: false,
       isDeleting: null,
+      deletarErro: null,
       salvandoStatus: null,
       modalExclusao: { isOpen: false, linhaReal: null, ativo: null },
       filtro: { ticker: '', category: '', direcao: '', statusOp: '', buscaAtivo: '' },
@@ -793,31 +810,52 @@ window.NectonImport = {
     },
 
     executarExclusao() {
-      // 🚀 FIX: Trava matemática que evita enviar comandos "null" para o Sheets
       const linhaAlvo = parseInt(this.modalExclusao.linhaReal, 10);
-      const ativoAlvo = String(this.modalExclusao.ativo);
-      
+      const ativoAlvo = String(this.modalExclusao.ativo || '');
+
       this.isDeleting = linhaAlvo;
-      this.fecharModal(); 
-      
-      if (isNaN(linhaAlvo) || linhaAlvo < 1) {
-          alert("Erro de segurança: Número de linha inválido.");
-          this.isDeleting = null;
-          return;
+      this.deletarErro = null;
+      this.fecharModal();
+
+      if (isNaN(linhaAlvo) || linhaAlvo < 2) {
+        this.deletarErro = `Linha inválida: ${this.modalExclusao.linhaReal} (esperado ≥ 2)`;
+        console.error('[Necton] Linha inválida:', this.modalExclusao);
+        this.isDeleting = null;
+        return;
       }
-      
+
+      if (!ativoAlvo) {
+        this.deletarErro = 'Ativo não identificado — não é possível confirmar a linha.';
+        console.error('[Necton] Ativo vazio:', this.modalExclusao);
+        this.isDeleting = null;
+        return;
+      }
+
+      console.log('[Necton] EXCLUINDO →', { aba: 'NECTON_IMPORT', linha: linhaAlvo, ativo: ativoAlvo });
+
       google.script.run
         .withSuccessHandler((res) => {
+          console.log('[Necton] RESPOSTA do servidor:', JSON.stringify(res));
           if (res && res.success) {
-            this.$emit('refresh'); 
+            // Remove da lista local para atualizar a UI imediatamente
+            if (this.dadosLocais) {
+              this.dadosLocais = this.dadosLocais.filter(d => d.linhaReal !== linhaAlvo);
+            }
+            // Resync completo após breve delay para pegar a versão consolidada do Sheets
+            setTimeout(() => this.carregarDados(), 1200);
+            this.$emit('refresh');
           } else {
-            alert(res.error || "Erro ao excluir a linha.");
+            const msg = (res && res.error) ? res.error : 'Erro desconhecido';
+            this.deletarErro = msg;
+            console.error('[Necton] ERRO na exclusão:', msg);
           }
-          this.isDeleting = null; 
+          this.isDeleting = null;
         })
         .withFailureHandler((err) => {
-          alert("Falha de conexão com a planilha: " + err);
-          this.isDeleting = null; 
+          const msg = 'Falha de conexão: ' + String(err);
+          this.deletarErro = msg;
+          console.error('[Necton] FAILURE:', err);
+          this.isDeleting = null;
         })
         .apiExcluirLinhaSegura('NECTON_IMPORT', linhaAlvo, ativoAlvo);
     },
