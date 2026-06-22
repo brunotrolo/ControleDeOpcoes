@@ -125,11 +125,11 @@
           <span class="t-label-sm" style="font-weight:700;text-transform:uppercase;letter-spacing:0.18em;color:var(--text-tertiary);">Pré-visualização da Inserção</span>
           <div style="display:flex;align-items:center;gap:1rem;">
             <!-- filtro canceladas/expiradas (só relevante no modo print) -->
-            <label v-if="parsedData.some(r => r[1]==='CANCELADA' || r[1]==='EXPIRADA')"
+            <label v-if="parsedData.some(r => ['CANCELADA','EXPIRADA'].includes(String(r[1]).toUpperCase()))"
               style="display:inline-flex;align-items:center;gap:0.4rem;cursor:pointer;" class="t-label-sm">
               <input type="checkbox" v-model="mostrarCanceladasExpiradas"
                 style="width:0.85rem;height:0.85rem;accent-color:var(--brand-indigo);">
-              <span style="color:var(--text-muted);">Mostrar canceladas/expiradas ({{ parsedData.filter(r=>r[1]==='CANCELADA'||r[1]==='EXPIRADA').length }})</span>
+              <span style="color:var(--text-muted);">Mostrar canceladas/expiradas ({{ parsedData.filter(r=>['CANCELADA','EXPIRADA'].includes(String(r[1]).toUpperCase())).length }})</span>
             </label>
             <span class="t-label-sm" style="color:var(--text-muted);">Revise os dados antes de gravar</span>
           </div>
@@ -160,7 +160,7 @@
                     style="background:transparent;border:none;border-bottom:1px solid transparent;font-size:inherit;color:inherit;outline:none;cursor:pointer;font-family:inherit;"
                     onfocus="this.style.borderBottomColor='var(--brand-indigo)'"
                     onblur="this.style.borderBottomColor='transparent'">
-                    <option>EXECUTADA</option><option>CANCELADA</option><option>EXPIRADA</option>
+                    <option>Executada</option><option>Cancelada</option><option>Expirada</option>
                   </select>
                 </td>
                 <td style="padding:0.4rem 0.6rem;" class="t-label-sm">{{ item.row[2] }}</td>
@@ -516,7 +516,7 @@ window.NectonImport = {
         .map(function(row, i) { return { row: row, origIdx: i }; })
         .filter(function(item) {
           return self.mostrarCanceladasExpiradas ||
-                 (item.row[1] !== 'CANCELADA' && item.row[1] !== 'EXPIRADA');
+                 !['CANCELADA','EXPIRADA'].includes(String(item.row[1]).toUpperCase());
         });
     },
     isLoadingHistory() {
@@ -652,7 +652,9 @@ window.NectonImport = {
             const tipo = tipoLine.includes('\t')
               ? (tipoLine.split('\t').map(p => p.trim()).filter(p => p).pop() || tipoLine.trim())
               : tipoLine.trim();
-            let status  = lines[i - 3].trim().toUpperCase();
+            // Title case: "EXECUTADA"/"executada" → "Executada" (1ª maiúscula, resto minúsculo)
+            const statusRaw = lines[i - 3].trim();
+            let status = statusRaw ? statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1).toLowerCase() : statusRaw;
             let ativo   = lines[i - 4].trim().toUpperCase();
 
             const row = [

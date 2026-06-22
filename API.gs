@@ -582,7 +582,9 @@ function parsearImagemOrdens(base64, mimeType) {
     var linhas = ordens.map(function(o) {
       var qty    = parseInt(o.quantity) || 0;
       var price  = (o.entry_price !== null && o.entry_price !== undefined) ? parseFloat(o.entry_price) : '';
-      var status = String(o.status || 'EXECUTADA').toUpperCase();
+      // Title case: "Executada" (1ª maiúscula, resto minúsculo)
+      var statusRaw = String(o.status || 'Executada');
+      var status = statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1).toLowerCase();
       var side   = String(o.side   || '').toUpperCase();
       return [
         String(o.option_ticker || '').toUpperCase(), // [0]  ATIVO
@@ -590,7 +592,7 @@ function parsearImagemOrdens(base64, mimeType) {
         'LIMITE',                                      // [2]  ORDER_TYPE
         side,                                          // [3]  SIDE (V / C)
         qty, qty, qty,                                 // [4-6] QTY_OFFER / QTY_DISPLAY / QUANTITY
-        status === 'EXECUTADA' ? 0 : qty,             // [7]  QTY_REMAINING
+        status.toUpperCase() === 'EXECUTADA' ? 0 : qty, // [7]  QTY_REMAINING
         price, '', '', price, '',                      // [8-12] LIMIT/DISP/ENTRY/LAST
         hoje                                           // [13] ORDER_DATE
       ];
