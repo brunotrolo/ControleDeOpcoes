@@ -131,8 +131,11 @@ window.Agregador = {
           cofre.detalhamento.push(t);
 
           if (status === 'EXERCIDA') {
+            const qtdAntes = cofre.quantidadeAcoesAtuais;
             cofre.quantidadeAcoesAtuais -= qtd;
-            const custoProporcional = (cofre.custoTotalAlocado / (cofre.quantidadeAcoesAtuais + qtd)) * qtd;
+            const custoProporcional = qtdAntes > 0
+              ? (cofre.custoTotalAlocado / qtdAntes) * qtd
+              : 0;
             cofre.custoTotalAlocado -= custoProporcional;
           }
         }

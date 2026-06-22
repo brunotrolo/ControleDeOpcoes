@@ -259,13 +259,19 @@ const app = createApp({
             const cockpitBruto  = db.value.cockpit       || [];
             const dadosTecnicos = db.value.dadosTendencia || [];
 
-            const cockpitEnriquecido = cockpitBruto.map(op => {
-              const ticker = String(op.tickerAtivo || '').trim().toUpperCase();
-              const infoTecnica = dadosTecnicos.find(t =>
-                String(t.tickerAtivo || '').trim().toUpperCase() === ticker && ticker !== ''
-              ) || {};
-              return Object.assign({}, op, infoTecnica);
-            });
+            let cockpitEnriquecido;
+            if (dadosTecnicos.length === 0) {
+              cockpitEnriquecido = cockpitBruto;
+            } else {
+              const tecnicoMap = new Map(
+                dadosTecnicos.map(t => [String(t.tickerAtivo || '').trim().toUpperCase(), t])
+              );
+              cockpitEnriquecido = cockpitBruto.map(op => {
+                const ticker = String(op.tickerAtivo || '').trim().toUpperCase();
+                const infoTecnica = (ticker && tecnicoMap.has(ticker)) ? tecnicoMap.get(ticker) : {};
+                return Object.assign({}, op, infoTecnica);
+              });
+            }
 
             // [C1] Atribuimos o novo db — o computed cuboOlap recalcula
             // automaticamente apos essa mudanca, sem necessidade de

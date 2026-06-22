@@ -158,35 +158,43 @@ function limparPassadoNecton() {
     { nome: "EXPIRY", tipo: "data", mascara: 'dd/MM/yyyy' }
   ];
 
+  const colunasAtivas = colunasAlvo.filter(a => colMap[a.nome]);
+  if (colunasAtivas.length === 0) return;
+
+  const colNums = colunasAtivas.map(a => colMap[a.nome]);
+  const minCol  = Math.min(...colNums);
+  const maxCol  = Math.max(...colNums);
+  const nCols   = maxCol - minCol + 1;
+  const nRows   = maxRows - 1;
+
+  // Batch read: 3 API calls for the entire data range
+  const dataRange  = aba.getRange(2, minCol, nRows, nCols);
+  const allValues  = dataRange.getValues();
+  const allFormulas = dataRange.getFormulas();
+  const allFormats = dataRange.getNumberFormats();
+
+  const outValues  = allValues.map(r => r.slice());
+  const outFormats = allFormats.map(r => r.slice());
   let celulasLavadas = 0;
 
-  for (let linha = 2; linha <= maxRows; linha++) {
-    colunasAlvo.forEach(alvo => {
-      const colIndex = colMap[alvo.nome];
-      if (colIndex) {
-        const range = aba.getRange(linha, colIndex);
-        
-        if (range.getFormula() !== "") return;
+  colunasAtivas.forEach(alvo => {
+    const offset = colMap[alvo.nome] - minCol;
+    for (let r = 0; r < nRows; r++) {
+      if (allFormulas[r][offset] !== '') continue;
+      const valorBruto = allValues[r][offset];
+      if (valorBruto === '' || valorBruto === null) continue;
 
-        const valorBruto = range.getValue();
-        
-        if (valorBruto !== "" && valorBruto !== null) {
-          
-          // O CÉREBRO: Se for data, usa a lavanderia de datas. Senão, de números.
-          const valorNormalizado = (alvo.tipo === "data") 
-                              ? Sanitizador.dataPura(valorBruto) 
-                              : Sanitizador.numeroPuro(valorBruto);
-          
-          range.setValue(valorNormalizado);
-          try {
-            range.setNumberFormat(alvo.mascara);
-          } catch (eVisual) { }
-          
-          celulasLavadas++;
-        }
-      }
-    });
-  }
+      outValues[r][offset]  = (alvo.tipo === 'data')
+        ? Sanitizador.dataPura(valorBruto)
+        : Sanitizador.numeroPuro(valorBruto);
+      outFormats[r][offset] = alvo.mascara;
+      celulasLavadas++;
+    }
+  });
+
+  // Batch write: 2 API calls instead of rows × cols × 4
+  dataRange.setValues(outValues);
+  dataRange.setNumberFormats(outFormats);
 
   SpreadsheetApp.getUi().alert(`✅ Limpeza Concluída!\nForam lavadas e convertidas ${celulasLavadas} células.`);
 }

@@ -392,7 +392,8 @@ function apiIntegracaoOpLab(ticker) {
     try {
       var cfg = ConfigManager.get();
       if (cfg && cfg['Taxa_Selic_Anual']) {
-        taxaJuros = parseFloat(String(cfg['Taxa_Selic_Anual']).replace(',', '.')) * 100 || 14.75;
+        const selicParsed = parseFloat(String(cfg['Taxa_Selic_Anual']).replace(',', '.'));
+        taxaJuros = isNaN(selicParsed) ? 14.75 : selicParsed * 100;
       }
     } catch (eCfg) {
       // silencioso -- usa o fallback

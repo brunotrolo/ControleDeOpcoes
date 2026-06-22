@@ -159,20 +159,27 @@ const PortfolioUpdater = {
       const formulas = span.getFormulas()[0];
       const valores  = span.getValues()[0];
 
+      const newValues  = valores.slice();
+      const newFormats = valores.map(() => '');
+      let hasChanges   = false;
+
       alvosAtivos.forEach(alvo => {
         const offset = colMap[alvo.nome] - minCol;
         if (formulas[offset] !== "") return;
         const valorBruto = valores[offset];
         if (valorBruto === "" || valorBruto === null) return;
 
-        const valorNormalizado = (alvo.tipo === "data")
+        newValues[offset]  = (alvo.tipo === "data")
           ? Sanitizador.dataPura(valorBruto)
           : Sanitizador.numeroPuro(valorBruto);
-
-        const cell = aba.getRange(linha, colMap[alvo.nome]);
-        cell.setValue(valorNormalizado);
-        try { cell.setNumberFormat(alvo.mascara); } catch(e) {}
+        newFormats[offset] = alvo.mascara;
+        hasChanges = true;
       });
+
+      if (hasChanges) {
+        span.setValues([newValues]);
+        try { span.setNumberFormats([newFormats]); } catch(e) {}
+      }
     }
 };
 
