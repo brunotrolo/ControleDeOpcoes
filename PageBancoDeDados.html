@@ -269,6 +269,7 @@ window.BancoDeDadosView = {
       if (!this.dbRaw) return;
 
       const nomeReal = Object.keys(this.dbRaw).find(k => k.toUpperCase() === this.abaAtiva.toUpperCase());
+      if (nomeReal) this.abaAtiva = nomeReal; // normaliza para o nome real da aba (case-sensitive)
       let matriz = this.dbRaw[nomeReal];
 
       if (!matriz || matriz.length < 2) {

@@ -290,7 +290,8 @@ function apiSetCellValue(nomeAba, linha, coluna, valor) {
 
 function apiExcluirLinhaSegura(nomeAba, numeroLinha, valorEsperadoColunaA) {
   try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nomeAba);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = getPlanilhaDinamica(ss, nomeAba);
     if (!sheet) throw new Error(`Aba [${nomeAba}] não existe no banco de dados.`);
 
     const valorPlanilha = String(sheet.getRange(numeroLinha, 1).getDisplayValue() || "").trim().toUpperCase();
@@ -312,7 +313,7 @@ function apiExcluirLinhaSegura(nomeAba, numeroLinha, valorEsperadoColunaA) {
 function apiExcluirLinhasEmLote(nomeAba, listaLinhas) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName(nomeAba);
+    const sheet = getPlanilhaDinamica(ss, nomeAba);
     if (!sheet) throw new Error("Aba não encontrada: " + nomeAba);
 
     // FILTRO DE SEGURANÇA: Remove nulos, converte para inteiro e ordena de baixo para cima
