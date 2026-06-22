@@ -231,8 +231,7 @@ window.BancoDeDadosView = {
       stats: { totalOps: 0, qtdTotal: 0, plTotal: 0, nocionalTotal: 0 },
       modalExcluir: { visivel: false, mensagem: '', callback: null },
       modalAdd: { visivel: false, form: {} },
-      ultimoErro: null,
-      _precisaAtualizar: false
+      ultimoErro: null
     };
   },
 
@@ -241,8 +240,7 @@ window.BancoDeDadosView = {
       handler(novoDB) {
         if (novoDB && Object.keys(novoDB).length > 0) {
           this.listaAbas = Object.keys(novoDB).filter(k => k !== 'resumoGerencial');
-          if (!this.hot || this._precisaAtualizar) {
-            this._precisaAtualizar = false;
+          if (!this.hot) {
             this.switchAba();
           }
         }
@@ -520,16 +518,8 @@ window.BancoDeDadosView = {
             console.log('[BancoDeDados] RESPOSTA:', JSON.stringify(res));
             this.syncBusy = false;
             if (res && res.success) {
-              // Remoção otimista da linha (guarda contra instância destruída)
-              try {
-                if (this.hot && !this.hot.isDestroyed) this.hot.alter('remove_row', rowIndex);
-              } catch(e) {
-                console.warn('[BancoDeDados] hot.alter falhou, forçando rebuild:', e.message);
-              }
-              this.atualizarSumario();
-              // Garante que o watcher vai reconstruir a grid com dados frescos do servidor
-              this._precisaAtualizar = true;
               this.$emit('refresh');
+              this._recarregarDadosAbaAtual();
             } else {
               const msg = (res && res.error) ? res.error : 'Erro desconhecido';
               this.ultimoErro = msg;
@@ -555,18 +545,9 @@ window.BancoDeDadosView = {
             console.log('[BancoDeDados] RESPOSTA LOTE:', JSON.stringify(res));
             this.syncBusy = false;
             if (res && res.success) {
-              // Remoção otimista (guarda contra instância destruída)
-              try {
-                if (this.hot && !this.hot.isDestroyed) {
-                  linhasGrelha.sort((a, b) => b - a).forEach(idx => this.hot.alter('remove_row', idx));
-                }
-              } catch(e) {
-                console.warn('[BancoDeDados] hot.alter lote falhou, forçando rebuild:', e.message);
-              }
               this.selecaoAtual = [];
-              this.$nextTick(() => this.atualizarSumario());
-              this._precisaAtualizar = true;
               this.$emit('refresh');
+              this._recarregarDadosAbaAtual();
             } else {
               const msg = (res && res.error) ? res.error : 'Erro desconhecido';
               this.ultimoErro = msg;
@@ -580,6 +561,34 @@ window.BancoDeDadosView = {
           })
           .apiExcluirLinhasEmLote(this.abaAtiva, linhasReais);
       } else { this.syncBusy = false; }
+    },
+
+    _recarregarDadosAbaAtual() {
+      // COCKPIT has header at row 10 — lerAbaComoJSON assumes row 1, won't work
+      if (this.abaAtiva.toUpperCase() === 'COCKPIT') {
+        this.syncBusy = false;
+        return;
+      }
+      if (typeof google === 'undefined') { this.syncBusy = false; return; }
+      const abaNome = this.abaAtiva;
+      google.script.run
+        .withSuccessHandler((rows) => {
+          this.syncBusy = false;
+          if (!rows || !Array.isArray(rows)) return;
+          if (rows.length === 0) {
+            if (this.hot) { this.hot.destroy(); this.hot = null; }
+            return;
+          }
+          const headers = Object.keys(rows[0]).filter(k => k !== '_linhaReal');
+          const dadosSaneados = rows.map(raw => {
+            const obj = { linhaRealExcel: raw._linhaReal || 0 };
+            headers.forEach(h => { if (h) obj[h] = (raw[h] !== undefined) ? raw[h] : ''; });
+            return obj;
+          });
+          this.renderGrade(dadosSaneados);
+        })
+        .withFailureHandler(() => { this.syncBusy = false; })
+        .lerAbaComoJSON(abaNome);
     },
 
     abrirModalAdd() {
