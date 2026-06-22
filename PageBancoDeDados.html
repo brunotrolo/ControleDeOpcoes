@@ -231,16 +231,20 @@ window.BancoDeDadosView = {
       stats: { totalOps: 0, qtdTotal: 0, plTotal: 0, nocionalTotal: 0 },
       modalExcluir: { visivel: false, mensagem: '', callback: null },
       modalAdd: { visivel: false, form: {} },
-      ultimoErro: null
+      ultimoErro: null,
+      _precisaAtualizar: false
     };
   },
-  
+
   watch: {
     dbRaw: {
       handler(novoDB) {
         if (novoDB && Object.keys(novoDB).length > 0) {
           this.listaAbas = Object.keys(novoDB).filter(k => k !== 'resumoGerencial');
-          if (!this.hot) this.switchAba();
+          if (!this.hot || this._precisaAtualizar) {
+            this._precisaAtualizar = false;
+            this.switchAba();
+          }
         }
       },
       immediate: true,
@@ -271,6 +275,13 @@ window.BancoDeDadosView = {
   mounted() {
     if (this.dbRaw && Object.keys(this.dbRaw).length > 0) {
       this.switchAba();
+    }
+  },
+
+  beforeUnmount() {
+    if (this.hot) {
+      try { this.hot.destroy(); } catch(e) {}
+      this.hot = null;
     }
   },
 
@@ -509,8 +520,15 @@ window.BancoDeDadosView = {
             console.log('[BancoDeDados] RESPOSTA:', JSON.stringify(res));
             this.syncBusy = false;
             if (res && res.success) {
-              this.hot.alter('remove_row', rowIndex);
+              // Remoção otimista da linha (guarda contra instância destruída)
+              try {
+                if (this.hot && !this.hot.isDestroyed) this.hot.alter('remove_row', rowIndex);
+              } catch(e) {
+                console.warn('[BancoDeDados] hot.alter falhou, forçando rebuild:', e.message);
+              }
               this.atualizarSumario();
+              // Garante que o watcher vai reconstruir a grid com dados frescos do servidor
+              this._precisaAtualizar = true;
               this.$emit('refresh');
             } else {
               const msg = (res && res.error) ? res.error : 'Erro desconhecido';
@@ -537,9 +555,17 @@ window.BancoDeDadosView = {
             console.log('[BancoDeDados] RESPOSTA LOTE:', JSON.stringify(res));
             this.syncBusy = false;
             if (res && res.success) {
-              linhasGrelha.sort((a, b) => b - a).forEach(idx => this.hot.alter('remove_row', idx));
+              // Remoção otimista (guarda contra instância destruída)
+              try {
+                if (this.hot && !this.hot.isDestroyed) {
+                  linhasGrelha.sort((a, b) => b - a).forEach(idx => this.hot.alter('remove_row', idx));
+                }
+              } catch(e) {
+                console.warn('[BancoDeDados] hot.alter lote falhou, forçando rebuild:', e.message);
+              }
               this.selecaoAtual = [];
               this.$nextTick(() => this.atualizarSumario());
+              this._precisaAtualizar = true;
               this.$emit('refresh');
             } else {
               const msg = (res && res.error) ? res.error : 'Erro desconhecido';
