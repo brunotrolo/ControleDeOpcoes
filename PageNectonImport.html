@@ -911,7 +911,7 @@ window.NectonImport = {
       files.forEach(function(file, i) {
         var reader = new FileReader();
         reader.onload = function(e) {
-          self._comprimirImagem(e.target.result, 1200, 0.82, function(compressed) {
+          self._comprimirImagem(e.target.result, 1568, 0.82, function(compressed) {
             resultado[i] = { preview: compressed, base64: compressed.split(',')[1], mime: 'image/jpeg', nome: file.name };
             processadas++;
             if (processadas === total) {
@@ -936,10 +936,12 @@ window.NectonImport = {
 
     _analisarProximaImagem(idx, acumulado) {
       if (idx >= this.imagensSelecionadas.length) {
-        // Deduplicar por [ativo + data]
+        // Deduplicar por [ativo + data + lado + qtd + preço] — só remove a MESMA
+        // ordem fotografada em prints sobrepostos, preservando ordens distintas
+        // do mesmo ticker (ex: ITUBV475 V 100 e ITUBV475 V 700).
         var vistas = {};
         var dedup  = acumulado.filter(function(row) {
-          var chave = row[0] + '|' + row[13];
+          var chave = [row[0], row[13], row[3], row[6], row[11]].join('|');
           if (vistas[chave]) return false;
           vistas[chave] = true;
           return true;

@@ -516,6 +516,16 @@ function apiIntegracaoOpLab(ticker) {
   }
 }
 
+// Converte "dd/MM/yyyy HH:mm[:ss]" (coluna Data do print) para ISO
+// "yyyy-MM-ddTHH:mm:ss" — mesmo formato que o Ctrl+V envia, para o Sheets
+// interpretar como data/hora e o Sanitizador preservar a hora. Sem match,
+// devolve o fallback (hoje em ISO).
+function _nectonDataParaISO(dataStr, fallbackISO) {
+  var m = String(dataStr || '').trim().match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (m) return m[3] + '-' + m[2] + '-' + m[1] + 'T' + m[4] + ':' + m[5] + ':' + (m[6] || '00');
+  return fallbackISO;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // parsearImagemOrdens — Claude Vision: extrai ordens de um print da corretora
 // Recebe base64 puro (sem prefixo data:) e o mime type da imagem.
@@ -527,23 +537,25 @@ function parsearImagemOrdens(base64, mimeType) {
     if (!claudeKey) return { success: false, error: 'CLAUDE_API_KEY não configurada nas Script Properties' };
 
     var prompt = [
-      'Analise esta imagem de ordens de opções de uma corretora brasileira.',
+      'Analise esta imagem de ordens de opções de uma corretora brasileira (Necton Home Broker).',
       'Extraia TODAS as ordens visíveis e retorne SOMENTE um JSON válido, sem markdown, sem texto extra:',
-      '{"ordens":[{"option_ticker":"VALES795","status":"EXECUTADA","side":"V","quantity":1000,"entry_price":1.34}]}',
+      '{"ordens":[{"option_ticker":"VALES795","status":"EXECUTADA","side":"V","quantity":1000,"entry_price":1.34,"last_price":1.45,"order_date":"05/06/2026 14:14"}]}',
       '',
       'Regras de extração:',
       '- option_ticker: código exato da opção (ex: VALES795, PRIOR635, CSNAF702)',
       '- status: normalize para exatamente EXECUTADA, CANCELADA ou EXPIRADA',
       '- side: "V" para venda (badge vermelho com V), "C" para compra (badge azul com C)',
-      '- quantity: número inteiro sem pontos separadores (ex: 1.000 → 1000)',
-      '- entry_price: use o campo "Preço médio" como decimal com ponto (ex: R$ 1,3400 → 1.34). Se não houver use "Preço". Se nenhum disponível use null',
+      '- quantity: número inteiro sem separador de milhar (ex: 1.000 ou 1,000 → 1000)',
+      '- entry_price: campo "Preço médio" (P. médio) como decimal com ponto (ex: R$ 1,3400 → 1.34). Se não houver use "Preço". Se nenhum, use null',
+      '- last_price: campo "Último Preço" (Último) como decimal com ponto. Se não houver, repita o entry_price',
+      '- order_date: data e hora da coluna "Data" EXATAMENTE no formato "dd/MM/yyyy HH:mm" (ex: 05/06/2026 14:14). Se não houver, omita o campo',
       '- Inclua TODAS as ordens visíveis, independente do status',
       '- Retorne APENAS o JSON, sem nenhum texto adicional'
     ].join('\n');
 
     var payload = {
       model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
+      max_tokens: 4096,
       messages: [{ role: 'user', content: [
         { type: 'text', text: prompt },
         { type: 'image', source: { type: 'base64', media_type: mimeType || 'image/jpeg', data: base64 } }
@@ -560,11 +572,12 @@ function parsearImagemOrdens(base64, mimeType) {
     for (var attempt = 0; attempt < 3; attempt++) {
       try {
         response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', fetchOpts);
-        if (response.getResponseCode() !== 429) break;
+        var rc = response.getResponseCode();
+        if (rc !== 429 && rc < 500) break; // sucesso ou erro não-retentável (4xx exceto 429)
       } catch (eFetch) {
         if (attempt === 2) throw new Error('Falha de conexão com Claude API: ' + eFetch.message);
       }
-      Utilities.sleep(Math.pow(2, attempt + 1) * 1000); // 2s, 4s
+      if (attempt < 2) Utilities.sleep(Math.pow(2, attempt + 1) * 1000); // 2s, 4s — sem dormir após a última
     }
     if (!response) return { success: false, error: 'Sem resposta da Claude API após 3 tentativas.' };
 
@@ -574,27 +587,36 @@ function parsearImagemOrdens(base64, mimeType) {
     var respJson = JSON.parse(response.getContentText());
     var texto = (respJson.content && respJson.content[0] && respJson.content[0].text) ? respJson.content[0].text.trim() : '';
     texto = texto.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
+    // Robustez: isola do primeiro { ao último } caso o modelo adicione texto extra
+    var ini = texto.indexOf('{'), fim = texto.lastIndexOf('}');
+    if (ini >= 0 && fim > ini) texto = texto.substring(ini, fim + 1);
 
-    var ordens = JSON.parse(texto).ordens || [];
+    var parsed;
+    try { parsed = JSON.parse(texto); }
+    catch (eParse) { return { success: false, error: 'JSON inválido do Claude (possível resposta truncada). Tente um print com menos ordens.' }; }
+    var ordens = parsed.ordens || [];
     if (!Array.isArray(ordens)) return { success: false, error: 'Resposta inesperada: sem array de ordens' };
 
-    var hoje = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm');
+    // Fallback de data: hoje em ISO (mesmo formato do Ctrl+V) para o Sanitizador preservar a hora
+    var hojeISO = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd'T'HH:mm:ss");
     var linhas = ordens.map(function(o) {
       var qty    = parseInt(o.quantity) || 0;
-      var price  = (o.entry_price !== null && o.entry_price !== undefined) ? parseFloat(o.entry_price) : '';
+      var price  = (o.entry_price !== null && o.entry_price !== undefined && o.entry_price !== '') ? parseFloat(o.entry_price) : '';
+      var last   = (o.last_price  !== null && o.last_price  !== undefined && o.last_price  !== '') ? parseFloat(o.last_price)  : price;
       // Title case: "Executada" (1ª maiúscula, resto minúsculo)
       var statusRaw = String(o.status || 'Executada');
       var status = statusRaw.charAt(0).toUpperCase() + statusRaw.slice(1).toLowerCase();
       var side   = String(o.side   || '').toUpperCase();
+      var orderDate = _nectonDataParaISO(o.order_date, hojeISO); // data REAL do print
       return [
         String(o.option_ticker || '').toUpperCase(), // [0]  ATIVO
         status,                                        // [1]  STATUS
-        'LIMITE',                                      // [2]  ORDER_TYPE
+        'Limitada',                                    // [2]  ORDER_TYPE (idêntico ao Ctrl+V)
         side,                                          // [3]  SIDE (V / C)
         qty, qty, qty,                                 // [4-6] QTY_OFFER / QTY_DISPLAY / QUANTITY
         status.toUpperCase() === 'EXECUTADA' ? 0 : qty, // [7]  QTY_REMAINING
-        price, '', '', price, '',                      // [8-12] LIMIT/DISP/ENTRY/LAST
-        hoje                                           // [13] ORDER_DATE
+        price, '', '', price, last,                    // [8-12] LIMIT/DISP/ENTRY/LAST (Último separado)
+        orderDate                                      // [13] ORDER_DATE (data/hora real, ISO)
       ];
     });
 
