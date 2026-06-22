@@ -199,15 +199,36 @@ function exportarAbaCSV(nomeAba) {
  */
 function apiAdicionarLinhas(nomeAba, dadosMatriz) {
   try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(nomeAba);
+    const ss    = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = getPlanilhaDinamica(ss, nomeAba);
     if (!sheet) throw new Error(`Aba [${nomeAba}] não existe no banco de dados.`);
     if (!dadosMatriz || dadosMatriz.length === 0) return { success: true, message: "Nenhum dado para inserir." };
 
-    // Limita o scan à área com conteúdo (getLastRow), não ao tamanho físico da aba
-    // (getMaxRows pode ser 1M+). Gaps por clearContent() ainda são detectados dentro
-    // da área de dados.
+    // Determina o limite seguro de colunas para escrita: para antes da primeira coluna
+    // que contenha fórmula na linha 2 (colunas de fórmula não devem ser sobrescritas).
+    // Se a aba estiver vazia ou a linha 2 não tiver fórmulas, usa o comprimento do array.
+    const lastCol   = sheet.getLastColumn();
+    let safeMaxCols = dadosMatriz[0].length;
+    if (lastCol > 0 && sheet.getLastRow() >= 2) {
+      const formulas2 = sheet.getRange(2, 1, 1, lastCol).getFormulas()[0];
+      for (let c = 0; c < formulas2.length; c++) {
+        if (formulas2[c] !== '') {
+          safeMaxCols = Math.min(safeMaxCols, c); // para ANTES da coluna com fórmula
+          break;
+        }
+      }
+    }
+
+    // Normaliza todas as linhas para exatamente safeMaxCols colunas (trim/pad)
+    const writeCols  = safeMaxCols;
+    const normalizado = dadosMatriz.map(function(row) {
+      const r = row.slice(0, writeCols);
+      while (r.length < writeCols) r.push('');
+      return r;
+    });
+
     const lastDataRow = sheet.getLastRow();
-    let startRow = lastDataRow + 1; // fallback: append após última linha com conteúdo
+    let startRow = lastDataRow + 1;
     if (lastDataRow > 0) {
       const colA = sheet.getRange(1, 1, lastDataRow, 1).getValues();
       for (let i = 0; i < colA.length; i++) {
@@ -218,10 +239,10 @@ function apiAdicionarLinhas(nomeAba, dadosMatriz) {
       }
     }
 
-    sheet.getRange(startRow, 1, dadosMatriz.length, dadosMatriz[0].length).setValues(dadosMatriz);
+    sheet.getRange(startRow, 1, normalizado.length, writeCols).setValues(normalizado);
     SpreadsheetApp.flush();
 
-    return { success: true, message: `${dadosMatriz.length} linhas adicionadas em [${nomeAba}] a partir da linha ${startRow}.` };
+    return { success: true, message: `${normalizado.length} linhas adicionadas em [${nomeAba}] a partir da linha ${startRow}.` };
   } catch (e) {
     return { success: false, error: e.message };
   }
