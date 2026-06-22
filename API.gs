@@ -143,6 +143,7 @@ function lerAbaComoJSON(nomeAba) {
       if (linha.every(function(cel) { return String(cel).trim() === ''; })) continue;
 
       var obj = {};
+      obj._linhaReal = i + 1; // número real da linha na planilha (linha 1 = cabeçalho)
       cabecalho.forEach(function(col, j) {
         if (col) obj[col] = linha[j] !== undefined ? linha[j] : '';
       });

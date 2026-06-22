@@ -727,7 +727,7 @@ window.NectonImport = {
           self.dadosLocais = rows.map(function(raw, index) {
             if (!mapa) return raw; // fallback: usa raw direto se Tradutor nao disponivel
             var obj = {};
-            obj.linhaRealExcel = index + 2; // linha 1 = cabecalho, dados comecam na 2
+            obj.linhaReal = raw._linhaReal || (index + 2); // usa linha real do Sheets (corrige linhas vazias intercaladas)
             Object.keys(mapa).forEach(function(colOriginal) {
               var regra = mapa[colOriginal];
               var valor = raw[colOriginal];
