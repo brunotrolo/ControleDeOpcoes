@@ -646,7 +646,7 @@ window.NectonImport = {
             const tipo = tipoLine.includes('\t')
               ? (tipoLine.split('\t').map(p => p.trim()).filter(p => p).pop() || tipoLine.trim())
               : tipoLine.trim();
-            let status  = lines[i - 3].trim();
+            let status  = lines[i - 3].trim().toUpperCase();
             let ativo   = lines[i - 4].trim().toUpperCase();
 
             const row = [
