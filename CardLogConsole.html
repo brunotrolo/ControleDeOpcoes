@@ -1,4 +1,4 @@
-<template id="log-console-template">
+<template id="card-log-console-template">
   <div style="width:100%;background:var(--surface-base);border:1px solid var(--border-default);border-radius:var(--radius-xl);overflow:hidden;box-shadow:var(--shadow-sm);font-family:'JetBrains Mono',monospace;">
 
     <!-- HEADER DO TERMINAL -->
@@ -82,11 +82,11 @@
 </style>
 
 <script>
-window.LogConsole = {
+window.CardLogConsole = {
   props: {
     logs: { type: Array, default: () => [] }
   },
-  template: '#log-console-template',
+  template: '#card-log-console-template',
   data() {
     return {
       logsLocais: null,
