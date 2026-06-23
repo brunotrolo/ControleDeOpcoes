@@ -1,0 +1,120 @@
+name: Undeploy GAS DEV (limpar versões)
+
+# ─────────────────────────────────────────────────────────────────
+# Remove TODOS os deployments versionados do projeto GAS DEV e limpa
+# a lista. Preserva o deployment @HEAD (o implícito, sem versionNumber),
+# que é o que mantém a URL "sempre-último-código" funcionando.
+#
+# Por que existe:
+#   O GAS limita a 20 deployments versionados por script. Quando a lista
+#   enche, novos deploys falham. Este workflow zera a lista sob demanda.
+#
+# Disparo: SOMENTE manual.
+#   Actions → Undeploy GAS DEV (limpar versões) → Run workflow
+#   Para confirmar, digite LIMPAR no campo "confirmar".
+#
+# Reusa o Secret CLASPRC_JSON (mesmas credenciais OAuth do deploy).
+# ─────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmar:
+        description: 'Digite LIMPAR para confirmar a remoção de todas as versões'
+        required: true
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  undeploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.confirmar == 'LIMPAR' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Write clasp credentials
+        run: echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
+
+      - name: Remover todos os deployments versionados via API
+        run: |
+          set -e
+
+          # Renova o access token a partir do refresh token (mesmas credenciais do clasp)
+          CLIENT_ID=$(node -e "console.log(require(process.env.HOME+'/.clasprc.json').oauth2ClientSettings.clientId)")
+          CLIENT_SECRET=$(node -e "console.log(require(process.env.HOME+'/.clasprc.json').oauth2ClientSettings.clientSecret)")
+          REFRESH_TOKEN=$(node -e "console.log(require(process.env.HOME+'/.clasprc.json').token.refresh_token)")
+          ACCESS_TOKEN=$(curl -s https://oauth2.googleapis.com/token \
+            -d client_id="$CLIENT_ID" -d client_secret="$CLIENT_SECRET" \
+            -d refresh_token="$REFRESH_TOKEN" -d grant_type=refresh_token \
+            | node -e "let r='';process.stdin.on('data',d=>r+=d);process.stdin.on('end',()=>console.log(JSON.parse(r).access_token||''))")
+
+          if [ -z "$ACCESS_TOKEN" ]; then
+            echo "::error::Falha ao renovar o access token. Verifique o Secret CLASPRC_JSON."
+            exit 1
+          fi
+
+          SCRIPT_ID=$(node -e "console.log(require('./.clasp.json').scriptId)")
+          echo "Script ID: $SCRIPT_ID"
+
+          # Lista todos os deployments
+          curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
+            "https://script.googleapis.com/v1/projects/$SCRIPT_ID/deployments?pageSize=50" \
+            > /tmp/deployments.json
+
+          TOTAL_ANTES=$(node -e "console.log((require('/tmp/deployments.json').deployments||[]).length)")
+          echo "Total de deployments antes: $TOTAL_ANTES"
+
+          # IDs dos deployments VERSIONADOS (têm versionNumber). O @HEAD não tem
+          # versionNumber e é preservado para manter a URL do dev funcionando.
+          node -e "
+            const deps = require('/tmp/deployments.json').deployments || [];
+            for (const d of deps) {
+              const v = d.deploymentConfig && d.deploymentConfig.versionNumber;
+              if (v) console.log(d.deploymentId);
+            }
+          " > /tmp/ids_para_remover.txt
+
+          QTD=$(grep -c . /tmp/ids_para_remover.txt || true)
+          echo "Deployments versionados a remover: $QTD"
+
+          REMOVIDOS=0
+          FALHAS=0
+          while IFS= read -r DEP_ID; do
+            [ -z "$DEP_ID" ] && continue
+            HTTP_CODE=$(curl -s -o /tmp/del_resp.json -w "%{http_code}" \
+              -X DELETE -H "Authorization: Bearer $ACCESS_TOKEN" \
+              "https://script.googleapis.com/v1/projects/$SCRIPT_ID/deployments/$DEP_ID")
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "  ✓ Removido: $DEP_ID"
+              REMOVIDOS=$((REMOVIDOS+1))
+            else
+              echo "  ✗ Falha ($HTTP_CODE) ao remover: $DEP_ID"
+              cat /tmp/del_resp.json
+              FALHAS=$((FALHAS+1))
+            fi
+          done < /tmp/ids_para_remover.txt
+
+          # Relê a lista para confirmar
+          curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
+            "https://script.googleapis.com/v1/projects/$SCRIPT_ID/deployments?pageSize=50" \
+            > /tmp/deployments_depois.json
+          TOTAL_DEPOIS=$(node -e "console.log((require('/tmp/deployments_depois.json').deployments||[]).length)")
+
+          echo "### 🧹 Undeploy GAS DEV concluído" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployments antes:** $TOTAL_ANTES" >> $GITHUB_STEP_SUMMARY
+          echo "- **Versões removidas:** $REMOVIDOS" >> $GITHUB_STEP_SUMMARY
+          echo "- **Falhas:** $FALHAS" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployments restantes (deve ser o @HEAD):** $TOTAL_DEPOIS" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$FALHAS" -gt 0 ]; then
+            echo "::warning::$FALHAS deployment(s) não puderam ser removidos. Veja os logs acima."
+          fi
