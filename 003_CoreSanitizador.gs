@@ -33,8 +33,11 @@ const Sanitizador = {
     } else if (s.includes('.')) {
       // Só tem ponto. Pode ser decimal US (1500.50) ou milhar BR s/ decimais (1.500)
       const partes = s.split('.');
-      // Se a última parte tiver exatamente 3 dígitos, assumimos que é milhar
-      if (partes.length > 1 && partes[partes.length - 1].length === 3) {
+      // Se a última parte tiver exatamente 3 dígitos, assumimos que é milhar...
+      // ...EXCETO quando a parte inteira é "0" (ex: "0.305"): milhar nunca começa
+      // com zero, então isso é decimal (prêmio de opção) e NÃO deve virar 305.
+      const inteiro = partes[0].replace('-', '');
+      if (partes.length > 1 && partes[partes.length - 1].length === 3 && inteiro !== '0' && inteiro !== '') {
         s = s.replace(/\./g, ''); // Arranca o milhar
       }
     }

@@ -524,6 +524,8 @@ function _screener_lerOpcoesPUT(ss) {
   var cfgSelic = ConfigManager.get();
   var selicStr = String(cfgSelic['Taxa_Selic_Anual'] || '0.1075').replace(',', '.');
   var SELIC    = parseFloat(selicStr) || 0.1075;
+  // Robustez de unidade: aceita "0,1415" (fração) OU "14,15" (pontos %)
+  if (SELIC > 1) SELIC = SELIC / 100;
 
   var result = [];
 

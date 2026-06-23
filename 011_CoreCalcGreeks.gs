@@ -101,7 +101,7 @@ const GreeksCalculator = {
       if (!abaCalc || !abaImport) throw new Error("Aba IMPORT ou CALC_GREEKS não encontrada.");
 
       // 🚀 NOVO: Captura Dinâmica da Selic
-      let irate = 0.1075; // Fallback
+      let irate = 0.1075; // Fallback (fração = 10,75% a.a.)
       if (abaConfig) {
         const configData = abaConfig.getDataRange().getValues();
         configData.forEach(row => {
@@ -110,6 +110,9 @@ const GreeksCalculator = {
           }
         });
       }
+      // Robustez de unidade: aceita "0,1415" (fração) OU "14,15" (pontos %).
+      // Selic anual nunca fica entre 1 e 100 como fração, então >1 ⇒ está em pontos.
+      if (irate > 1) irate = irate / 100;
 
       // Centralizado via DataUtils
       const colI       = DataUtils.getColMap(abaImport);

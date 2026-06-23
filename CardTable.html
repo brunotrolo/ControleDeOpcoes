@@ -297,8 +297,11 @@ window.CardTable = {
         numero: 'numero', number: 'numero', percentage: 'pct', texto: 'texto',
       };
       const tipo = tipoMap[type] || 'texto';
-      // percentage no CockpitTable sempre com 2 casas decimais
-      if (tipo === 'pct') return window.Formatador.pct(value, 2);
+      // percentage no CockpitTable sempre com 2 casas decimais.
+      // O Tradutor guarda percentual como FRAÇÃO (0.879); Formatador.pct espera
+      // PONTOS (87.9) — por isso multiplicamos por 100 aqui, alinhando a célula
+      // por-linha ao total do grupo (getGroupSum também faz *100).
+      if (tipo === 'pct') return window.Formatador.pct(value * 100, 2);
       return this.fmtAuto(value, tipo);
     },
 

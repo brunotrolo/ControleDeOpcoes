@@ -35,7 +35,9 @@ const CoreScannerOptions = {
 
     // Captura a Selic com fallback seguro
     const selicStr = config["Taxa_Selic_Anual"] || "0.1075";
-    const selic = Sanitizador.numeroPuro(String(selicStr).replace(',', '.')) || 0.1075;
+    let selic = Sanitizador.numeroPuro(String(selicStr).replace(',', '.')) || 0.1075;
+    // Robustez de unidade: aceita "0,1415" (fração) OU "14,15" (pontos %)
+    if (selic > 1) selic = selic / 100;
 
     SysLogger.log(this._serviceName, "START", ">>> INICIANDO RADAR & GREGAS <<<", `Venc: ${vencimentoAlvo} | Selic: ${(selic*100).toFixed(2)}%`);
 
