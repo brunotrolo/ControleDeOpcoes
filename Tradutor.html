@@ -1,4 +1,11 @@
 <script>
+// Caches de sessão — persistem enquanto a aba do browser estiver aberta.
+// As strings vindas do getDisplayValues() repetem os mesmos valores em centenas
+// de linhas (ex: mesmo strike em todas as opções de um ativo). O cache elimina
+// regex/split redundantes sem alterar nenhum resultado.
+const _moedaCache = new Map();
+const _dataCache  = new Map(); // armazena epoch (Number) para não compartilhar Date mutável
+
 window.Tradutor = {
   // 📖 A BÍBLIA DO TRADUTOR: Dicionário Global de Harmonização (Nexo 2026)
   // 🔧 REVISÃO COMPLETA: Todas as chaves alinhadas aos cabeçalhos reais da planilha
@@ -251,9 +258,14 @@ window.Tradutor = {
     const config = this.DICIONARIO[namespace] || { headerRowIndex: 0, map: {} };
     const headerIndex = config.headerRowIndex;
 
-    // Captura e normaliza os cabeçalhos reais da planilha
+    // Constrói Map de cabeçalho uma única vez por aba: O(colunas).
+    // Substitui cabecalhos.indexOf() que era O(colunas) por campo por linha.
     const rawHeaders = rawMatrix[headerIndex] || [];
-    const cabecalhos = rawHeaders.map(h => String(h).toUpperCase().trim());
+    const cabecalhoMap = new Map();
+    rawHeaders.forEach((h, i) => {
+      const norm = String(h || '').toUpperCase().trim();
+      if (norm) cabecalhoMap.set(norm, i);
+    });
 
     const corpoDados = rawMatrix.slice(headerIndex + 1);
     const dadosValidos = [];
@@ -268,11 +280,11 @@ window.Tradutor = {
       const objetoRow = {};
       objetoRow.linhaRealExcel = headerIndex + i + 2;
 
-      // Cruza o mapa do Dicionário com os índices do Cabeçalho
+      // Cruza o mapa do Dicionário com os índices do Cabeçalho via Map O(1)
       for (const [colunaOrig, regras] of Object.entries(config.map)) {
-        const idx = cabecalhos.indexOf(String(colunaOrig).toUpperCase().trim());
+        const idx = cabecalhoMap.get(String(colunaOrig).toUpperCase().trim());
 
-        if (idx !== -1) {
+        if (idx !== undefined) {
           objetoRow[regras.key] = this._sanitizarDado(row[idx], regras.type);
         } else if (regras.fallback !== undefined) {
           objetoRow[regras.key] = regras.fallback;
@@ -354,7 +366,11 @@ window.Tradutor = {
 
   _sanitizarMoeda(val) {
     if (typeof val === 'number') return val;
-    let s = String(val).trim().replace(/[R$\s]/gi, '');
+    const cacheKey = String(val);
+    const cached = _moedaCache.get(cacheKey);
+    if (cached !== undefined) return cached;
+
+    let s = cacheKey.trim().replace(/[R$\s]/gi, '');
 
     if (s.includes(',') && s.includes('.')) {
       // Ambos os separadores presentes — descobre qual é o decimal
@@ -378,14 +394,15 @@ window.Tradutor = {
         s = s.replace(/\./g, '').replace(',', '.');
       }
     } else if (s.includes('.')) {
-      // 🚨 TRAVA DE MILHAR BR: "1.000" ou "1.500" → remove pontos se todos os grupos têm 3 dígitos
+      // TRAVA DE MILHAR BR: "1.000" ou "1.500" → remove pontos se todos os grupos têm 3 dígitos
       const partes     = s.split('.');
       const isMilharBR = partes.length > 1 && partes.slice(1).every(p => p.length === 3);
       if (isMilharBR) s = s.replace(/\./g, '');
     }
 
-    const num = parseFloat(s);
-    return isNaN(num) ? 0 : num;
+    const num = isNaN(parseFloat(s)) ? 0 : parseFloat(s);
+    _moedaCache.set(cacheKey, num);
+    return num;
   },
 
   _sanitizarPercentual(val) {
@@ -407,7 +424,13 @@ window.Tradutor = {
     if (!val) return new Date(2099, 11, 31);
     if (val instanceof Date) return val;
 
-    let s = String(val).trim();
+    const cacheKey = String(val);
+    const cachedEpoch = _dataCache.get(cacheKey);
+    // Retorna new Date a partir do epoch cacheado — evita referência mutável compartilhada
+    if (cachedEpoch !== undefined) return new Date(cachedEpoch);
+
+    let s = cacheKey.trim();
+    let result;
     if (s.includes('/')) {
       const parts = s.split(' ');
       const dateParts = parts[0].split('/');
@@ -424,12 +447,17 @@ window.Tradutor = {
           mins  = parseInt(timeParts[1], 10) || 0;
           segs  = parseInt(timeParts[2], 10) || 0;
         }
-        return new Date(ano, mes, dia, horas, mins, segs);
+        result = new Date(ano, mes, dia, horas, mins, segs);
       }
     }
 
-    const d = new Date(val);
-    return isNaN(d.getTime()) ? new Date(2099, 11, 31) : d;
+    if (!result) {
+      const d = new Date(val);
+      result = isNaN(d.getTime()) ? new Date(2099, 11, 31) : d;
+    }
+
+    _dataCache.set(cacheKey, result.getTime());
+    return result;
   },
 
   _sanitizarBooleano(val) {
