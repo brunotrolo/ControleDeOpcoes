@@ -12,14 +12,17 @@
     <meta name="application-name" content="StockOps">
     <meta name="theme-color" content="#6366f1">
     <meta name="description" content="Portfolio de Opcoes B3">
+    <!-- Tailwind e Vue: síncronos — os scripts inline do body dependem deles durante o parsing -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 
-    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <!-- Lucide, Plotly e Handsontable: defer — só são usados após o Vue montar (mounted hooks).
+         O guard "if (window.lucide)" em refreshIcons() protege contra race condition. -->
+    <script defer src="https://unpkg.com/lucide@latest"></script>
+    <script defer src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/handsontable/dist/handsontable.full.min.js"></script>
 
     <?!= include('Styles'); ?>
 

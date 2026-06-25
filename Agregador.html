@@ -16,21 +16,24 @@ window.Agregador = {
 
     const tradesComRisco = this._enriquecerDados(tradesAtivos, db.calcGreeks);
 
+    // Calculado uma única vez e compartilhado entre resultadoStats e performanceStats
+    const resultadoData = this._calcularResultados(tradesComRisco);
+
     return {
       meta: { timestamp: new Date().toISOString(), status: 'CALCULATED' },
-      
+
       // === NOVO MÓDULO: GESTÃO DE CUSTÓDIA (WHEEL STRATEGY) ===
       custodiaWheel:            this._calcularWheelStrategy(cockpitFull),
-      
+
       // === MÓDULOS DE RISCO TRADICIONAIS ===
       resumoGlobal:             this._calcularMetricasGlobais(tradesComRisco),
       distribuicaoVencimentos:  this._calcularVencimentos(tradesComRisco),
       concentracaoRisco:        this._calcularConcentracao(tradesComRisco),
       moneynessStats:           this._calcularMoneyness(tradesComRisco),
       moneynessPorTipo:         this._calcularMoneynessPorTipo(tradesComRisco),
-      resultadoStats:           this._calcularResultados(tradesComRisco),
+      resultadoStats:           resultadoData,
       vencimentosDteStats:      this._calcularVencimentosDTE(tradesComRisco),
-      performanceStats:         this._calcularResultados(tradesComRisco),
+      performanceStats:         resultadoData,
       listaAtivas:              tradesComRisco
     };
   },
