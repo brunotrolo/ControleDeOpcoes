@@ -55,13 +55,8 @@ const PortfolioUpdater = {
 
       SysLogger.log(this._serviceName, "INFO", `Mapeamento: ${linhasParaProcessar.length} ativos pendentes.`, `Total analisado: ${maxRows}`);
 
-      if (linhasParaProcessar.length === 0) {
-        SysLogger.log(this._serviceName, "FINISH", ">>> CICLO ENCERRADO: Nada para enriquecer. <<<");
-        SysLogger.flush();
-        return;
-      }
-
       // 3. FASE DE EXECUÇÃO (LOOP BLINDADO)
+      // Mesmo sem novas linhas para enriquecer, segue para a Fase 2 (strikes ATIVO)
       linhasParaProcessar.forEach((item) => {
         try {
           const dadosNovos = this._fetchOptionData(item.optionTicker);
@@ -95,13 +90,17 @@ const PortfolioUpdater = {
         }
       });
 
+      // 4. FASE DE ATUALIZAÇÃO DE STRIKES (linhas já enriquecidas com STATUS_OP = ATIVO)
+      SysLogger.log(this._serviceName, "INFO", "Iniciando fase 2: atualização de strikes ATIVO...");
+      this._atualizarStrikesAtivos(aba, col, dataFull);
+
       const duracao = ((Date.now() - inicio) / 1000).toFixed(1);
       SysLogger.log(this._serviceName, "FINISH", `>>> CICLO FINALIZADO EM ${duracao}s <<<`, JSON.stringify({
         total: linhasParaProcessar.length,
         sucesso: tickersSucesso.length,
         erros: contagemErro
       }));
-      SysLogger.flush(); 
+      SysLogger.flush();
 
     } catch (e) {
       SysLogger.log(this._serviceName, "CRITICO", "FALHA NO MOTOR 006", String(e.message));
@@ -133,6 +132,80 @@ const PortfolioUpdater = {
       } catch (e) {
         return null;
       }
+    },
+
+    /**
+     * Fase 2: re-consulta a API OPLab para cada linha com STATUS_OP = "ATIVO"
+     * e corrige o STRIKE caso tenha sido alterado por ajuste corporativo.
+     * Somente a célula STRIKE é tocada — nenhuma outra coluna é modificada.
+     */
+    _atualizarStrikesAtivos(aba, col, dataFull) {
+      if (!col["STRIKE"] || !col["STATUS_OP"] || !col["OPTION_TICKER"] || !col["TICKER"]) {
+        SysLogger.log(this._serviceName, "AVISO", "Fase 2 abortada: coluna obrigatória ausente (STRIKE/STATUS_OP/OPTION_TICKER/TICKER).");
+        return;
+      }
+
+      const round2 = v => Math.round(Number(v) * 100) / 100;
+
+      const linhasAtivas = [];
+      for (let i = 0; i < dataFull.length; i++) {
+        const rowData  = dataFull[i];
+        const statusOp = Sanitizador.textoPuro(rowData[col["STATUS_OP"] - 1]);
+        const ticker   = rowData[col["TICKER"] - 1];
+        const optTicker = Sanitizador.textoPuro(rowData[col["OPTION_TICKER"] - 1]);
+        if (statusOp === "ATIVO" && ticker && optTicker) {
+          linhasAtivas.push({
+            linha:        i + 2,
+            optionTicker: optTicker,
+            strikeAtual:  round2(Sanitizador.numeroPuro(rowData[col["STRIKE"] - 1]))
+          });
+        }
+      }
+
+      SysLogger.log(this._serviceName, "INFO", `Fase 2: ${linhasAtivas.length} linha(s) ATIVO para verificar.`);
+      if (linhasAtivas.length === 0) return;
+
+      let qtdAtualizado  = 0;
+      let qtdSemAlteracao = 0;
+      let qtdErro        = 0;
+
+      linhasAtivas.forEach((item, idx) => {
+        try {
+          if (idx > 0 && idx % 5 === 0) Utilities.sleep(600);
+
+          const dadosApi = OplabService.getOptionDetails(item.optionTicker);
+          if (!dadosApi) {
+            qtdErro++;
+            SysLogger.log(this._serviceName, "AVISO",
+              `Fase 2: sem retorno API para ${item.optionTicker}`, `Linha ${item.linha}`);
+            return;
+          }
+
+          const strikeNovo = round2(Sanitizador.numeroPuro(dadosApi.strike));
+
+          if (strikeNovo !== item.strikeAtual) {
+            const cel = aba.getRange(item.linha, col["STRIKE"]);
+            cel.setValue(strikeNovo);
+            try { cel.setNumberFormat('0.00'); } catch(ef) {}
+            qtdAtualizado++;
+            SysLogger.log(this._serviceName, "SUCESSO",
+              `Fase 2: strike atualizado — ${item.optionTicker}`,
+              `${item.strikeAtual} → ${strikeNovo} (linha ${item.linha})`);
+          } else {
+            qtdSemAlteracao++;
+            SysLogger.log(this._serviceName, "INFO",
+              `Fase 2: strike OK — ${item.optionTicker}`,
+              `${item.strikeAtual} (sem alteração, linha ${item.linha})`);
+          }
+        } catch (e) {
+          qtdErro++;
+          SysLogger.log(this._serviceName, "ERRO",
+            `Fase 2: falha na linha ${item.linha} (${item.optionTicker})`, e.message);
+        }
+      });
+
+      SysLogger.log(this._serviceName, "FINISH",
+        `Fase 2 concluída: ${qtdAtualizado} atualizados, ${qtdSemAlteracao} sem alteração, ${qtdErro} erros.`);
     },
 
     /**
