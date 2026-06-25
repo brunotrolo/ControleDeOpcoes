@@ -34,11 +34,13 @@ function getDadosLight() {
       raw: {}
     };
 
-    abasEssenciais.forEach(nomeAba => {
-      const sheet = getPlanilhaDinamica(ss, nomeAba);
+    // Sprint 4: single getSheets() call → eliminates N redundant getSheets() + getLastRow() per sheet
+    const sheetsMap = _buildSheetsMap(ss);
+    abasEssenciais.forEach(function(nomeAba) {
+      const sheet = sheetsMap.get(String(nomeAba).toUpperCase());
       if (sheet) {
-        const lastRow = sheet.getLastRow();
-        data.raw[sheet.getName()] = lastRow === 0 ? [] : sheet.getDataRange().getDisplayValues();
+        const values = sheet.getDataRange().getDisplayValues();
+        data.raw[sheet.getName()] = (values.length === 1 && values[0][0] === '') ? [] : values;
       }
     });
 
@@ -75,11 +77,13 @@ function getAbasPesadas() {
 
     const data = { success: true, timestamp: new Date().toLocaleString('pt-BR'), raw: {} };
 
-    abasPesadas.forEach(nomeAba => {
-      const sheet = getPlanilhaDinamica(ss, nomeAba);
+    // Sprint 4: single getSheets() call → eliminates N redundant getSheets() + getLastRow() per sheet
+    const sheetsMap = _buildSheetsMap(ss);
+    abasPesadas.forEach(function(nomeAba) {
+      const sheet = sheetsMap.get(String(nomeAba).toUpperCase());
       if (sheet) {
-        const lastRow = sheet.getLastRow();
-        data.raw[sheet.getName()] = lastRow === 0 ? [] : sheet.getDataRange().getDisplayValues();
+        const values = sheet.getDataRange().getDisplayValues();
+        data.raw[sheet.getName()] = (values.length === 1 && values[0][0] === '') ? [] : values;
       }
     });
 
@@ -108,6 +112,19 @@ function getPlanilhaDinamica(planilhaAtiva, nomeProcurado) {
     }
   }
   return null;
+}
+
+/**
+ * Sprint 4 optimization: builds a Map<UPPERNAME, Sheet> from a single getSheets() call.
+ * Used by getDadosLight() and getAbasPesadas() to avoid per-sheet getSheets() overhead.
+ * getPlanilhaDinamica() is kept unchanged for all other callers.
+ */
+function _buildSheetsMap(ss) {
+  const map = new Map();
+  ss.getSheets().forEach(function(sheet) {
+    map.set(sheet.getName().toUpperCase(), sheet);
+  });
+  return map;
 }
 
 // ==========================================
