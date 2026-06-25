@@ -256,26 +256,11 @@ const app = createApp({
           try {
             const dadosTraduzidos = window.Tradutor.processarBancoCompleto(response.raw);
 
-            const cockpitBruto  = db.value.cockpit       || [];
-            const dadosTecnicos = db.value.dadosTendencia || [];
-
-            let cockpitEnriquecido;
-            if (dadosTecnicos.length === 0) {
-              cockpitEnriquecido = cockpitBruto;
-            } else {
-              const tecnicoMap = new Map(
-                dadosTecnicos.map(t => [String(t.tickerAtivo || '').trim().toUpperCase(), t])
-              );
-              cockpitEnriquecido = cockpitBruto.map(op => {
-                const ticker = String(op.tickerAtivo || '').trim().toUpperCase();
-                const infoTecnica = (ticker && tecnicoMap.has(ticker)) ? tecnicoMap.get(ticker) : {};
-                return Object.assign({}, op, infoTecnica);
-              });
-            }
-
             // [C1] Atribuimos o novo db — o computed cuboOlap recalcula
             // automaticamente apos essa mudanca, sem necessidade de
             // chamar Agregador.processarSumario() manualmente aqui.
+            // Nota: cockpit não muda na Fase 2 (dadosTendencia não existe
+            // em nenhuma das abas pesadas), portanto é reaproveitado direto.
             db.value = Object.assign({}, db.value, {
               dadosAtivos:    dadosTraduzidos.dadosAtivos    || [],
               logs:           dadosTraduzidos.logs            || [],
@@ -283,7 +268,6 @@ const app = createApp({
               dadosGreeks:    dadosTraduzidos.dadosGreeks     || [],
               necton:         dadosTraduzidos.necton          || [],
               detalhes:       dadosTraduzidos.detalhes        || [],
-              cockpit:        cockpitEnriquecido,
               raw:            Object.assign({}, db.value.raw || {}, response.raw || {})
             });
 
@@ -324,11 +308,13 @@ const app = createApp({
 
             const dadosTraduzidos = window.Tradutor.processarBancoCompleto(response.raw);
 
-            const cockpitExpresso = (dadosTraduzidos.cockpit || []).map(op =>
-              Object.assign({}, op, {
-                tickerAtivo: String(op.tickerAtivo || '').trim().toUpperCase()
-              })
-            );
+            // Mutação direta: os objetos vieram do Tradutor (recém criados),
+            // ainda não estão no db, portanto é seguro mutar no lugar —
+            // evita criar N cópias completas só para normalizar um campo.
+            const cockpitExpresso = (dadosTraduzidos.cockpit || []);
+            cockpitExpresso.forEach(op => {
+              op.tickerAtivo = String(op.tickerAtivo || '').trim().toUpperCase();
+            });
 
             const rawConfig   = response.raw['CONFIG_GLOBAL'] || response.raw['Config_Global'] || [];
             const configArray = rawConfig.slice(1)
