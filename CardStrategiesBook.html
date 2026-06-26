@@ -219,8 +219,8 @@
           <!-- Greeks -->
           <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-subtle);display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;">
             <div>
-              <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.3rem;">Delta Líq.</p>
-              <p class="t-value-sm" style="color:var(--text-primary);font-weight:700;">{{ fmtNum(est.deltaNet) }}</p>
+              <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.3rem;">Delta/lote</p>
+              <p class="t-value-sm" style="color:var(--text-primary);font-weight:700;">{{ fmtNum(est.deltaNet / 100) }}</p>
             </div>
             <div>
               <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.3rem;">Theta/d</p>
