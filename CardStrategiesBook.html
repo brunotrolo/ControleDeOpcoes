@@ -5,6 +5,14 @@
   /* Tabela de pernas: mais compacta para caber colunas */
   .csb-root table .t-label-sm { font-size: 0.68rem !important; }
   .csb-root table .t-value-sm { font-size: 0.74rem !important; }
+  /* Seção de métricas: fontes menores e espaçamento comprimido (reduz altura do card) */
+  .csb-root .csb-metrics { padding: 0.85rem 1rem !important; }
+  .csb-root .csb-metrics .t-label-sm { font-size: 0.72rem !important; }
+  .csb-root .csb-metrics .t-value-sm { font-size: 0.8rem !important; }
+  .csb-root .csb-metrics > div[style*="margin-top:1rem"] {
+    margin-top: 0.6rem !important;
+    padding-top: 0.6rem !important;
+  }
 </style>
 
 <template id="card-strategies-book-template">
@@ -45,7 +53,7 @@
       <div
         v-for="est in estrategiasFiltradas" :key="est.id"
         class="premium-card"
-        :style="isMobile ? 'width:85vw;' : 'width:420px;'"
+        :style="isMobile ? 'width:85vw;' : 'width:500px;'"
         style="flex:none;padding:0;overflow:hidden;border:1px solid var(--border-default);display:flex;flex-direction:column;"
       >
         <!-- Card Header: badge+ticker empilhados | DTE+data à direita -->
@@ -147,7 +155,7 @@
         </div>
 
         <!-- Métricas: layout vertical (label | valor em cada linha) -->
-        <div style="padding:1rem;display:flex;flex-direction:column;flex:1;">
+        <div class="csb-metrics" style="padding:1rem;display:flex;flex-direction:column;flex:1;">
 
           <!-- Fluxo na Abertura -->
           <p class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">Fluxo na Abertura</p>
