@@ -37,15 +37,16 @@
       </div>
     </div>
 
-    <!-- GRID DE CARDS: máximo 3 colunas -->
+    <!-- CARROSSEL DE CARDS: scroll horizontal (estrutura idêntica ao CardCarouselAtivas) -->
     <div v-if="estrategiasFiltradas.length > 0"
-      style="padding:1.25rem;display:grid;gap:1rem;"
-      :style="isMobile ? 'grid-template-columns:1fr;' : 'grid-template-columns:repeat(3,1fr);'"
+      style="padding:1.25rem;display:flex;gap:1rem;overflow-x:auto;
+             scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent;"
     >
       <div
         v-for="est in estrategiasFiltradas" :key="est.id"
         class="premium-card"
-        style="padding:0;overflow:hidden;border:1px solid var(--border-default);display:flex;flex-direction:column;"
+        :style="isMobile ? 'width:85vw;' : 'width:400px;'"
+        style="flex:none;padding:0;overflow:hidden;border:1px solid var(--border-default);display:flex;flex-direction:column;"
       >
         <!-- Card Header: badge+ticker empilhados | DTE+data à direita -->
         <div :style="'padding:0.875rem 1rem;display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;border-bottom:1px solid var(--border-subtle);background:' + est.corFundo + ';'">
@@ -270,9 +271,21 @@ window.CardStrategiesBook = {
         if (!grupos[id]) grupos[id] = [];
         grupos[id].push(t);
       });
+      // Ordena por data de vencimento (real) e, em empate, ticker alfabético
+      function vencTs(est) {
+        var d = est.vencimento;
+        if (!d) return 9999999999999;
+        var dt = (d instanceof Date) ? d : new Date(d);
+        if (isNaN(dt.getTime())) return 9999999999999;
+        return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).getTime();
+      }
       return Object.keys(grupos).map(function(id) {
         return self._construirEstrutura(id, grupos[id]);
-      }).sort(function(a, b) { return a.dte - b.dte; });
+      }).sort(function(a, b) {
+        var dd = vencTs(a) - vencTs(b);
+        if (dd !== 0) return dd;
+        return String(a.ticker || '').localeCompare(String(b.ticker || ''));
+      });
     },
 
     filtros: function() {
