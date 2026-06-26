@@ -42,15 +42,19 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.npm-global
-          key: clasp-${{ runner.os }}-node24
+          # Chave inclui a versão: clasp v3 quebra o formato clássico do CLASPRC_JSON
+          key: clasp-${{ runner.os }}-v2.4.2
 
       - name: Install clasp
         run: |
           mkdir -p ~/.npm-global
           npm config set prefix ~/.npm-global
+          # Pin em v2.4.2 — o secret CLASPRC_JSON usa o formato clássico (token +
+          # oauth2ClientSettings). clasp v3 exige o formato "tokens" e quebra a auth.
           if [ ! -f ~/.npm-global/bin/clasp ]; then
-            npm install -g @google/clasp
+            npm install -g @google/clasp@2.4.2
           fi
+          ~/.npm-global/bin/clasp --version || true
           echo "$HOME/.npm-global/bin" >> $GITHUB_PATH
 
       - name: Write clasp credentials
@@ -59,10 +63,15 @@ jobs:
       - name: Push to GAS DEV
         id: push
         run: |
+          # set +e + exit $CODE: garante que a saída do clasp seja SEMPRE impressa
+          # antes de falhar (com bash -e a substituição abortava e escondia o erro)
+          set +e
           OUTPUT=$(clasp push --force 2>&1)
+          CODE=$?
           echo "$OUTPUT"
           FILES=$(echo "$OUTPUT" | grep -c '└─' || true)
           echo "files=$FILES" >> $GITHUB_OUTPUT
+          exit $CODE
 
       # Publica o web app e captura as URLs REAIS direto da API do Apps Script.
       # Nada de montar URL na mão: a API retorna entryPoints[].webApp.url para
