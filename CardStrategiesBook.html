@@ -157,9 +157,7 @@
         <!-- Métricas: layout vertical (label | valor em cada linha) -->
         <div class="csb-metrics" style="padding:1rem;display:flex;flex-direction:column;flex:1;">
 
-          <!-- Fluxo na Abertura -->
-          <p class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">Fluxo na Abertura</p>
-          <div style="display:flex;flex-direction:column;gap:0.35rem;">
+          <!-- Fluxo na Abertura -->          <div style="display:flex;flex-direction:column;gap:0.35rem;">
             <div v-if="est.valorRecebido > 0" style="display:flex;justify-content:space-between;align-items:center;">
               <span class="t-label-sm" style="color:var(--text-tertiary);">Recebido (V)</span>
               <span class="t-value-sm" style="color:var(--brand-emerald);font-weight:700;">+ {{ fmt(est.valorRecebido) }}</span>
@@ -175,9 +173,7 @@
           </div>
 
           <!-- Situação Atual -->
-          <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-subtle);">
-            <p class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">Situação Atual</p>
-            <div style="display:flex;flex-direction:column;gap:0.35rem;">
+          <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-subtle);">            <div style="display:flex;flex-direction:column;gap:0.35rem;">
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <span class="t-label-sm" style="color:var(--text-tertiary);">Desmontar</span>
                 <span class="t-value-sm" :style="'font-weight:700;' + (est.custoDesmontar <= 0 ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);')">
@@ -196,9 +192,7 @@
           </div>
 
           <!-- Spread Economics: só para spreads verticais -->
-          <div v-if="est.maxProfit !== null" style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-subtle);">
-            <p class="t-label-sm" style="color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">Estrutura do Spread</p>
-            <div style="display:flex;flex-direction:column;gap:0.32rem;">
+          <div v-if="est.maxProfit !== null" style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-subtle);">            <div style="display:flex;flex-direction:column;gap:0.32rem;">
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <span class="t-label-sm" style="color:var(--text-tertiary);">Prêmio Líquido/op</span>
                 <span class="t-value-sm" style="color:var(--text-secondary);font-weight:700;">{{ fmt(est.premioLiquidoUnit) }}</span>
