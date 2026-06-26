@@ -60,6 +60,36 @@ jobs:
       - name: Write clasp credentials
         run: echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
 
+      # O refresh interno do clasp (node-fetch v2) quebra no Node 24 com
+      # "Premature close" ao chamar oauth2.googleapis.com. Renovamos o access
+      # token via curl (independente do node-fetch) e gravamos um token fresco
+      # com expiry no futuro, para o clasp usá-lo direto sem tentar renovar.
+      - name: Renova access token (curl, evita node-fetch quebrado)
+        run: |
+          CLIENT_ID=$(node -e "console.log(require(process.env.HOME+'/.clasprc.json').oauth2ClientSettings.clientId)")
+          CLIENT_SECRET=$(node -e "console.log(require(process.env.HOME+'/.clasprc.json').oauth2ClientSettings.clientSecret)")
+          REFRESH_TOKEN=$(node -e "console.log(require(process.env.HOME+'/.clasprc.json').token.refresh_token)")
+          RESP=$(curl -s https://oauth2.googleapis.com/token \
+            -d client_id="$CLIENT_ID" -d client_secret="$CLIENT_SECRET" \
+            -d refresh_token="$REFRESH_TOKEN" -d grant_type=refresh_token)
+          ACCESS_TOKEN=$(echo "$RESP" | node -e "let r='';process.stdin.on('data',d=>r+=d);process.stdin.on('end',()=>{try{console.log(JSON.parse(r).access_token||'')}catch(e){console.log('')}})")
+          if [ -z "$ACCESS_TOKEN" ]; then
+            echo "ERRO: falha ao renovar access token. Resposta do Google:"
+            echo "$RESP"
+            echo "(invalid_grant = refresh_token revogado/expirado → refazer clasp login e atualizar o secret CLASPRC_JSON)"
+            exit 1
+          fi
+          ACCESS_TOKEN="$ACCESS_TOKEN" node -e "
+            const fs=require('fs'); const p=process.env.HOME+'/.clasprc.json';
+            const c=require(p);
+            c.token=c.token||{};
+            c.token.access_token=process.env.ACCESS_TOKEN;
+            c.token.token_type='Bearer';
+            c.token.expiry_date=Date.now()+3500*1000;
+            fs.writeFileSync(p, JSON.stringify(c));
+          "
+          echo "Access token renovado com sucesso (válido ~58min)."
+
       - name: Push to GAS DEV
         id: push
         run: |
