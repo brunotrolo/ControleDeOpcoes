@@ -219,8 +219,8 @@
           <!-- Greeks -->
           <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-subtle);display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;">
             <div>
-              <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.3rem;">Delta/lote</p>
-              <p class="t-value-sm" style="color:var(--text-primary);font-weight:700;">{{ fmtNum(est.deltaNet / 100) }}</p>
+              <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.3rem;">Delta Líq.</p>
+              <p class="t-value-sm" style="color:var(--text-primary);font-weight:700;">{{ fmtDelta(est.deltaPorContrato) }}</p>
             </div>
             <div>
               <p class="t-label-sm" style="color:var(--text-muted);margin-bottom:0.3rem;">Theta/d</p>
@@ -336,6 +336,12 @@ window.CardStrategiesBook = {
     fmtNum: function(v) {
       if (v === null || v === undefined || isNaN(v)) return '--';
       return v.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    },
+
+    // Formata delta por contrato no padrão da tabela: -0,5300 (4 casas, vírgula)
+    fmtDelta: function(v) {
+      if (v === null || v === undefined || isNaN(v)) return '--';
+      return v.toFixed(4).replace('.', ',');
     },
 
     // Formata data como "DD/MM/AAAA"
@@ -488,7 +494,7 @@ window.CardStrategiesBook = {
       var vendas = [], compras = [], puts = [], calls = [];
       var valorRecebido = 0, valorPago = 0;
       var custoFecharVendas = 0, ganhoFecharCompras = 0;
-      var plTotal = 0, deltaNet = 0, thetaNet = 0, qtdTotal = 0;
+      var plTotal = 0, deltaNet = 0, thetaNet = 0, qtdTotal = 0, qtdSomaLegs = 0;
 
       pernas.forEach(function(p) {
         var isVenda = p.direcaoTrade === 'VENDA';
@@ -516,11 +522,15 @@ window.CardStrategiesBook = {
         if (tipo === 'CALL') calls.push(p);
         plTotal  += p.plTotalValor || 0;
         if (qtd > qtdTotal) qtdTotal = qtd;
+        qtdSomaLegs += qtd;
       });
 
       var saldoLiquido   = valorRecebido - valorPago;
       var custoDesmontar = custoFecharVendas - ganhoFecharCompras;
       var plPct          = saldoLiquido !== 0 ? (plTotal / Math.abs(saldoLiquido)) * 100 : null;
+      // Delta líquido por contrato (escala -1..+1, igual à coluna Δ da tabela).
+      // Venda inverte o sinal (já tratado em deltaNet); divide pela soma das qtds.
+      var deltaPorContrato = qtdSomaLegs > 0 ? deltaNet / qtdSomaLegs : 0;
 
       // Ganho/Perda Máx: APENAS spreads verticais de mesmo tipo (2 PUTs ou 2 CALLs, 1V+1C)
       var maxProfit = null, maxLoss = null;
@@ -552,6 +562,7 @@ window.CardStrategiesBook = {
         plTotal:          plTotal,
         plPct:            plPct,
         deltaNet:         deltaNet,
+        deltaPorContrato: deltaPorContrato,
         thetaNet:         thetaNet,
         maxProfit:        maxProfit,
         maxLoss:          maxLoss,
