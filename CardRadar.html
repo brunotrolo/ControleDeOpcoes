@@ -297,12 +297,21 @@
         </p>
       </div>
 
-      <!-- ══ GRADE DE VISÕES ══ -->
-      <div v-else :class="isMobile ? 'radar-grid-1col' : 'radar-grid-2col'"
-        style="gap:1px;background:var(--border-subtle);">
+      <!-- ══ ABAS (Conceito A) ══ -->
+      <div v-else>
+        <!-- Barra de abas -->
+        <div style="display:flex;gap:4px;padding:0.75rem 1.5rem 0;flex-wrap:wrap;overflow-x:auto;">
+          <div v-for="t in radarAbas" :key="t.key" @click="abaAtiva = t.key"
+            :style="abaAtiva === t.key ? 'background:var(--brand-indigo);color:#fff;' : 'background:var(--surface-sunken);color:var(--text-muted);'"
+            style="font-size:0.7rem;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;padding:0.55rem 1.05rem;border-radius:var(--radius-sm) var(--radius-sm) 0 0;cursor:pointer;white-space:nowrap;transition:all 0.15s;">
+            {{ t.label }}
+          </div>
+        </div>
+        <!-- Painéis: cada aba = um bloco original intacto -->
+        <div style="border-top:1px solid var(--border-subtle);">
 
-        <!-- BLOCO A — CICLO DE VENCIMENTO -->
-        <div style="background:var(--surface-base);padding:1.25rem 1.5rem;">
+        <!-- BLOCO A — CICLO DE VENCIMENTO (aba: ciclo) -->
+        <div v-show="abaAtiva === 'ciclo'" style="background:var(--surface-base);padding:1.25rem 1.5rem;">
 
           <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
             <div style="width:10px;height:10px;border-radius:50%;background:var(--brand-indigo);flex-shrink:0;"></div>
@@ -461,10 +470,8 @@
           </div>
         </div>
 
-        <!-- BLOCO C — MONEYNESS + P/L (lado a lado) -->
-        <div style="background:var(--surface-base);padding:1.25rem 1.5rem;">
-
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+        <!-- BLOCO C1 — MONEYNESS (aba: moneyness) -->
+        <div v-show="abaAtiva === 'moneyness'" style="background:var(--surface-base);padding:1.25rem 1.5rem;">
 
             <!-- ── Coluna esquerda: MONEYNESS ── -->
             <div style="display:flex;flex-direction:column;gap:0.625rem;">
@@ -521,7 +528,10 @@
 
               </div>
             </div>
+        </div>
 
+        <!-- BLOCO C2 — LUCRO vs PREJUIZO (aba: lucroPrej) -->
+        <div v-show="abaAtiva === 'lucroPrej'" style="background:var(--surface-base);padding:1.25rem 1.5rem;">
             <!-- ── Coluna direita: LUCRO vs PREJUIZO ── -->
             <div style="display:flex;flex-direction:column;gap:0.625rem;">
               <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">
@@ -586,13 +596,11 @@
                 <span style="font-size:1.1rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:#fff;">{{ fmt('plTotalValor', totalPL) }}</span>
               </div>
             </div>
-
-          </div>
         </div>
 
 
-        <!-- BLOCO B — CONCENTRACAO POR ATIVO -->
-        <div style="background:var(--surface-base);padding:1.25rem 1.5rem;">
+        <!-- BLOCO B — CONCENTRACAO POR ATIVO (aba: ativo) -->
+        <div v-show="abaAtiva === 'ativo'" style="background:var(--surface-base);padding:1.25rem 1.5rem;">
 
           <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
             <div style="width:10px;height:10px;border-radius:50%;background:var(--brand-amber);flex-shrink:0;"></div>
@@ -736,8 +744,8 @@
 
 
 
-        <!-- BLOCO E — PREMIO CAPTURADO POR ATIVO -->
-        <div style="background:var(--surface-base);padding:1.25rem 1.5rem;">
+        <!-- BLOCO E — PREMIO CAPTURADO POR ATIVO (aba: premio) -->
+        <div v-show="abaAtiva === 'premio'" style="background:var(--surface-base);padding:1.25rem 1.5rem;">
 
           <!-- Titulo com icone de info tooltip -->
           <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
@@ -829,8 +837,14 @@
           </template>
         </div>
 
+        <!-- ABA: CALENDÁRIO — componente CardVencimentos renderizado intacto -->
+        <div v-show="abaAtiva === 'calendario'">
+          <card-vencimentos :stats-pre-calculados="statsPreCalculados" :is-mobile="isMobile"></card-vencimentos>
+        </div>
+
+        </div>
       </div>
-      <!-- /grade de visões -->
+      <!-- /grade de visões (abas) -->
 
     </div>
     <!-- /premium-card -->
@@ -882,6 +896,15 @@ window.CardRadar = {
 
   data: function() {
     return {
+      abaAtiva: 'ciclo',
+      radarAbas: [
+        { key: 'ciclo',      label: 'Ciclo' },
+        { key: 'calendario', label: 'Calendário' },
+        { key: 'moneyness',  label: 'Moneyness' },
+        { key: 'lucroPrej',  label: 'Lucro / Prej.' },
+        { key: 'ativo',      label: 'Concentração' },
+        { key: 'premio',     label: 'Prêmio Capturado' }
+      ],
       drawer: {
         aberto:     false,
         tipo:       '',
