@@ -1602,7 +1602,7 @@ window.CardVencimentos = {
         </div>
 
         <!-- ABA: CALENDÁRIO — CardVencimentos absorvido (componente local, definido no topo deste arquivo) -->
-        <div v-show="abaAtiva === 'calendario'">
+        <div v-show="abaAtiva === 'calendario'" class="radar-aba-calendario">
           <card-vencimentos :stats-pre-calculados="statsPreCalculados" :is-mobile="isMobile"></card-vencimentos>
         </div>
 
@@ -1646,6 +1646,14 @@ window.CardVencimentos = {
     pointer-events:none;
     opacity:0;
     transition:opacity 0.15s ease;
+  }
+
+  /* Aba Calendário: achata o card do CardVencimentos p/ ficar plano como as demais abas.
+     Mira só o card PRINCIPAL (filho direto da raiz) — os cards do drawer não são afetados. */
+  .radar-aba-calendario > div > .premium-card {
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
   }
 </style>
 
