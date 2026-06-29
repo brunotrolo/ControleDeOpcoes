@@ -1663,10 +1663,13 @@ window.CardVencimentos = {
      Nunca espreme/corta os cards abaixo de 280px. */
   .cr-drawer-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: 1fr;            /* mobile (< 1024px): SEMPRE 1 coluna */
     grid-auto-rows: max-content;
     gap: 0.75rem;
     align-content: start;
+  }
+  @media (min-width: 1024px) {            /* desktop: multi-coluna conforme a largura (>=280px) */
+    .cr-drawer-list { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
   }
 </style>
 
