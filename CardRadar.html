@@ -608,9 +608,8 @@ window.CardVencimentos = {
         return va - vb;
       });
 
-      self.drawer.titulo = self.fmtData(alvo);
-      self.drawer.ops    = ops;
-      self.drawer.aberto = true;
+      // Unificado: emite para o CardRadar (pai) abrir o drawer ÚNICO do Radar
+      self.$emit('abrir-posicoes', { grupoLabel: 'Vencimento', titulo: self.fmtData(alvo), ops: ops });
     },
 
     fecharDrawer: function() {
@@ -1603,7 +1602,8 @@ window.CardVencimentos = {
 
         <!-- ABA: CALENDÁRIO — CardVencimentos absorvido (componente local, definido no topo deste arquivo) -->
         <div v-show="abaAtiva === 'calendario'" class="radar-aba-calendario">
-          <card-vencimentos :stats-pre-calculados="statsPreCalculados" :is-mobile="isMobile"></card-vencimentos>
+          <card-vencimentos :stats-pre-calculados="statsPreCalculados" :is-mobile="isMobile"
+            @abrir-posicoes="abrirDrawerVencimento"></card-vencimentos>
         </div>
 
         </div>
@@ -2113,6 +2113,17 @@ window.CardRadar = {
       this.drawer.titulo     = titulo;
       this.drawer.grupoLabel = labelMap[tipo] || tipo;
       this.drawer.ops        = filtered;
+      this.drawer.aberto     = true;
+    },
+
+    // Recebe posições do calendário (CardVencimentos) e abre ESTE drawer unificado
+    abrirDrawerVencimento: function(payload) {
+      payload = payload || {};
+      this.drawer.tipo       = 'vencimento';
+      this.drawer.filtro     = '';
+      this.drawer.titulo     = payload.titulo || '';
+      this.drawer.grupoLabel = payload.grupoLabel || 'Vencimento';
+      this.drawer.ops        = payload.ops || [];
       this.drawer.aberto     = true;
     },
 
