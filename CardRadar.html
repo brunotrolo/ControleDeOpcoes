@@ -9,211 +9,6 @@
 <template id="card-vencimentos-template">
   <div style="width:100%;font-family:'Plus Jakarta Sans',sans-serif;">
 
-    <!-- ═══════════════════════════════════════════════════════════
-         DRAWER LATERAL
-         ═══════════════════════════════════════════════════════════ -->
-    <transition name="venc-drawer">
-      <div v-if="drawer.aberto"
-        style="position:fixed;top:0;right:0;bottom:0;width:440px;max-width:95vw;z-index:1000;
-               display:flex;flex-direction:column;background:var(--surface-base);
-               box-shadow:-8px 0 48px rgba(0,0,0,0.22);border-left:1px solid var(--border-subtle);">
-
-        <!-- Header do drawer -->
-        <div style="display:flex;align-items:center;justify-content:space-between;
-                    padding:1.25rem 1.5rem;border-bottom:1px solid var(--border-subtle);
-                    background:var(--surface-overlay);">
-          <div>
-            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
-                        letter-spacing:0.18em;color:var(--text-muted);margin-bottom:4px;">
-              VENCIMENTO
-            </div>
-            <div style="font-size:1.05rem;font-weight:800;color:var(--text-primary);
-                        letter-spacing:-0.02em;font-family:'JetBrains Mono',monospace;">
-              {{ drawer.titulo }}
-            </div>
-          </div>
-          <button @click="fecharDrawer"
-            style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border-subtle);
-                   background:var(--surface-base);cursor:pointer;display:flex;align-items:center;
-                   justify-content:center;color:var(--text-muted);font-size:1rem;
-                   transition:background 0.15s;">×</button>
-        </div>
-
-        <!-- Strip de totais do grupo -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;
-                    background:var(--border-subtle);border-bottom:1px solid var(--border-subtle);">
-          <div style="background:var(--surface-base);padding:1rem 1.25rem;">
-            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
-                        letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;">Posições</div>
-            <div style="font-size:1.5rem;font-weight:800;color:var(--text-primary);
-                        font-family:'JetBrains Mono',monospace;">{{ drawer.ops.length }}</div>
-          </div>
-          <div style="background:var(--surface-base);padding:1rem 1.25rem;">
-            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
-                        letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;">Nocional</div>
-            <div style="font-size:1.05rem;font-weight:800;color:var(--brand-indigo);
-                        font-family:'JetBrains Mono',monospace;">{{ fmtK(somaDrawer('nocional')) }}</div>
-          </div>
-          <div style="background:var(--surface-base);padding:1rem 1.25rem;">
-            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
-                        letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;">Ganho Máx</div>
-            <div style="font-size:1.05rem;font-weight:800;font-family:'JetBrains Mono',monospace;
-                        color:var(--brand-emerald);">{{ fmtK(somaDrawer('ganhoMaximo')) }}</div>
-          </div>
-        </div>
-
-        <!-- Cards das posições -->
-        <div style="flex:1;overflow-y:auto;padding:0.875rem;
-                    scrollbar-width:thin;scrollbar-color:var(--border-strong) transparent;">
-
-          <div v-for="op in drawer.ops" :key="op.tradeId || op.simboloOpcao"
-            class="premium-card"
-            style="margin-bottom:0.75rem;padding:0;display:flex;flex-direction:column;
-                   border-width:2px !important;overflow:hidden;"
-            :style="cvCorBorda(op)">
-
-            <!-- Header: ticker + tipo + moneyness -->
-            <div style="padding:0.875rem 1rem 0.75rem;border-bottom:1px solid var(--border-subtle);">
-              <div style="display:flex;justify-content:space-between;align-items:flex-start;
-                          margin-bottom:0.5rem;">
-                <div style="display:flex;align-items:center;gap:0.5rem;">
-                  <span style="font-size:1.25rem;font-weight:800;color:var(--text-primary);
-                               letter-spacing:-0.04em;line-height:1;font-family:'JetBrains Mono',monospace;">
-                    {{ op.tickerAtivo || '--' }}
-                  </span>
-                  <span style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
-                               letter-spacing:0.08em;padding:2px 6px;border-radius:var(--radius-xs);
-                               border:1.5px solid;"
-                    :style="cvTipoBadge(op)">
-                    {{ (op.direcaoTrade || '').charAt(0) }} {{ op.tipoOpcao || '—' }}
-                  </span>
-                </div>
-                <span style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
-                             letter-spacing:0.08em;padding:2px 7px;border-radius:99px;border:1.5px solid;"
-                  :style="cvMoneyBadge(op.moneynessCode)">
-                  {{ op.moneynessCode || 'N/A' }}
-                </span>
-              </div>
-              <div style="display:flex;align-items:center;gap:0.375rem;">
-                <span style="font-size:0.65rem;font-weight:700;color:var(--text-muted);
-                             font-family:'JetBrains Mono',monospace;">{{ op.simboloOpcao || '--' }}</span>
-                <span style="color:var(--border-default);">|</span>
-                <span style="font-size:0.6rem;color:var(--text-muted);">QTD: {{ op.quantidade || '—' }}</span>
-                <span style="margin-left:auto;font-size:0.6rem;font-weight:700;color:var(--text-muted);">
-                  {{ op.dteCorridos }}d &middot; {{ fmtData(op.dataVencimento) }}
-                </span>
-              </div>
-            </div>
-
-            <!-- Spot / Dist / Strike -->
-            <div style="display:flex;justify-content:space-around;align-items:center;
-                        padding:0.5rem 0.75rem;background:var(--surface-sunken);
-                        border-bottom:1px solid var(--border-subtle);">
-              <div style="text-align:center;">
-                <div style="font-size:0.55rem;font-weight:700;color:var(--text-muted);
-                            text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px;">Spot</div>
-                <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;
-                            font-weight:700;color:var(--text-primary);">
-                  {{ fmtMoeda(op.spotPrice) }}
-                </div>
-              </div>
-              <div style="width:1px;height:1.5rem;background:var(--border-default);"></div>
-              <div style="text-align:center;">
-                <div style="font-size:0.55rem;font-weight:700;color:var(--text-muted);
-                            text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px;">Dist.</div>
-                <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:700;
-                            padding:1px 5px;border-radius:var(--radius-xs);
-                            background:var(--surface-base);border:1px solid var(--border-subtle);"
-                  :style="(parseFloat(op.distanciaPct)||0) >= 0 ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">
-                  {{ cvFmtDist(op.distanciaPct) }}
-                </div>
-              </div>
-              <div style="width:1px;height:1.5rem;background:var(--border-default);"></div>
-              <div style="text-align:center;">
-                <div style="font-size:0.55rem;font-weight:700;color:var(--text-muted);
-                            text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px;">Strike</div>
-                <div style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;
-                            font-weight:700;color:var(--text-primary);">
-                  {{ fmtMoeda(op.strike) }}
-                </div>
-              </div>
-            </div>
-
-            <!-- Grid 3×3 métricas -->
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;background:var(--border-subtle);">
-              <div style="background:var(--surface-base);padding:0.5rem 0.625rem;display:flex;flex-direction:column;">
-                <span style="font-size:0.52rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">Prêmio Médio</span>
-                <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;color:var(--text-secondary);">{{ fmtMoeda(op.premioMedio) }}</span>
-              </div>
-              <div style="background:var(--surface-base);padding:0.5rem 0.625rem;display:flex;flex-direction:column;">
-                <span style="font-size:0.52rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">Prêmio Atual</span>
-                <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;color:var(--text-secondary);">{{ fmtMoeda(op.premioAtual) }}</span>
-              </div>
-              <div style="background:var(--surface-base);padding:0.5rem 0.625rem;display:flex;flex-direction:column;">
-                <span style="font-size:0.52rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">Ganho Máx.</span>
-                <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;color:var(--brand-emerald);">{{ fmtK(op.ganhoMaximo) }}</span>
-              </div>
-              <div style="background:var(--surface-base);padding:0.5rem 0.625rem;display:flex;flex-direction:column;">
-                <span style="font-size:0.52rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">P/L %</span>
-                <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;"
-                  :style="(parseFloat(op.plTotalPct)||0) >= 0 ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">{{ cvFmtPct(op.plTotalPct) }}</span>
-              </div>
-              <div style="background:var(--surface-base);padding:0.5rem 0.625rem;display:flex;flex-direction:column;">
-                <span style="font-size:0.52rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">Delta</span>
-                <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;color:var(--brand-indigo);">{{ op.delta != null ? parseFloat(op.delta).toFixed(4).replace('.', ',') : '--' }}</span>
-              </div>
-              <div style="background:var(--surface-base);padding:0.5rem 0.625rem;display:flex;flex-direction:column;">
-                <span style="font-size:0.52rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">Nocional</span>
-                <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;color:var(--text-primary);">{{ fmtK(op.nocional) }}</span>
-              </div>
-              <div style="background:var(--surface-base);padding:0.5rem 0.625rem;display:flex;flex-direction:column;">
-                <span style="font-size:0.52rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">Moneyness</span>
-                <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;color:var(--text-secondary);">{{ op.moneynessCode || '—' }}</span>
-              </div>
-              <div style="background:var(--surface-base);padding:0.5rem 0.625rem;display:flex;flex-direction:column;grid-column:span 2;">
-                <span style="font-size:0.52rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">Símbolo · Tipo</span>
-                <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;color:var(--text-secondary);">{{ op.simboloOpcao }} &middot; {{ op.tipoOpcao }}</span>
-              </div>
-            </div>
-
-            <!-- Footer P/L -->
-            <div style="padding:0.625rem 1rem;display:flex;justify-content:space-between;
-                        align-items:center;border-top:2px solid;"
-              :style="cvFooterStyle(op)">
-              <div>
-                <div style="font-size:0.52rem;font-weight:700;text-transform:uppercase;
-                            letter-spacing:0.1em;opacity:0.7;margin-bottom:2px;">P/L Aberto</div>
-                <div style="display:flex;align-items:baseline;gap:0.375rem;">
-                  <span style="font-family:'JetBrains Mono',monospace;font-size:0.95rem;
-                               font-weight:800;letter-spacing:-0.02em;white-space:nowrap;">
-                    {{ fmtK(op.plTotalValor) }}
-                  </span>
-                  <span style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;
-                               font-weight:600;opacity:0.6;white-space:nowrap;">
-                    ({{ cvFmtPct(op.plTotalPct) }})
-                  </span>
-                </div>
-              </div>
-              <div style="font-size:1.25rem;line-height:1;">{{ cvCardIcon(op) }}</div>
-            </div>
-
-          </div>
-
-          <div v-if="drawer.ops.length === 0"
-            style="padding:3rem;text-align:center;color:var(--text-muted);">
-            <div style="font-size:2rem;opacity:0.4;margin-bottom:0.5rem;">📭</div>
-            <div style="font-size:0.8rem;font-weight:700;text-transform:uppercase;
-                        letter-spacing:0.1em;">Nenhuma operação encontrada.</div>
-          </div>
-        </div>
-      </div>
-    </transition>
-
-    <!-- Overlay escurecido -->
-    <transition name="venc-overlay">
-      <div v-if="drawer.aberto" @click="fecharDrawer"
-        style="position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.35);"></div>
-    </transition>
 
     <!-- ═══════════════════════════════════════════════════════════
          CARD PRINCIPAL
@@ -494,16 +289,6 @@
 
 <style>
   @keyframes cv-pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
-  .venc-drawer-enter-active,
-  .venc-drawer-leave-active  { transition: transform 0.3s cubic-bezier(0.2,0,0,1); }
-  .venc-drawer-enter-from,
-  .venc-drawer-leave-to      { transform: translateX(100%); }
-  .venc-drawer-enter-to,
-  .venc-drawer-leave-from    { transform: translateX(0); }
-  .venc-overlay-enter-active,
-  .venc-overlay-leave-active { transition: opacity 0.22s ease; }
-  .venc-overlay-enter-from,
-  .venc-overlay-leave-to     { opacity: 0; }
 </style>
 
 <script>
@@ -516,7 +301,6 @@ window.CardVencimentos = {
 
   data: function() {
     return {
-      drawer: { aberto: false, titulo: '', ops: [] }
     };
   },
 
@@ -610,73 +394,6 @@ window.CardVencimentos = {
 
       // Unificado: emite para o CardRadar (pai) abrir o drawer ÚNICO do Radar
       self.$emit('abrir-posicoes', { grupoLabel: 'Vencimento', titulo: self.fmtData(alvo), ops: ops });
-    },
-
-    fecharDrawer: function() {
-      this.drawer.aberto = false;
-      this.drawer.ops    = [];
-    },
-
-    somaDrawer: function(campo) {
-      return this.drawer.ops.reduce(function(acc, op) {
-        return acc + (parseFloat(op[campo]) || 0);
-      }, 0);
-    },
-
-    // ── Helpers dos cards do drawer ───────────────────────────────
-    cvCorBorda: function(op) {
-      var m = String(op.moneynessCode || '').toUpperCase();
-      if (m.indexOf('ITM') >= 0) return 'border-color:var(--brand-rose-muted);background:var(--brand-rose-light);';
-      if (m.indexOf('ATM') >= 0) return 'border-color:var(--brand-amber-muted);background:var(--brand-amber-light);';
-      return 'border-color:var(--brand-emerald-muted);background:var(--brand-emerald-light);';
-    },
-
-    cvTipoBadge: function(op) {
-      var t = String(op.tipoOpcao    || '').toUpperCase();
-      var d = String(op.direcaoTrade || '').toUpperCase();
-      if (d.indexOf('VENDA')  >= 0 && t.indexOf('PUT')  >= 0) return 'color:var(--brand-indigo);background:var(--brand-indigo-light);border-color:var(--brand-indigo-muted);';
-      if (d.indexOf('VENDA')  >= 0 && t.indexOf('CALL') >= 0) return 'color:var(--brand-amber);background:var(--brand-amber-light);border-color:var(--brand-amber-muted);';
-      if (d.indexOf('COMPRA') >= 0 && t.indexOf('PUT')  >= 0) return 'color:var(--brand-rose);background:var(--brand-rose-light);border-color:var(--brand-rose-muted);';
-      if (d.indexOf('COMPRA') >= 0 && t.indexOf('CALL') >= 0) return 'color:var(--brand-emerald);background:var(--brand-emerald-light);border-color:var(--brand-emerald-muted);';
-      return 'color:var(--text-muted);background:var(--surface-overlay);border-color:var(--border-subtle);';
-    },
-
-    cvMoneyBadge: function(code) {
-      var m = String(code || '').toUpperCase();
-      if (m.indexOf('ITM') >= 0) return 'color:#fff;background:var(--brand-rose);border-color:var(--brand-rose);';
-      if (m.indexOf('ATM') >= 0) return 'color:var(--brand-amber);background:var(--brand-amber-light);border-color:var(--brand-amber-muted);';
-      return 'color:var(--brand-emerald);background:var(--brand-emerald-light);border-color:var(--brand-emerald-muted);';
-    },
-
-    cvFooterStyle: function(op) {
-      var m = String(op.moneynessCode || '').toUpperCase();
-      if (m.indexOf('ITM') >= 0) return 'background:var(--brand-rose-light);border-color:var(--brand-rose-muted);color:var(--brand-rose);';
-      if (m.indexOf('ATM') >= 0) return 'background:var(--brand-amber-light);border-color:var(--brand-amber-muted);color:var(--brand-amber);';
-      return 'background:var(--brand-emerald-light);border-color:var(--brand-emerald-muted);color:var(--brand-emerald);';
-    },
-
-    cvCardIcon: function(op) {
-      var m = String(op.moneynessCode || '').toUpperCase();
-      if (m.indexOf('ITM') >= 0) return '🚨';
-      if (m.indexOf('ATM') >= 0) return '⚠️';
-      return '✅';
-    },
-
-    cvFmtDist: function(v) {
-      if (v == null) return '--';
-      var n = parseFloat(v);
-      if (isNaN(n)) return '--';
-      return (n >= 0 ? '+' : '') + n.toFixed(1).replace('.', ',') + '%';
-    },
-
-    cvFmtPct: function(v) {
-      var F = window.Formatador;
-      if (F && F.pct) return F.pct(parseFloat(v || 0) * 100, 1);
-      if (v == null) return '--';
-      var n = parseFloat(v);
-      if (isNaN(n)) return '--';
-      var pct = n * 100;
-      return (pct >= 0 ? '+' : '') + pct.toFixed(1).replace('.', ',') + '%';
     },
 
     // ── Cálculos de linha ─────────────────────────────────────────
@@ -1626,14 +1343,8 @@ window.CardVencimentos = {
   .radar-drawer-leave-to    { transform: translateX(100%); }
   .radar-drawer-enter-to,
   .radar-drawer-leave-from  { transform: translateX(0); }
-  .radar-grid-1col { display:grid; grid-template-columns:1fr; }
-  .radar-grid-2col { display:grid; grid-template-columns:repeat(2,1fr); }
 
-  .radar-cell-hover { cursor:pointer; }
-  .radar-cell-hover:hover { filter:brightness(0.93); box-shadow:var(--shadow-sm); }
 
-  .radar-bar-rose   { background:var(--brand-rose); }
-  .radar-bar-amber  { background:var(--brand-amber); }
   .radar-bar-indigo { background:var(--brand-indigo); }
 
   /* Tooltip trigger */
@@ -1735,7 +1446,6 @@ window.CardRadar = {
     },
 
     totalNocionalPut: function() { return this.putNetting.reduce(function(a,g){return a+g.liquidoNoc;},0); },
-    totalNocionalPutBruto: function() { return this.putNetting.reduce(function(a,g){return a+g.vendaNoc;},0); },
     totalNocionalPutDesmontagem: function() { return this.putNetting.reduce(function(a,g){return a+g.compraNoc;},0); },
 
     totalNocionalCall: function() {
@@ -1780,14 +1490,6 @@ window.CardRadar = {
         { tipo: 'CALL', label: 'Venda CALL', count: r.CALL.count, nocional: r.CALL.nocional },
         { tipo: 'PUT',  label: 'Venda PUT',  count: r.PUT.count,  nocional: r.PUT.nocional  }
       ];
-    },
-
-    // -- PROXIMO VENCIMENTO ---
-    proxVencimento: function() {
-      var ops = this.operacoes.slice().filter(function(o) { return !isNaN(parseInt(o.dteCorridos, 10)); });
-      if (!ops.length) return null;
-      ops.sort(function(a, b) { return parseInt(a.dteCorridos) - parseInt(b.dteCorridos); });
-      return parseInt(ops[0].dteCorridos) <= 30 ? ops[0] : null;
     },
 
     // -- CONCENTRACAO POR TICKER ---
@@ -1931,35 +1633,6 @@ window.CardRadar = {
       return null;
     },
 
-    // -- THETA DIARIO ---
-    thetaTotal: function() {
-      return this.operacoes.reduce(function(s, o) {
-        var theta = parseFloat(o.theta) || 0;
-        var qtd   = Math.abs(parseFloat(o.qtdOpcoes || o.quantidade || o.QUANTITY || 1) || 1);
-        return s + (theta * qtd);
-      }, 0);
-    },
-
-    thetaPorTicker: function() {
-      var ops = this.operacoes;
-      var mapa = {};
-      var ordem = [];
-      ops.forEach(function(o) {
-        var t = o.tickerAtivo || 'N/A';
-        if (!mapa[t]) { mapa[t] = { ticker: t, theta: 0, count: 0 }; ordem.push(t); }
-        var thetaUnit = parseFloat(o.theta) || 0;
-        var qtd       = Math.abs(parseFloat(o.qtdOpcoes || o.quantidade || o.QUANTITY || 1) || 1);
-        mapa[t].theta += thetaUnit * qtd;
-        mapa[t].count++;
-      });
-      var maxAbs = 1;
-      ordem.forEach(function(t) { var a = Math.abs(mapa[t].theta); if (a > maxAbs) maxAbs = a; });
-      return ordem
-        .map(function(t) { return { ticker: mapa[t].ticker, theta: mapa[t].theta, count: mapa[t].count, pct: Math.round((Math.abs(mapa[t].theta) / maxAbs) * 100) }; })
-        .sort(function(a, b) { return Math.abs(b.theta) - Math.abs(a.theta); })
-        .slice(0, 6);
-    },
-
     // -- PRÊMIO CAPTURADO POR ATIVO ---
     // Max Ganho = soma dos prêmios recebidos (o máximo possível se tudo virar pó)
     // P/L Atual = quanto já foi realizado
@@ -1999,48 +1672,6 @@ window.CardRadar = {
         })
         .sort(function(a, b) { return b.pctCap - a.pctCap; });
     },
-
-    // -- HEATMAP ---
-    heatmapRows: function() {
-      var ops = this.operacoes;
-      var mapa = {};
-      var ordem = [];
-      ops.forEach(function(o) {
-        var t   = o.tickerAtivo || 'N/A';
-        var mon = String(o.moneynessCode || '').toUpperCase();
-        var col = mon.indexOf('OTM') >= 0 ? 'OTM' : mon.indexOf('ATM') >= 0 ? 'ATM' : mon.indexOf('ITM') >= 0 ? 'ITM' : null;
-        if (!col) return;
-        if (!mapa[t]) {
-          mapa[t] = { ticker: t, nocTotal: 0, OTM: { count:0, nocional:0 }, ATM: { count:0, nocional:0 }, ITM: { count:0, nocional:0 } };
-          ordem.push(t);
-        }
-        mapa[t][col].count++;
-        mapa[t][col].nocional += parseFloat(o.nocional) || 0;
-        mapa[t].nocTotal      += parseFloat(o.nocional) || 0;
-      });
-      return ordem
-        .map(function(t) { return mapa[t]; })
-        .sort(function(a, b) { return b.nocTotal - a.nocTotal; })
-;
-    },
-
-    heatmapMaxNoc: function() {
-      var max = 1;
-      this.heatmapRows.forEach(function(r) {
-        ['OTM','ATM','ITM'].forEach(function(c) { if (r[c].nocional > max) max = r[c].nocional; });
-      });
-      return max;
-    },
-
-    heatmapLegenda: function() {
-      return [
-        { label: '0',   color: 'var(--surface-sunken)', opacity: '1'    },
-        { label: '25',  color: 'var(--brand-indigo)',   opacity: '0.25' },
-        { label: '50',  color: 'var(--brand-indigo)',   opacity: '0.50' },
-        { label: '75',  color: 'var(--brand-indigo)',   opacity: '0.75' },
-        { label: '100', color: 'var(--brand-indigo)',   opacity: '1'    }
-      ];
-    }
   },
 
   mounted: function() {
@@ -2057,14 +1688,7 @@ window.CardRadar = {
 
   methods: {
     fmt: function(chave, valor) { return window.Formatador.campo(chave, valor); },
-    fmtAuto: function(valor, tipo, chave) { return window.Formatador.auto(valor, tipo, chave); },
     fmtK: function(n) { return window.Formatador.moedaCompacta(n); },
-
-    heatmapCellStyle: function(cell) {
-      if (!cell || cell.count === 0) return 'background:var(--surface-sunken);opacity:0.4;';
-      var intensity = Math.max(0.15, Math.min(1, cell.nocional / this.heatmapMaxNoc));
-      return 'background:var(--brand-indigo);opacity:' + (0.12 + intensity * 0.75).toFixed(2) + ';color:var(--text-primary);';
-    },
 
     abrirDrawer: function(tipo, filtro, titulo) {
       var ops = this.operacoes;
@@ -2205,14 +1829,6 @@ window.CardRadar = {
       if (v == null) return '—';
       var n = parseFloat(v);
       return (n >= 0 ? '+' : '') + n.toFixed(1).replace('.', ',') + '%';
-    },
-
-    getBarColor: function(op) {
-      var lp = op.lucroPct != null ? parseFloat(op.lucroPct) : null;
-      if (lp !== null && lp >= 75) return 'background:var(--brand-emerald);';
-      var itm = String(op.moneynessCode || '').toUpperCase().indexOf('ITM') >= 0;
-      if (itm) return 'background:var(--brand-rose);';
-      return 'background:var(--border-strong);';
     },
 
     getMoneynessStyle: function(code) {
