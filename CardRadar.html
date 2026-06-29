@@ -1657,16 +1657,16 @@ window.CardVencimentos = {
     border-radius: 0 !important;
   }
 
-  /* Lista do drawer: 1 coluna no mobile (default), 5 colunas no desktop.
-     Via media query (largura real do viewport) — robusto, NÃO depende do prop isMobile. */
-  .cr-drawer-list { display: flex; flex-direction: column; gap: 0.75rem; }
-  @media (min-width: 1024px) {
-    .cr-drawer-list {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      grid-auto-rows: max-content;
-      align-content: start;
-    }
+  /* Lista do drawer: responsiva pela LARGURA DO CONTAINER (não da viewport nem do isMobile).
+     auto-fill + minmax(280px) => colapsa sozinho para 1 coluna quando o drawer é estreito
+     (mobile/tablet/janela estreita) e abre colunas de >=280px quando é largo (desktop).
+     Nunca espreme/corta os cards abaixo de 280px. */
+  .cr-drawer-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-auto-rows: max-content;
+    gap: 0.75rem;
+    align-content: start;
   }
 </style>
 
