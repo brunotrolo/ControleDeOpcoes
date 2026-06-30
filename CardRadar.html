@@ -1374,6 +1374,11 @@ window.CardVencimentos = {
   @media (min-width: 1024px) {            /* desktop: multi-coluna conforme a largura (>=280px) */
     .cr-drawer-list { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
   }
+  /* No mobile o menu é uma barra fixa embaixo (z-index acima do drawer).
+     Folga no fim da lista p/ o último card terminar ACIMA do menu (sem cortar). */
+  @media (max-width: 1023px) {
+    .cr-drawer-list { padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px)) !important; }
+  }
 </style>
 
 <script>
