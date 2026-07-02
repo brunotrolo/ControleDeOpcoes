@@ -28,8 +28,8 @@
               <i data-lucide="calculator" style="width:1.125rem;height:1.125rem;display:block;"></i>
             </div>
             <div>
-              <h3 style="font-size:0.95rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.01em;">Calculadora Black-Scholes</h3>
-              <p style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:1px;">Motor nativo</p>
+              <h3 style="font-size:0.95rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.01em;">{{ modoEntrada === 'simples' ? 'Calculadora' : 'Calculadora Black-Scholes' }}</h3>
+              <p style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-top:1px;">{{ modoEntrada === 'simples' ? 'Aritmética simples' : 'Motor nativo' }}</p>
             </div>
           </div>
           <button @click="fechar"
@@ -63,7 +63,51 @@
               <i data-lucide="sliders-horizontal" style="width:0.8rem;height:0.8rem;display:block;"></i>
               Simular livremente
             </button>
+            <button @click="modoEntrada = 'simples'"
+                    style="flex:1;padding:0.625rem;border-radius:var(--radius-md);font-size:0.75rem;font-weight:700;cursor:pointer;border:2px solid;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:0.4rem;"
+                    :style="modoEntrada === 'simples'
+                      ? 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);'
+                      : 'background:var(--surface-base);color:var(--text-muted);border-color:var(--border-default);'">
+              <i data-lucide="calculator" style="width:0.8rem;height:0.8rem;display:block;"></i>
+              Calculadora
+            </button>
           </div>
+
+          <!-- ============================================================
+               CALCULADORA SIMPLES (aritmetica, operacoes em sequencia)
+               ============================================================ -->
+          <div v-if="modoEntrada === 'simples'" style="display:flex;flex-direction:column;gap:0.75rem;">
+            <!-- Visor -->
+            <div style="background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:0.875rem 1.125rem;text-align:right;">
+              <div style="font-size:0.75rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;min-height:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ calcExpr || ' ' }}</div>
+              <div style="font-size:2rem;font-weight:800;color:var(--text-primary);font-family:'JetBrains Mono',monospace;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ calcDisplay }}</div>
+            </div>
+            <!-- Teclado -->
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;">
+              <button class="bs-calc-btn bs-calc-clear" @click="calcLimpar">C</button>
+              <button class="bs-calc-btn" @click="calcBackspace">⌫</button>
+              <button class="bs-calc-btn bs-calc-op" @click="calcOperador('/')">÷</button>
+              <button class="bs-calc-btn bs-calc-op" @click="calcOperador('*')">×</button>
+              <button class="bs-calc-btn" @click="calcDigito('7')">7</button>
+              <button class="bs-calc-btn" @click="calcDigito('8')">8</button>
+              <button class="bs-calc-btn" @click="calcDigito('9')">9</button>
+              <button class="bs-calc-btn bs-calc-op" @click="calcOperador('-')">−</button>
+              <button class="bs-calc-btn" @click="calcDigito('4')">4</button>
+              <button class="bs-calc-btn" @click="calcDigito('5')">5</button>
+              <button class="bs-calc-btn" @click="calcDigito('6')">6</button>
+              <button class="bs-calc-btn bs-calc-op" @click="calcOperador('+')">+</button>
+              <button class="bs-calc-btn" @click="calcDigito('1')">1</button>
+              <button class="bs-calc-btn" @click="calcDigito('2')">2</button>
+              <button class="bs-calc-btn" @click="calcDigito('3')">3</button>
+              <button class="bs-calc-btn bs-calc-eq" style="grid-row:span 2;" @click="calcIgual">=</button>
+              <button class="bs-calc-btn" style="grid-column:span 2;" @click="calcDigito('0')">0</button>
+              <button class="bs-calc-btn" @click="calcPonto">,</button>
+            </div>
+            <p style="font-size:0.6rem;color:var(--text-muted);text-align:center;line-height:1.4;">Operações em sequência (ex: 12 + 5 × 2 =). C limpa tudo, ⌫ apaga o último dígito.</p>
+          </div>
+
+          <!-- Black-Scholes (oculto no modo Calculadora simples) -->
+          <div v-if="modoEntrada !== 'simples'" style="display:flex;flex-direction:column;gap:1.25rem;">
 
           <!-- ============================================================
                BUSCA POR CODIGO
@@ -399,6 +443,8 @@
 
             </div>
           </transition>
+
+          </div><!-- /Black-Scholes -->
 
         </div>
       </div>
@@ -827,6 +873,68 @@ window.CalculadoraBS = {
       if (val) Vue.nextTick(function() { if (window.lucide) window.lucide.createIcons(); });
     });
 
+    // ── Calculadora simples (aritmetica, operacoes em sequencia estilo Windows) ──
+    var calcDisplay = ref('0');   // numero grande (visor)
+    var calcExpr    = ref('');    // linha superior (expressao em andamento)
+    var _calcAcc = null, _calcOp = null, _calcReset = false;
+
+    function _calcVal(s)  { var n = parseFloat(String(s).replace(',', '.')); return isNaN(n) ? 0 : n; }
+    function _calcFmt(n)  {
+      if (!isFinite(n)) return 'Erro';
+      return (Math.round(n * 1e10) / 1e10).toString().replace('.', ',');
+    }
+    function _calcSimbolo(op) { return op === '*' ? '×' : op === '/' ? '÷' : op === '-' ? '−' : '+'; }
+    function _calcAplica(a, op, b) {
+      if (op === '+') return a + b;
+      if (op === '-') return a - b;
+      if (op === '*') return a * b;
+      if (op === '/') return b === 0 ? NaN : a / b;
+      return b;
+    }
+    function _calcErro() { calcDisplay.value = 'Erro'; calcExpr.value = ''; _calcAcc = null; _calcOp = null; _calcReset = true; }
+
+    function calcDigito(d) {
+      if (calcDisplay.value === 'Erro') _calcReset = true;
+      if (_calcReset) { calcDisplay.value = d; _calcReset = false; return; }
+      calcDisplay.value = (calcDisplay.value === '0') ? d : (calcDisplay.value + d);
+    }
+    function calcPonto() {
+      if (calcDisplay.value === 'Erro') { calcDisplay.value = '0'; _calcReset = false; }
+      if (_calcReset) { calcDisplay.value = '0,'; _calcReset = false; return; }
+      if (calcDisplay.value.indexOf(',') < 0) calcDisplay.value += ',';
+    }
+    function calcOperador(op) {
+      var cur = _calcVal(calcDisplay.value);
+      if (_calcOp !== null && !_calcReset) {
+        var res = _calcAplica(_calcAcc, _calcOp, cur);
+        if (!isFinite(res)) { _calcErro(); return; }
+        _calcAcc = res;
+        calcDisplay.value = _calcFmt(res);
+      } else {
+        _calcAcc = cur;
+      }
+      _calcOp = op;
+      _calcReset = true;
+      calcExpr.value = _calcFmt(_calcAcc) + ' ' + _calcSimbolo(op);
+    }
+    function calcIgual() {
+      if (_calcOp === null) return;
+      var cur = _calcVal(calcDisplay.value);
+      var res = _calcAplica(_calcAcc, _calcOp, cur);
+      if (!isFinite(res)) { _calcErro(); return; }
+      calcExpr.value = _calcFmt(_calcAcc) + ' ' + _calcSimbolo(_calcOp) + ' ' + _calcFmt(cur) + ' =';
+      calcDisplay.value = _calcFmt(res);
+      _calcAcc = null; _calcOp = null; _calcReset = true;
+    }
+    function calcLimpar() { calcDisplay.value = '0'; calcExpr.value = ''; _calcAcc = null; _calcOp = null; _calcReset = false; }
+    function calcBackspace() {
+      if (_calcReset || calcDisplay.value === 'Erro') return;
+      var s = calcDisplay.value;
+      s = s.length > 1 ? s.slice(0, -1) : '0';
+      if (s === '' || s === '-') s = '0';
+      calcDisplay.value = s;
+    }
+
     return {
       modoEntrada, codigoOpcao, buscando, erroBusca, dadosBuscados,
       tipo, strike, dataVenc, taxaJuros, dataRef,
@@ -838,7 +946,8 @@ window.CalculadoraBS = {
       tipVisible, tipText, tipX, tipY, showTip, hideTip,
       helpGrega,
       buscarOpcao, calcularTudo, limpar, fechar,
-      fmtR, fmtPct
+      fmtR, fmtPct,
+      calcDisplay, calcExpr, calcDigito, calcPonto, calcOperador, calcIgual, calcLimpar, calcBackspace
     };
   }
 };
@@ -857,4 +966,27 @@ window.CalculadoraBS = {
   align-items: center;
   cursor: help;
 }
+
+/* Calculadora simples */
+.bs-calc-btn {
+  padding: 0.9rem 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-base);
+  color: var(--text-primary);
+  font-size: 1.15rem; font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.05s;
+  display: flex; align-items: center; justify-content: center;
+  user-select: none;
+}
+.bs-calc-btn:hover  { background: var(--surface-overlay); }
+.bs-calc-btn:active { transform: scale(0.96); }
+.bs-calc-op    { color: var(--brand-indigo); background: var(--brand-indigo-light); border-color: var(--brand-indigo-muted); }
+.bs-calc-op:hover { background: var(--brand-indigo-muted); }
+.bs-calc-clear { color: var(--brand-rose); background: var(--brand-rose-light); border-color: var(--brand-rose-muted); }
+.bs-calc-clear:hover { background: var(--brand-rose-muted); }
+.bs-calc-eq    { color: #fff; background: var(--brand-indigo); border-color: var(--brand-indigo); }
+.bs-calc-eq:hover { background: var(--brand-indigo); opacity: 0.9; }
 </style>
