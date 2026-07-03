@@ -1147,6 +1147,106 @@ window.CardVencimentos = {
 
         </div>
 
+        <!-- ABA: KELLY — Critério de Kelly (sizing da carteira) -->
+        <div v-show="abaAtiva === 'kelly'" style="background:var(--surface-base);padding:1.25rem 1.5rem;">
+
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
+            <div style="width:10px;height:10px;border-radius:50%;background:var(--brand-indigo);flex-shrink:0;"></div>
+            <span class="cr-tip" data-tip="Critério de Kelly: a fração ótima da banca a arriscar dado o seu edge (probabilidade de acerto × razão prêmio/risco). Full Kelly maximiza o crescimento no longo prazo, mas com volatilidade alta; frações menores (Half/Quarter) trocam um pouco de crescimento por muito menos oscilação." style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);cursor:help;">Critério de Kelly</span>
+          </div>
+
+          <div v-if="!kellyAnalise" style="padding:2rem;text-align:center;color:var(--text-muted);font-size:0.78rem;">Sem PUTs vendidas com POE suficiente para o cálculo de Kelly.</div>
+
+          <template v-else>
+            <!-- Capital / banca -->
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;padding:0.625rem 0.875rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);margin-bottom:1rem;">
+              <span style="font-size:0.68rem;font-weight:700;color:var(--text-secondary);">Capital / banca total</span>
+              <div style="display:flex;align-items:center;gap:0.3rem;">
+                <span style="font-size:0.72rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">R$</span>
+                <input v-model="kellyCapital" type="number" min="0" step="1000"
+                       style="width:120px;padding:0.35rem 0.5rem;background:var(--surface-base);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-primary);font-size:0.8rem;font-family:'JetBrains Mono',monospace;text-align:right;outline:none;"
+                       onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+              </div>
+            </div>
+
+            <!-- Métricas de edge -->
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.625rem;margin-bottom:1.25rem;">
+              <div style="border:1px solid var(--brand-emerald-muted);border-radius:var(--radius-md);padding:0.75rem;text-align:center;background:var(--brand-emerald-light);">
+                <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-emerald);margin-bottom:3px;">Prob. acerto (p)</div>
+                <div style="font-size:1.4rem;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--brand-emerald);line-height:1;">{{ fmtPercent(kellyAnalise.p) }}</div>
+                <div style="font-size:0.52rem;color:var(--text-muted);margin-top:3px;">média pond. de 1 − POE</div>
+              </div>
+              <div style="border:1px solid var(--brand-amber-muted);border-radius:var(--radius-md);padding:0.75rem;text-align:center;background:var(--brand-amber-light);">
+                <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-amber);margin-bottom:3px;">Payoff (b)</div>
+                <div style="font-size:1.4rem;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--brand-amber);line-height:1;">{{ kellyAnalise.b.toFixed(2).replace('.', ',') }}</div>
+                <div style="font-size:0.52rem;color:var(--text-muted);margin-top:3px;">prêmio ÷ perda máx.</div>
+              </div>
+              <div style="border:2px solid var(--brand-indigo);border-radius:var(--radius-md);padding:0.75rem;text-align:center;background:var(--brand-indigo-light);">
+                <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);margin-bottom:3px;">Kelly ótimo (f*)</div>
+                <div style="font-size:1.4rem;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);line-height:1;">{{ kellyAnalise.fKelly > 0 ? fmtPercent(kellyAnalise.fKelly) : '—' }}</div>
+                <div style="font-size:0.52rem;color:var(--text-muted);margin-top:3px;">da banca por ciclo</div>
+              </div>
+            </div>
+
+            <!-- Status atual -->
+            <div v-if="kellyStatus" :style="'border-radius:var(--radius-lg);overflow:hidden;border:2px solid '+kellyStatus.cor+'55;margin-bottom:1.25rem;'">
+              <div style="padding:0.875rem 1rem;display:flex;align-items:center;gap:0.75rem;" :style="'background:'+kellyStatus.cor+'18;'">
+                <div style="font-size:1.5rem;line-height:1;">{{ kellyStatus.icone }}</div>
+                <div style="flex:1;">
+                  <p style="font-size:0.88rem;font-weight:800;line-height:1.2;" :style="'color:'+kellyStatus.cor">{{ kellyStatus.titulo }}</p>
+                  <p style="font-size:0.7rem;margin-top:2px;color:var(--text-secondary);">{{ kellyStatus.sub }}</p>
+                </div>
+              </div>
+              <div style="padding:0.75rem 1rem;background:var(--surface-base);">
+                <div style="display:flex;justify-content:space-between;font-size:0.55rem;font-weight:700;color:var(--text-muted);margin-bottom:4px;">
+                  <span>0</span><span>¼</span><span>½</span><span style="color:var(--brand-amber);">Full</span><span>1,5×</span>
+                </div>
+                <div style="position:relative;height:10px;border-radius:99px;background:linear-gradient(90deg,var(--brand-indigo-light),var(--brand-emerald-light) 40%,var(--brand-amber-light) 66%,var(--brand-rose-light));border:1px solid var(--border-subtle);">
+                  <div :style="'position:absolute;top:-4px;bottom:-4px;width:3px;border-radius:2px;transform:translateX(-1.5px);left:'+kellyStatus.marcadorPct+'%;background:'+kellyStatus.cor+';box-shadow:0 0 6px '+kellyStatus.cor+';'"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;font-size:0.6rem;gap:0.5rem;flex-wrap:wrap;">
+                  <span style="color:var(--text-muted);">Exposto (perda máx): <b style="color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ fmtMoedaCheia(kellyAnalise.maxLoss) }}</b> <span v-if="kellyStatus.fracAtual!=null">({{ fmtPercent(kellyStatus.fracAtual) }} da banca)</span></span>
+                  <span style="color:var(--text-muted);">Kelly ratio: <b :style="'color:'+kellyStatus.cor+';font-family:JetBrains Mono,monospace;'">{{ kellyStatus.ratio != null ? kellyStatus.ratio.toFixed(2).replace('.', ',') + '×' : '—' }}</b></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Escada Kelly -->
+            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:0.5rem;">Escada Kelly — quanto arriscar por ciclo</div>
+            <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.25rem;">
+              <div v-for="lvl in kellyEscada" :key="lvl.nome"
+                :style="'display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:0.625rem 0.875rem;border-radius:var(--radius-md);border:1px solid '+(lvl.destaque?'var(--brand-emerald)':'var(--border-subtle)')+';background:'+(lvl.destaque?'var(--brand-emerald-light)':'var(--surface-overlay)')+';'">
+                <div>
+                  <div style="display:flex;align-items:center;gap:0.4rem;">
+                    <span style="font-size:0.78rem;font-weight:800;color:var(--text-primary);">{{ lvl.nome }}</span>
+                    <span v-if="lvl.destaque" style="font-size:0.5rem;font-weight:800;padding:1px 5px;border-radius:99px;background:var(--brand-emerald);color:#fff;text-transform:uppercase;letter-spacing:0.05em;">recomendado</span>
+                  </div>
+                  <div style="font-size:0.6rem;color:var(--text-muted);margin-top:1px;">{{ lvl.desc }}</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:0.95rem;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);">{{ fmtMoedaCheia(lvl.valor) }}</div>
+                  <div style="font-size:0.58rem;color:var(--text-muted);">{{ fmtPercent(lvl.frac) }} da banca</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Educativo -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.625rem;">
+              <div style="border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:0.75rem;">
+                <div style="font-size:0.62rem;font-weight:800;color:var(--brand-amber);margin-bottom:3px;">🔥 Full Kelly</div>
+                <div style="font-size:0.64rem;color:var(--text-secondary);line-height:1.45;">Máximo crescimento geométrico teórico — mas a volatilidade é brutal (quedas de 50%+ do capital são normais no caminho) e é muito sensível a erro na estimativa de p e b.</div>
+              </div>
+              <div style="border:1px solid var(--brand-emerald-muted);border-radius:var(--radius-md);padding:0.75rem;background:var(--brand-emerald-light);">
+                <div style="font-size:0.62rem;font-weight:800;color:var(--brand-emerald);margin-bottom:3px;">✅ Half Kelly (padrão)</div>
+                <div style="font-size:0.64rem;color:var(--text-secondary);line-height:1.45;">Captura ~75% do crescimento do Full Kelly com ~metade da volatilidade. É o padrão prático — margem de segurança contra erro de estimativa.</div>
+              </div>
+            </div>
+
+            <p style="font-size:0.6rem;color:var(--text-muted);font-style:italic;margin-top:0.875rem;">Indicativo. p vem do POE das opções; b usa prêmio ÷ perda máxima líquida. Kelly de carteira é uma simplificação — não é recomendação de investimento.</p>
+          </template>
+
+        </div>
+
 
         <!-- BLOCO B — CONCENTRACAO POR ATIVO (aba: ativo) -->
         <div v-show="abaAtiva === 'ativo'" style="background:var(--surface-base);padding:1.25rem 1.5rem;">
@@ -1472,6 +1572,7 @@ window.CardRadar = {
   data: function() {
     return {
       abaAtiva: 'ciclo',
+      kellyCapital: 130000,
       radarAbas: [
         { key: 'ciclo',      label: 'Ciclo' },
         { key: 'premio',     label: 'Prêmio Capturado' },
@@ -1479,7 +1580,8 @@ window.CardRadar = {
         { key: 'calendario', label: 'Calendário' },
         { key: 'moneyness',  label: 'Moneyness' },
         { key: 'lucroPrej',  label: 'Lucro / Prejuízo' },
-        { key: 'notional',   label: 'Notional' }
+        { key: 'notional',   label: 'Notional' },
+        { key: 'kelly',      label: 'Kelly' }
       ],
       drawer: {
         aberto:     false,
@@ -1566,6 +1668,76 @@ window.CardRadar = {
           liquido:  tickers.reduce(function(s, x) { return s + x.liquido; }, 0)
         };
       });
+    },
+
+    // -- CRITERIO DE KELLY ---
+    // Edge do vendedor de PUT: p (prob. acerto) ponderada por risco a partir do POE;
+    // b (payoff) = prêmio total ÷ perda máxima líquida; f* = p − (1−p)/b.
+    kellyAnalise: function() {
+      var somaRisco = 0, somaPondWin = 0, premioTotal = 0;
+      this.opsComEfetivo.forEach(function(o) {
+        var venda = String(o.direcaoTrade || '').toUpperCase().indexOf('VENDA') >= 0;
+        if (String(o.tipoOpcao || '').toUpperCase().indexOf('PUT') < 0 || !venda) return;
+        var risco = o.nocionalEfetivo || 0;
+        if (risco <= 0) return;
+        var poe = parseFloat(o.poe) || 0;
+        if (poe > 1) poe = poe / 100;           // normaliza percentual
+        if (poe < 0) poe = 0; if (poe > 1) poe = 1;
+        somaRisco   += risco;
+        somaPondWin += risco * (1 - poe);
+        premioTotal += parseFloat(o.ganhoMaximo) || 0;
+      });
+      if (somaRisco <= 0) return null;
+      var p = somaPondWin / somaRisco;
+      var q = 1 - p;
+      var riscoLiq = this.totalNocionalPut;
+      var maxLoss  = Math.max(riscoLiq - premioTotal, 1);
+      var b = premioTotal / maxLoss;
+      var fKelly = b > 0 ? (p - q / b) : -1;
+      return { p: p, q: q, b: b, premio: premioTotal, risco: riscoLiq, maxLoss: maxLoss, fKelly: fKelly };
+    },
+
+    kellyStatus: function() {
+      var k = this.kellyAnalise;
+      if (!k) return null;
+      var cap = parseFloat(this.kellyCapital) || 0;
+      var fracAtual = cap > 0 ? (k.maxLoss / cap) : null;
+      var ratio = (fracAtual !== null && k.fKelly > 0) ? fracAtual / k.fKelly : null;
+      var marcadorPct = ratio != null ? Math.max(0, Math.min(100, (ratio / 1.5) * 100)) : 0;
+      var cor, icone, titulo, sub;
+      if (k.fKelly <= 0) {
+        cor = 'var(--brand-rose)'; icone = '🚫'; titulo = 'Sem edge estatístico';
+        sub = 'Com p e b atuais, Kelly recomenda NÃO alocar (f* ≤ 0).';
+      } else if (ratio == null) {
+        cor = 'var(--text-muted)'; icone = '•'; titulo = 'Informe o capital'; sub = '';
+      } else if (ratio > 1.25) {
+        cor = 'var(--brand-rose)'; icone = '⚠️'; titulo = 'Acima do Full Kelly (' + ratio.toFixed(2).replace('.', ',') + '×)';
+        sub = 'Over-betting: risco elevado de drawdown severo. Considere reduzir a exposição.';
+      } else if (ratio >= 0.80) {
+        cor = 'var(--brand-amber)'; icone = '🔥'; titulo = '≈ Full Kelly';
+        sub = 'Agressivo — crescimento máximo, mas prepare-se para forte volatilidade.';
+      } else if (ratio >= 0.35) {
+        cor = 'var(--brand-emerald)'; icone = '✅'; titulo = '≈ Half Kelly';
+        sub = 'Zona equilibrada e recomendada — bom crescimento com risco controlado.';
+      } else if (ratio >= 0.12) {
+        cor = 'var(--brand-indigo)'; icone = '🛡️'; titulo = '≈ Quarter Kelly';
+        sub = 'Conservador — baixa oscilação, crescimento mais lento.';
+      } else {
+        cor = 'var(--text-muted)'; icone = '💤'; titulo = 'Bem abaixo do Kelly';
+        sub = 'Sub-alocado — há espaço para aumentar a exposição dentro do edge.';
+      }
+      return { fracAtual: fracAtual, ratio: ratio, marcadorPct: marcadorPct, cor: cor, icone: icone, titulo: titulo, sub: sub };
+    },
+
+    kellyEscada: function() {
+      var k = this.kellyAnalise;
+      if (!k || k.fKelly <= 0) return [];
+      var cap = parseFloat(this.kellyCapital) || 0;
+      return [
+        { nome: 'Full Kelly',    frac: k.fKelly,       valor: k.fKelly * cap,       desc: 'Máximo crescimento · alta volatilidade', destaque: false },
+        { nome: 'Half Kelly',    frac: k.fKelly / 2,   valor: k.fKelly / 2 * cap,   desc: 'Equilíbrio crescimento × risco',         destaque: true  },
+        { nome: 'Quarter Kelly', frac: k.fKelly / 4,   valor: k.fKelly / 4 * cap,   desc: 'Conservador · baixa oscilação',          destaque: false }
+      ];
     },
 
     totalNocionalCall: function() {
@@ -1810,6 +1982,7 @@ window.CardRadar = {
     fmt: function(chave, valor) { return window.Formatador.campo(chave, valor); },
     fmtK: function(n) { return window.Formatador.moedaCompacta(n); },
     fmtMoedaCheia: function(v) { var n = parseFloat(v); if (isNaN(n)) return 'R$ 0'; return 'R$ ' + Math.round(n).toLocaleString('pt-BR'); },
+    fmtPercent: function(v) { var n = parseFloat(v); if (isNaN(n)) return '--'; return (n * 100).toFixed(1).replace('.', ',') + '%'; },
 
     abrirDrawer: function(tipo, filtro, titulo) {
       var ops = this.opsComEfetivo;
