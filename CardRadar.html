@@ -1169,8 +1169,28 @@ window.CardVencimentos = {
               </div>
             </div>
 
+            <!-- Parâmetros do modelo -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+              <div>
+                <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:4px;">Prob. de acerto &middot; fonte</div>
+                <div style="display:flex;gap:0.3rem;">
+                  <button @click="kellyProbFonte='poe'"   :style="btnToggle(kellyProbFonte==='poe')"   style="flex:1;padding:0.4rem;border-radius:var(--radius-sm);font-size:0.65rem;font-weight:700;cursor:pointer;border:1.5px solid;transition:all 0.15s;">POE</button>
+                  <button @click="kellyProbFonte='delta'" :style="btnToggle(kellyProbFonte==='delta')" style="flex:1;padding:0.4rem;border-radius:var(--radius-sm);font-size:0.65rem;font-weight:700;cursor:pointer;border:1.5px solid;transition:all 0.15s;">1 &minus; |&Delta;|</button>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:4px;">Perda por trade perdedor</div>
+                <div style="display:flex;gap:0.3rem;">
+                  <button @click="kellyStopMode='1x'"  :style="btnToggle(kellyStopMode==='1x')"  style="flex:1;padding:0.4rem;border-radius:var(--radius-sm);font-size:0.6rem;font-weight:700;cursor:pointer;border:1.5px solid;transition:all 0.15s;">1&times; créd.</button>
+                  <button @click="kellyStopMode='2x'"  :style="btnToggle(kellyStopMode==='2x')"  style="flex:1;padding:0.4rem;border-radius:var(--radius-sm);font-size:0.62rem;font-weight:700;cursor:pointer;border:1.5px solid;transition:all 0.15s;">2&times;</button>
+                  <button @click="kellyStopMode='3x'"  :style="btnToggle(kellyStopMode==='3x')"  style="flex:1;padding:0.4rem;border-radius:var(--radius-sm);font-size:0.62rem;font-weight:700;cursor:pointer;border:1.5px solid;transition:all 0.15s;">3&times;</button>
+                  <button @click="kellyStopMode='max'" :style="btnToggle(kellyStopMode==='max')" style="flex:1;padding:0.4rem;border-radius:var(--radius-sm);font-size:0.58rem;font-weight:700;cursor:pointer;border:1.5px solid;transition:all 0.15s;">Máx.</button>
+                </div>
+              </div>
+            </div>
+
             <!-- Métricas de edge -->
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.625rem;margin-bottom:1.25rem;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.625rem;margin-bottom:0.75rem;">
               <div style="border:1px solid var(--brand-emerald-muted);border-radius:var(--radius-md);padding:0.75rem;text-align:center;background:var(--brand-emerald-light);">
                 <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-emerald);margin-bottom:3px;">Prob. acerto (p)</div>
                 <div style="font-size:1.4rem;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--brand-emerald);line-height:1;">{{ fmtPercent(kellyAnalise.p) }}</div>
@@ -1179,13 +1199,20 @@ window.CardVencimentos = {
               <div style="border:1px solid var(--brand-amber-muted);border-radius:var(--radius-md);padding:0.75rem;text-align:center;background:var(--brand-amber-light);">
                 <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-amber);margin-bottom:3px;">Payoff (b)</div>
                 <div style="font-size:1.4rem;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--brand-amber);line-height:1;">{{ kellyAnalise.b.toFixed(2).replace('.', ',') }}</div>
-                <div style="font-size:0.52rem;color:var(--text-muted);margin-top:3px;">prêmio ÷ perda máx.</div>
+                <div style="font-size:0.52rem;color:var(--text-muted);margin-top:3px;">prêmio ÷ perda gerenciada</div>
               </div>
               <div style="border:2px solid var(--brand-indigo);border-radius:var(--radius-md);padding:0.75rem;text-align:center;background:var(--brand-indigo-light);">
                 <div style="font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);margin-bottom:3px;">Kelly ótimo (f*)</div>
                 <div style="font-size:1.4rem;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);line-height:1;">{{ kellyAnalise.fKelly > 0 ? fmtPercent(kellyAnalise.fKelly) : '—' }}</div>
                 <div style="font-size:0.52rem;color:var(--text-muted);margin-top:3px;">da banca por ciclo</div>
               </div>
+            </div>
+
+            <!-- Ponto de equilíbrio: explica o porquê do edge ser positivo ou não -->
+            <div style="font-size:0.62rem;color:var(--text-secondary);text-align:center;line-height:1.5;padding:0.5rem 0.75rem;background:var(--surface-overlay);border-radius:var(--radius-md);margin-bottom:1.25rem;">
+              Com payoff b = <b style="font-family:'JetBrains Mono',monospace;">{{ kellyAnalise.b.toFixed(2).replace('.', ',') }}</b>, o edge fica positivo acima de
+              <b style="font-family:'JetBrains Mono',monospace;color:var(--brand-amber);">{{ fmtPercent(kellyAnalise.breakeven) }}</b> de acerto —
+              você está em <b style="font-family:'JetBrains Mono',monospace;" :style="kellyAnalise.p >= kellyAnalise.breakeven ? 'color:var(--brand-emerald)' : 'color:var(--brand-rose)'">{{ fmtPercent(kellyAnalise.p) }}</b>.
             </div>
 
             <!-- Status atual -->
@@ -1205,7 +1232,7 @@ window.CardVencimentos = {
                   <div :style="'position:absolute;top:-4px;bottom:-4px;width:3px;border-radius:2px;transform:translateX(-1.5px);left:'+kellyStatus.marcadorPct+'%;background:'+kellyStatus.cor+';box-shadow:0 0 6px '+kellyStatus.cor+';'"></div>
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;font-size:0.6rem;gap:0.5rem;flex-wrap:wrap;">
-                  <span style="color:var(--text-muted);">Exposto (perda máx): <b style="color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ fmtMoedaCheia(kellyAnalise.maxLoss) }}</b> <span v-if="kellyStatus.fracAtual!=null">({{ fmtPercent(kellyStatus.fracAtual) }} da banca)</span></span>
+                  <span style="color:var(--text-muted);">Risco gerenciado: <b style="color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ fmtMoedaCheia(kellyAnalise.lossUsada) }}</b> <span v-if="kellyStatus.fracAtual!=null">({{ fmtPercent(kellyStatus.fracAtual) }} da banca)</span> <span style="opacity:0.7;">&middot; máx {{ fmtMoedaCheia(kellyAnalise.maxLoss) }}</span></span>
                   <span style="color:var(--text-muted);">Kelly ratio: <b :style="'color:'+kellyStatus.cor+';font-family:JetBrains Mono,monospace;'">{{ kellyStatus.ratio != null ? kellyStatus.ratio.toFixed(2).replace('.', ',') + '×' : '—' }}</b></span>
                 </div>
               </div>
@@ -1242,7 +1269,7 @@ window.CardVencimentos = {
               </div>
             </div>
 
-            <p style="font-size:0.6rem;color:var(--text-muted);font-style:italic;margin-top:0.875rem;">Indicativo. p vem do POE das opções; b usa prêmio ÷ perda máxima líquida. Kelly de carteira é uma simplificação — não é recomendação de investimento.</p>
+            <p style="font-size:0.6rem;color:var(--text-muted);font-style:italic;margin-top:0.875rem;">Indicativo. p vem do POE ou de 1&minus;|Δ| (você escolhe); b = prêmio ÷ perda por trade perdedor (gerenciada em múltiplo do crédito, ou perda máxima no pior caso). Kelly de carteira é uma simplificação — não é recomendação de investimento.</p>
           </template>
 
         </div>
@@ -1573,6 +1600,8 @@ window.CardRadar = {
     return {
       abaAtiva: 'ciclo',
       kellyCapital: 130000,
+      kellyProbFonte: 'poe',   // fonte do p: 'poe' | 'delta'
+      kellyStopMode: '2x',     // perda por perdedor: '1x' | '2x' | '3x' | 'max'
       radarAbas: [
         { key: 'ciclo',      label: 'Ciclo' },
         { key: 'premio',     label: 'Prêmio Capturado' },
@@ -1674,17 +1703,26 @@ window.CardRadar = {
     // Edge do vendedor de PUT: p (prob. acerto) ponderada por risco a partir do POE;
     // b (payoff) = prêmio total ÷ perda máxima líquida; f* = p − (1−p)/b.
     kellyAnalise: function() {
+      var fonte = this.kellyProbFonte;
       var somaRisco = 0, somaPondWin = 0, premioTotal = 0;
       this.opsComEfetivo.forEach(function(o) {
         var venda = String(o.direcaoTrade || '').toUpperCase().indexOf('VENDA') >= 0;
         if (String(o.tipoOpcao || '').toUpperCase().indexOf('PUT') < 0 || !venda) return;
         var risco = o.nocionalEfetivo || 0;
         if (risco <= 0) return;
-        var poe = parseFloat(o.poe) || 0;
-        if (poe > 1) poe = poe / 100;           // normaliza percentual
-        if (poe < 0) poe = 0; if (poe > 1) poe = 1;
+        var winP;
+        if (fonte === 'delta') {
+          var dl = Math.abs(parseFloat(o.delta) || 0);
+          if (dl > 1) dl = dl / 100;            // |delta| ~ prob. ITM ~ POE
+          winP = 1 - Math.min(1, Math.max(0, dl));
+        } else {
+          var poe = parseFloat(o.poe) || 0;
+          if (poe > 1) poe = poe / 100;         // normaliza percentual
+          poe = Math.min(1, Math.max(0, poe));
+          winP = 1 - poe;
+        }
         somaRisco   += risco;
-        somaPondWin += risco * (1 - poe);
+        somaPondWin += risco * winP;
         premioTotal += parseFloat(o.ganhoMaximo) || 0;
       });
       if (somaRisco <= 0) return null;
@@ -1692,16 +1730,20 @@ window.CardRadar = {
       var q = 1 - p;
       var riscoLiq = this.totalNocionalPut;
       var maxLoss  = Math.max(riscoLiq - premioTotal, 1);
-      var b = premioTotal / maxLoss;
+      // Perda por trade perdedor: gerenciada (múltiplo do crédito) ou pior caso (máx), com teto na perda máx.
+      var mult = this.kellyStopMode === '1x' ? 1 : (this.kellyStopMode === '3x' ? 3 : (this.kellyStopMode === 'max' ? null : 2));
+      var lossUsada = (mult === null) ? maxLoss : Math.min(mult * premioTotal, maxLoss);
+      lossUsada = Math.max(lossUsada, 1);
+      var b = premioTotal / lossUsada;
       var fKelly = b > 0 ? (p - q / b) : -1;
-      return { p: p, q: q, b: b, premio: premioTotal, risco: riscoLiq, maxLoss: maxLoss, fKelly: fKelly };
+      return { p: p, q: q, b: b, premio: premioTotal, risco: riscoLiq, maxLoss: maxLoss, lossUsada: lossUsada, fKelly: fKelly, breakeven: 1 / (1 + b) };
     },
 
     kellyStatus: function() {
       var k = this.kellyAnalise;
       if (!k) return null;
       var cap = parseFloat(this.kellyCapital) || 0;
-      var fracAtual = cap > 0 ? (k.maxLoss / cap) : null;
+      var fracAtual = cap > 0 ? (k.lossUsada / cap) : null;
       var ratio = (fracAtual !== null && k.fKelly > 0) ? fracAtual / k.fKelly : null;
       var marcadorPct = ratio != null ? Math.max(0, Math.min(100, (ratio / 1.5) * 100)) : 0;
       var cor, icone, titulo, sub;
@@ -1983,6 +2025,7 @@ window.CardRadar = {
     fmtK: function(n) { return window.Formatador.moedaCompacta(n); },
     fmtMoedaCheia: function(v) { var n = parseFloat(v); if (isNaN(n)) return 'R$ 0'; return 'R$ ' + Math.round(n).toLocaleString('pt-BR'); },
     fmtPercent: function(v) { var n = parseFloat(v); if (isNaN(n)) return '--'; return (n * 100).toFixed(1).replace('.', ',') + '%'; },
+    btnToggle: function(active) { return active ? 'background:var(--brand-indigo);color:#fff;border-color:var(--brand-indigo);' : 'background:var(--surface-base);color:var(--text-muted);border-color:var(--border-default);'; },
 
     abrirDrawer: function(tipo, filtro, titulo) {
       var ops = this.opsComEfetivo;
