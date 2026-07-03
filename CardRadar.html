@@ -1218,7 +1218,7 @@ window.CardVencimentos = {
               <div style="text-align:center;"><div style="font-size:0.5rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">Prêmio ÷ risco</div><div style="font-size:0.9rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-amber);">{{ kellyAnalise.b.toFixed(2).replace('.', ',') }}</div></div>
             </div>
 
-            <p style="font-size:0.58rem;color:var(--text-muted);font-style:italic;line-height:1.5;">Prob. de acerto estimada por 1&minus;|Δ| das opções; perda por trade perdedor considerada em ~2× o crédito (gestão típica de quem fecha os perdedores). Half Kelly é o padrão recomendado. Indicativo — não é recomendação de investimento.</p>
+            <p style="font-size:0.58rem;color:var(--text-muted);font-style:italic;line-height:1.5;">Prob. de acerto estimada por 1&minus;|Δ| — média simples entre as PUTs vendidas (cada trade conta igual, sem ponderar por tamanho). Perda por trade perdedor considerada em ~2× o crédito (gestão típica de quem fecha os perdedores). Half Kelly é o padrão recomendado. Indicativo — não é recomendação de investimento.</p>
           </template>
 
         </div>
@@ -1650,20 +1650,18 @@ window.CardRadar = {
     // Edge do vendedor de PUT: p (prob. acerto) ponderada por risco a partir do POE;
     // b (payoff) = prêmio total ÷ perda máxima líquida; f* = p − (1−p)/b.
     kellyAnalise: function() {
-      var somaRisco = 0, somaPondWin = 0, premioTotal = 0;
+      var n = 0, somaWin = 0, premioTotal = 0;
       this.opsComEfetivo.forEach(function(o) {
         var venda = String(o.direcaoTrade || '').toUpperCase().indexOf('VENDA') >= 0;
         if (String(o.tipoOpcao || '').toUpperCase().indexOf('PUT') < 0 || !venda) return;
-        var risco = o.nocionalEfetivo || 0;
-        if (risco <= 0) return;
         var dl = Math.abs(parseFloat(o.delta) || 0);   // |delta| ~ prob. de terminar ITM
         if (dl > 1) dl = dl / 100;
-        somaRisco   += risco;
-        somaPondWin += risco * (1 - Math.min(1, Math.max(0, dl)));
+        n++;
+        somaWin     += (1 - Math.min(1, Math.max(0, dl)));   // média simples: cada trade conta igual
         premioTotal += parseFloat(o.ganhoMaximo) || 0;
       });
-      if (somaRisco <= 0) return null;
-      var p = somaPondWin / somaRisco;
+      if (n <= 0) return null;
+      var p = somaWin / n;
       var q = 1 - p;
       var riscoLiq  = this.totalNocionalPut;
       var maxLoss   = Math.max(riscoLiq - premioTotal, 1);
