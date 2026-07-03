@@ -517,7 +517,7 @@ window.CardVencimentos = {
                         letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;">Nocional</div>
             <div style="font-size:1.1rem;font-weight:800;color:var(--brand-indigo);
                         font-family:'JetBrains Mono',monospace;">
-              {{ fmtK(somaDrawer('nocional')) }}
+              {{ fmtK(somaDrawer('nocionalEfetivo')) }}
             </div>
           </div>
           <div style="background:var(--surface-base);padding:1rem 1.25rem;">
@@ -630,7 +630,7 @@ window.CardVencimentos = {
               </div>
               <div style="background:var(--surface-base);padding:0.5rem 0.625rem;display:flex;flex-direction:column;">
                 <span style="font-size:0.52rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">Nocional</span>
-                <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;color:var(--text-primary);">{{ fmtK(op.nocional) }}</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;color:var(--text-primary);">{{ fmtK(op.nocionalEfetivo != null ? op.nocionalEfetivo : op.nocional) }}</span>
               </div>
               <div style="background:var(--surface-base);padding:0.5rem 0.625rem;display:flex;flex-direction:column;">
                 <span style="font-size:0.52rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:2px;">Delta</span>
@@ -721,15 +721,16 @@ window.CardVencimentos = {
             <div style="display:flex;align-items:center;gap:4px;justify-content:flex-end;margin-bottom:2px;">
               <span style="font-size:0.52rem;font-weight:800;padding:1px 4px;border-radius:3px;
                            background:var(--brand-indigo-light);color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);">PUT</span>
-              <span style="font-size:0.56rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">capital</span>
+              <span class="cr-tip" data-tip="Risco nocional LÍQUIDO das travas: desembolso bruto (todas as PUTs vendidas exercidas) menos a proteção das PUTs compradas. Detalhamento na linha de baixo." style="font-size:0.56rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;cursor:help;">risco líq.</span>
             </div>
             <div style="font-size:0.9rem;font-weight:800;color:var(--brand-indigo);
                         font-family:'JetBrains Mono',monospace;letter-spacing:-0.02em;">
               {{ fmtK(totalNocionalPut) }}
             </div>
-            <div v-if="totalNocionalPutDesmontagem > 0"
-              style="font-size:0.52rem;font-weight:700;color:var(--brand-amber);white-space:nowrap;">
-              &minus;{{ fmtK(totalNocionalPutDesmontagem) }} desmont.
+            <div v-if="totalNocionalPutDesmontagem > 0" class="cr-tip"
+              :data-tip="'Desembolso bruto (todas PUTs vendidas exercidas): ' + fmtK(totalNocionalPutBruto) + '     (−) Proteção das compradas: ' + fmtK(totalNocionalPutDesmontagem) + '     =     Risco nocional líquido: ' + fmtK(totalNocionalPut)"
+              style="font-size:0.52rem;font-weight:700;color:var(--text-muted);white-space:nowrap;cursor:help;">
+              bruto {{ fmtK(totalNocionalPutBruto) }} <span style="color:var(--brand-amber);">&minus;{{ fmtK(totalNocionalPutDesmontagem) }} prot.</span>
             </div>
           </div>
           <div style="text-align:right;">
@@ -1421,8 +1422,16 @@ window.CardRadar = {
       return (s && s.listaAtivas) ? s.listaAtivas : [];
     },
 
+    // Cada posicao ganha nocionalEfetivo (risco LIQUIDO): PUT vendida = sua fatia do
+    // liquido do grupo ticker+venc (vendidas - proteção comprada); PUT comprada = 0
+    // (proteção, ja abatida); CALL vendida = nocional cheio (coberta). Base de TODAS
+    // as somas de nocional do card, para refletir corretamente as travas.
+    opsComEfetivo: function() {
+      return this._enriquecerEfetivo(this.operacoes);
+    },
+
     totalNocional: function() {
-      return this.operacoes.reduce(function(s, o) { return s + (parseFloat(o.nocional) || 0); }, 0);
+      return this.opsComEfetivo.reduce(function(s, o) { return s + (o.nocionalEfetivo || 0); }, 0);
     },
 
     putNetting: function() {
@@ -1433,7 +1442,7 @@ window.CardRadar = {
         var dir = String(o.direcaoTrade||'').toUpperCase();
         var venda = dir.indexOf('VENDA') >= 0;
         var dStr = o.dataVencimento ? String(o.dataVencimento).split('T')[0] : '';
-        var key = (o.tickerAtivo||'')+'|'+(o.strike||'')+'|'+dStr;
+        var key = (o.tickerAtivo||'')+'|'+dStr;  // ticker+venc: netta a protecao da trava (strikes diferentes)
         if (!grupos[key]) { grupos[key]={ticker:o.tickerAtivo,vendaNoc:0,compraNoc:0,vendaOps:[],compraOps:[]}; ordem.push(key); }
         var noc = parseFloat(o.nocional)||0;
         if (venda) { grupos[key].vendaNoc+=noc; grupos[key].vendaOps.push(o); }
@@ -1442,8 +1451,9 @@ window.CardRadar = {
       return ordem.map(function(k){ var g=grupos[k]; return Object.assign({},g,{key:k,liquidoNoc:Math.max(0,g.vendaNoc-g.compraNoc)}); });
     },
 
-    totalNocionalPut: function() { return this.putNetting.reduce(function(a,g){return a+g.liquidoNoc;},0); },
-    totalNocionalPutDesmontagem: function() { return this.putNetting.reduce(function(a,g){return a+g.compraNoc;},0); },
+    totalNocionalPut: function() { return this.putNetting.reduce(function(a,g){return a+g.liquidoNoc;},0); },       // risco liquido (vendidas - proteção)
+    totalNocionalPutBruto: function() { return this.putNetting.reduce(function(a,g){return a+g.vendaNoc;},0); },    // desembolso bruto (todas vendidas)
+    totalNocionalPutDesmontagem: function() { return this.putNetting.reduce(function(a,g){return a+g.compraNoc;},0); }, // proteção (todas compradas)
 
     totalNocionalCall: function() {
       return this.operacoes.filter(function(o){ return String(o.tipoOpcao||'').toUpperCase().indexOf('CALL')>=0 && String(o.direcaoTrade||'').toUpperCase().indexOf('VENDA')>=0; }).reduce(function(a,o){return a+(parseFloat(o.nocional)||0);},0);
@@ -1455,7 +1465,7 @@ window.CardRadar = {
 
     // -- MONEYNESS ---
     moneynessVisoes: function() {
-      var ops = this.operacoes;
+      var ops = this.opsComEfetivo;
       var total = ops.length || 1;
       var grupos = {
         OTM: { count: 0, nocional: 0 },
@@ -1465,7 +1475,7 @@ window.CardRadar = {
       ops.forEach(function(o) {
         var c = String(o.moneynessCode || '').toUpperCase();
         var key = c.indexOf('OTM') >= 0 ? 'OTM' : c.indexOf('ATM') >= 0 ? 'ATM' : c.indexOf('ITM') >= 0 ? 'ITM' : null;
-        if (key) { grupos[key].count++; grupos[key].nocional += parseFloat(o.nocional) || 0; }
+        if (key) { grupos[key].count++; grupos[key].nocional += o.nocionalEfetivo || 0; }
       });
       return [
         { code: 'OTM', label: 'Out of the Money', count: grupos.OTM.count, nocional: grupos.OTM.nocional, pct: Math.round((grupos.OTM.count / total) * 100), color: 'var(--brand-emerald)', badgeStyle: 'background:var(--brand-emerald-light);color:var(--brand-emerald);border-color:var(--brand-emerald-muted);' },
@@ -1491,7 +1501,7 @@ window.CardRadar = {
 
     // -- CONCENTRACAO POR TICKER ---
     tickerVisoes: function() {
-      var ops = this.operacoes;
+      var ops = this.opsComEfetivo;
       var totalNoc = this.totalNocional || 1;
       var mapa = {};
       ops.forEach(function(o) {
@@ -1505,11 +1515,11 @@ window.CardRadar = {
         var mon = String(o.moneynessCode || '').toUpperCase();
         var col = mon.indexOf('OTM') >= 0 ? 'OTM' : mon.indexOf('ATM') >= 0 ? 'ATM' : mon.indexOf('ITM') >= 0 ? 'ITM' : null;
         mapa[t].count++;
-        mapa[t].nocional += parseFloat(o.nocional)     || 0;
+        mapa[t].nocional += o.nocionalEfetivo          || 0;
         mapa[t].pl       += parseFloat(o.plTotalValor) || 0;
         if (col) {
           mapa[t][col].count++;
-          mapa[t][col].nocional += parseFloat(o.nocional) || 0;
+          mapa[t][col].nocional += o.nocionalEfetivo || 0;
         }
       });
       return Object.keys(mapa)
@@ -1529,11 +1539,11 @@ window.CardRadar = {
 
     // -- P/L STATUS ---
     plVisao: function() {
-      var ops = this.operacoes;
+      var ops = this.opsComEfetivo;
       var r = { lucro: 0, breakeven: 0, prejuizo: 0, nocionalLucro: 0, nocionalBreakeven: 0, nocionalPrejuizo: 0 };
       ops.forEach(function(o) {
         var pl  = parseFloat(o.plTotalValor) || 0;
-        var noc = parseFloat(o.nocional) || 0;
+        var noc = o.nocionalEfetivo || 0;
         if      (pl >  0.01) { r.lucro++;     r.nocionalLucro      += noc; }
         else if (pl < -0.01) { r.prejuizo++;  r.nocionalPrejuizo   += noc; }
         else                 { r.breakeven++; r.nocionalBreakeven  += noc; }
@@ -1688,7 +1698,7 @@ window.CardRadar = {
     fmtK: function(n) { return window.Formatador.moedaCompacta(n); },
 
     abrirDrawer: function(tipo, filtro, titulo) {
-      var ops = this.operacoes;
+      var ops = this.opsComEfetivo;
       var filtered = [];
 
       if (tipo === 'moneyness') {
@@ -1760,12 +1770,47 @@ window.CardRadar = {
       this.drawer.filtro     = '';
       this.drawer.titulo     = payload.titulo || '';
       this.drawer.grupoLabel = payload.grupoLabel || 'Vencimento';
-      this.drawer.ops        = payload.ops || [];
+      this.drawer.ops        = this._enriquecerEfetivo(payload.ops || []);
       this.drawer.aberto     = true;
     },
 
     fecharDrawer: function() {
       this.drawer.aberto = false;
+    },
+
+    // Netting da proteção das travas: devolve as ops com nocionalEfetivo (ver opsComEfetivo).
+    // Agrupa PUTs por ticker+vencimento; liquido do grupo = max(0, Σvendidas - Σcompradas);
+    // cada PUT vendida recebe sua fatia proporcional do liquido; PUT comprada = 0.
+    _enriquecerEfetivo: function(ops) {
+      ops = ops || [];
+      var grp = {};
+      ops.forEach(function(o) {
+        if (String(o.tipoOpcao || '').toUpperCase().indexOf('PUT') < 0) return;
+        var dStr = o.dataVencimento ? String(o.dataVencimento).split('T')[0] : '';
+        var key  = (o.tickerAtivo || '') + '|' + dStr;
+        if (!grp[key]) grp[key] = { sold: 0, bought: 0 };
+        var noc = parseFloat(o.nocional) || 0;
+        if (String(o.direcaoTrade || '').toUpperCase().indexOf('VENDA') >= 0) grp[key].sold += noc;
+        else grp[key].bought += noc;
+      });
+      Object.keys(grp).forEach(function(k) { grp[k].net = Math.max(0, grp[k].sold - grp[k].bought); });
+      return ops.map(function(o) {
+        var tipo  = String(o.tipoOpcao || '').toUpperCase();
+        var venda = String(o.direcaoTrade || '').toUpperCase().indexOf('VENDA') >= 0;
+        var noc   = parseFloat(o.nocional) || 0;
+        var efet;
+        if (tipo.indexOf('PUT') >= 0) {
+          if (!venda) { efet = 0; }
+          else {
+            var dStr = o.dataVencimento ? String(o.dataVencimento).split('T')[0] : '';
+            var g = grp[(o.tickerAtivo || '') + '|' + dStr];
+            efet = (g && g.sold > 0) ? g.net * (noc / g.sold) : noc;
+          }
+        } else {
+          efet = venda ? noc : 0;   // CALL vendida = coberta; comprada/naked = 0
+        }
+        return Object.assign({}, o, { nocionalEfetivo: efet });
+      });
     },
 
     somaDrawer: function(campo) {
