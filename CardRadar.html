@@ -1147,102 +1147,6 @@ window.CardVencimentos = {
 
         </div>
 
-        <!-- ABA: KELLY — Critério de Kelly (sizing da carteira) -->
-        <div v-show="abaAtiva === 'kelly'" style="background:var(--surface-base);padding:1.25rem 1.5rem;">
-
-          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
-            <div style="width:10px;height:10px;border-radius:50%;background:var(--brand-indigo);flex-shrink:0;"></div>
-            <span style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);">Critério de Kelly</span>
-          </div>
-          <p style="font-size:0.68rem;color:var(--text-muted);line-height:1.5;margin-bottom:1rem;">Quanto arriscar por ciclo nas suas PUTs vendidas ativas para crescer no longo prazo com risco controlado.</p>
-
-          <div v-if="!kellyAnalise" style="padding:2rem;text-align:center;color:var(--text-muted);font-size:0.78rem;">Sem PUTs vendidas ativas para o cálculo.</div>
-
-          <template v-else>
-            <!-- Banca -->
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;padding:0.625rem 0.875rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);margin-bottom:1rem;">
-              <span style="font-size:0.68rem;font-weight:700;color:var(--text-secondary);">Sua banca total</span>
-              <div style="display:flex;align-items:center;gap:0.3rem;">
-                <span style="font-size:0.72rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">R$</span>
-                <input v-model="kellyCapital" type="number" min="0" step="1000"
-                       style="width:120px;padding:0.35rem 0.5rem;background:var(--surface-base);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-primary);font-size:0.8rem;font-family:'JetBrains Mono',monospace;text-align:right;outline:none;"
-                       onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
-              </div>
-            </div>
-
-            <!-- Win rate real (override opcional) -->
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;padding:0.625rem 0.875rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);margin-bottom:1rem;">
-              <div>
-                <span style="font-size:0.68rem;font-weight:700;color:var(--text-secondary);">Seu win rate real</span>
-                <div style="font-size:0.56rem;color:var(--text-muted);margin-top:1px;">
-                  Deixe vazio para usar 1&minus;|Δ| do book (<b style="font-family:'JetBrains Mono',monospace;">{{ fmtPercent(kellyAnalise.pDelta) }}</b>). Informe se você fecha/rola as posições.
-                </div>
-              </div>
-              <div style="display:flex;align-items:center;gap:0.3rem;flex-shrink:0;">
-                <input v-model="kellyWinRate" type="number" min="1" max="99" step="1" placeholder="auto"
-                       style="width:70px;padding:0.35rem 0.5rem;background:var(--surface-base);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-primary);font-size:0.8rem;font-family:'JetBrains Mono',monospace;text-align:right;outline:none;"
-                       onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
-                <span style="font-size:0.72rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">%</span>
-              </div>
-            </div>
-
-            <!-- Veredito principal -->
-            <div v-if="kellyStatus" :style="'border-radius:var(--radius-lg);overflow:hidden;border:2px solid '+kellyStatus.cor+'55;margin-bottom:1.25rem;'">
-              <div style="padding:1rem;display:flex;align-items:center;gap:0.875rem;" :style="'background:'+kellyStatus.cor+'18;'">
-                <div style="font-size:1.8rem;line-height:1;">{{ kellyStatus.icone }}</div>
-                <div style="flex:1;">
-                  <p style="font-size:0.98rem;font-weight:800;line-height:1.2;" :style="'color:'+kellyStatus.cor">{{ kellyStatus.titulo }}</p>
-                  <p style="font-size:0.72rem;margin-top:3px;color:var(--text-secondary);line-height:1.4;">{{ kellyStatus.sub }}</p>
-                </div>
-              </div>
-              <div v-if="kellyStatus.ratio != null" style="padding:0.875rem 1rem;background:var(--surface-base);">
-                <div style="display:flex;justify-content:space-between;font-size:0.55rem;font-weight:700;color:var(--text-muted);margin-bottom:5px;">
-                  <span>Conservador</span><span style="color:var(--brand-emerald);">Half</span><span style="color:var(--brand-amber);">Full</span><span style="color:var(--brand-rose);">Demais</span>
-                </div>
-                <div style="position:relative;height:10px;border-radius:99px;background:linear-gradient(90deg,var(--brand-indigo-light),var(--brand-emerald-light) 45%,var(--brand-amber-light) 70%,var(--brand-rose-light));border:1px solid var(--border-subtle);">
-                  <div :style="'position:absolute;top:-4px;bottom:-4px;width:4px;border-radius:2px;transform:translateX(-2px);left:'+kellyStatus.marcadorPct+'%;background:'+kellyStatus.cor+';box-shadow:0 0 6px '+kellyStatus.cor+';'"></div>
-                </div>
-                <div style="text-align:center;margin-top:7px;font-size:0.63rem;color:var(--text-muted);">
-                  Você expõe <b style="color:var(--text-primary);font-family:'JetBrains Mono',monospace;">{{ fmtMoedaCheia(kellyAnalise.lossUsada) }}</b> ({{ fmtPercent(kellyAnalise.fracAtual) }} da banca) — <b :style="'color:'+kellyStatus.cor">{{ kellyStatus.ratio.toFixed(2).replace('.', ',') }}× o Full Kelly</b>
-                </div>
-              </div>
-            </div>
-
-            <!-- Quanto arriscar -->
-            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:0.5rem;">Sizing sugerido por ciclo</div>
-            <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem;">
-              <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:0.7rem 0.875rem;border-radius:var(--radius-md);border:1px solid var(--border-subtle);background:var(--surface-overlay);">
-                <div><span style="font-size:0.8rem;font-weight:800;color:var(--text-primary);">🔥 Full Kelly</span><div style="font-size:0.6rem;color:var(--text-muted);margin-top:1px;">máximo crescimento · volatilidade alta</div></div>
-                <div style="text-align:right;"><div style="font-size:1rem;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);">{{ fmtMoedaCheia(kellyAnalise.valFull) }}</div><div style="font-size:0.58rem;color:var(--text-muted);">{{ fmtPercent(kellyAnalise.fFull) }} da banca</div></div>
-              </div>
-              <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:0.7rem 0.875rem;border-radius:var(--radius-md);border:2px solid var(--brand-emerald);background:var(--brand-emerald-light);">
-                <div><div style="display:flex;align-items:center;gap:0.4rem;"><span style="font-size:0.8rem;font-weight:800;color:var(--text-primary);">✅ Half Kelly</span><span style="font-size:0.5rem;font-weight:800;padding:1px 5px;border-radius:99px;background:var(--brand-emerald);color:#fff;text-transform:uppercase;letter-spacing:0.05em;">recomendado</span></div><div style="font-size:0.6rem;color:var(--text-muted);margin-top:1px;">equilíbrio — o padrão prático</div></div>
-                <div style="text-align:right;"><div style="font-size:1.05rem;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--brand-emerald);">{{ fmtMoedaCheia(kellyAnalise.valHalf) }}</div><div style="font-size:0.58rem;color:var(--text-muted);">{{ fmtPercent(kellyAnalise.half) }} da banca</div></div>
-              </div>
-              <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:0.7rem 0.875rem;border-radius:var(--radius-md);border:1px solid var(--border-subtle);background:var(--surface-overlay);">
-                <div><span style="font-size:0.8rem;font-weight:800;color:var(--text-primary);">🛡️ Quarter Kelly</span><div style="font-size:0.6rem;color:var(--text-muted);margin-top:1px;">conservador · baixa oscilação</div></div>
-                <div style="text-align:right;"><div style="font-size:1rem;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);">{{ fmtMoedaCheia(kellyAnalise.valQuarter) }}</div><div style="font-size:0.58rem;color:var(--text-muted);">{{ fmtPercent(kellyAnalise.quarter) }} da banca</div></div>
-              </div>
-            </div>
-
-            <!-- Métricas base -->
-            <div style="display:flex;justify-content:center;align-items:stretch;gap:1.25rem;padding:0.625rem;background:var(--surface-sunken);border-radius:var(--radius-md);margin-bottom:0.875rem;">
-              <div style="text-align:center;"><div style="font-size:0.5rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">Prob. acerto</div><div style="font-size:0.9rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-emerald);">{{ fmtPercent(kellyAnalise.p) }}</div></div>
-              <div style="width:1px;background:var(--border-default);"></div>
-              <div style="text-align:center;"><div style="font-size:0.5rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">Breakeven</div><div style="font-size:0.9rem;font-weight:800;font-family:'JetBrains Mono',monospace;" :style="kellyAnalise.p >= kellyAnalise.breakeven ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'">{{ fmtPercent(kellyAnalise.breakeven) }}</div></div>
-              <div style="width:1px;background:var(--border-default);"></div>
-              <div style="text-align:center;"><div style="font-size:0.5rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">Prêmio ÷ risco</div><div style="font-size:0.9rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-amber);">{{ kellyAnalise.b.toFixed(2).replace('.', ',') }}</div></div>
-            </div>
-
-            <p style="font-size:0.58rem;color:var(--text-muted);font-style:italic;line-height:1.5;">
-              <template v-if="kellyAnalise.usaOverride">Prob. de acerto = <b>{{ fmtPercent(kellyAnalise.p) }}</b> (win rate informado por você).</template>
-              <template v-else>Prob. de acerto estimada por 1&minus;|Δ| — média simples entre as PUTs vendidas (cada trade conta igual). Informe seu win rate real acima se você gerencia as posições.</template>
-              Prêmio ÷ risco (<b>b = {{ kellyAnalise.b.toFixed(2).replace('.', ',') }}</b>) usa o risco nocional líquido real da estrutura; o breakeven correspondente é <b>{{ fmtPercent(kellyAnalise.breakeven) }}</b>. Half Kelly é o padrão recomendado. Indicativo — não é recomendação de investimento.
-            </p>
-          </template>
-
-        </div>
-
 
         <!-- BLOCO B — CONCENTRACAO POR ATIVO (aba: ativo) -->
         <div v-show="abaAtiva === 'ativo'" style="background:var(--surface-base);padding:1.25rem 1.5rem;">
@@ -1568,8 +1472,6 @@ window.CardRadar = {
   data: function() {
     return {
       abaAtiva: 'ciclo',
-      kellyCapital: 130000,
-      kellyWinRate: null,   // % informado pelo usuário; null = usa 1-|Δ| do book
       radarAbas: [
         { key: 'ciclo',      label: 'Ciclo' },
         { key: 'premio',     label: 'Prêmio Capturado' },
@@ -1577,8 +1479,7 @@ window.CardRadar = {
         { key: 'calendario', label: 'Calendário' },
         { key: 'moneyness',  label: 'Moneyness' },
         { key: 'lucroPrej',  label: 'Lucro / Prejuízo' },
-        { key: 'notional',   label: 'Notional' },
-        { key: 'kelly',      label: 'Kelly' }
+        { key: 'notional',   label: 'Notional' }
       ],
       drawer: {
         aberto:     false,
@@ -1665,80 +1566,6 @@ window.CardRadar = {
           liquido:  tickers.reduce(function(s, x) { return s + x.liquido; }, 0)
         };
       });
-    },
-
-    // -- CRITERIO DE KELLY ---
-    // Edge do vendedor de PUT: p (prob. acerto) ponderada por risco a partir do POE;
-    // b (payoff) = prêmio total ÷ perda máxima líquida; f* = p − (1−p)/b.
-    kellyAnalise: function() {
-      var n = 0, somaWin = 0, premioTotal = 0;
-      this.opsComEfetivo.forEach(function(o) {
-        var venda = String(o.direcaoTrade || '').toUpperCase().indexOf('VENDA') >= 0;
-        if (String(o.tipoOpcao || '').toUpperCase().indexOf('PUT') < 0 || !venda) return;
-        var dl = Math.abs(parseFloat(o.delta) || 0);   // |delta| ~ prob. de terminar ITM
-        if (dl > 1) dl = dl / 100;
-        n++;
-        somaWin     += (1 - Math.min(1, Math.max(0, dl)));   // média simples: cada trade conta igual
-        premioTotal += parseFloat(o.ganhoMaximo) || 0;
-      });
-      if (n <= 0) return null;
-
-      // p: win rate. Default = 1-|Δ| médio (neutro). Usuário pode sobrepor com seu histórico real.
-      var pDelta = somaWin / n;
-      var wrIn = parseFloat(this.kellyWinRate);
-      var usaOverride = isFinite(wrIn) && wrIn > 0;
-      var p = usaOverride ? Math.min(0.999, Math.max(0.001, wrIn / 100)) : pDelta;
-      var q = 1 - p;
-
-      // b (prêmio ÷ risco): usa o RISCO LÍQUIDO REAL da estrutura (não mais o stop fixo 2× crédito,
-      // que travava b em 0,50). Perda considerada = risco nocional líquido menos o prêmio já recebido.
-      var riscoLiq  = this.totalNocionalPut;
-      var lossUsada = Math.max(riscoLiq - premioTotal, 1);
-      var b = premioTotal / lossUsada;
-
-      var fFull = Math.max(0, b > 0 ? (p - q / b) : 0);
-      var breakeven = b > 0 ? 1 / (1 + b) : 1;   // win rate mínimo p/ edge positivo
-      var cap = parseFloat(this.kellyCapital) || 0;
-      return {
-        p: p, pDelta: pDelta, usaOverride: usaOverride, b: b, breakeven: breakeven,
-        premio: premioTotal, risco: riscoLiq, lossUsada: lossUsada,
-        fFull: fFull, half: fFull / 2, quarter: fFull / 4,
-        valFull: fFull * cap, valHalf: fFull / 2 * cap, valQuarter: fFull / 4 * cap,
-        fracAtual: cap > 0 ? lossUsada / cap : null
-      };
-    },
-
-    kellyStatus: function() {
-      var k = this.kellyAnalise;
-      if (!k) return null;
-      if (k.fFull <= 0) {
-        var beTxt = (k.breakeven * 100).toFixed(0);
-        var pTxt = (k.p * 100).toFixed(1).replace('.', ',');
-        return { cor: 'var(--text-muted)', icone: '😐', titulo: 'Edge fraco no momento',
-                 sub: 'Com prêmio ÷ risco de ' + k.b.toFixed(2).replace('.', ',') + ', você precisaria acertar ~' + beTxt + '% dos trades para ter vantagem — mas a estimativa atual é ' + pTxt + '%. O Kelly sugere não aumentar a exposição agora.',
-                 ratio: null, marcadorPct: 0 };
-      }
-      if (k.fracAtual == null) return null;
-      var ratio = k.fracAtual / k.fFull;
-      var marcadorPct = Math.max(2, Math.min(100, (ratio / 1.5) * 100));
-      var cor, icone, titulo, sub;
-      if (ratio > 1.25) {
-        cor = 'var(--brand-rose)'; icone = '⚠️'; titulo = 'Acima do Full Kelly';
-        sub = 'Você está arriscando mais que o ótimo — sujeito a forte oscilação. Considere reduzir.';
-      } else if (ratio >= 0.80) {
-        cor = 'var(--brand-amber)'; icone = '🔥'; titulo = 'Perto do Full Kelly';
-        sub = 'Sizing agressivo: crescimento máximo, porém com alta volatilidade.';
-      } else if (ratio >= 0.35) {
-        cor = 'var(--brand-emerald)'; icone = '✅'; titulo = 'Perto do Half Kelly';
-        sub = 'Zona equilibrada e recomendada.';
-      } else if (ratio >= 0.12) {
-        cor = 'var(--brand-indigo)'; icone = '🛡️'; titulo = 'Perto do Quarter Kelly';
-        sub = 'Conservador — há espaço para aumentar um pouco dentro do seu edge.';
-      } else {
-        cor = 'var(--text-muted)'; icone = '💤'; titulo = 'Bem abaixo do Kelly';
-        sub = 'Sub-alocado em relação ao seu edge atual.';
-      }
-      return { cor: cor, icone: icone, titulo: titulo, sub: sub, ratio: ratio, marcadorPct: marcadorPct };
     },
 
     totalNocionalCall: function() {
@@ -1983,7 +1810,6 @@ window.CardRadar = {
     fmt: function(chave, valor) { return window.Formatador.campo(chave, valor); },
     fmtK: function(n) { return window.Formatador.moedaCompacta(n); },
     fmtMoedaCheia: function(v) { var n = parseFloat(v); if (isNaN(n)) return 'R$ 0'; return 'R$ ' + Math.round(n).toLocaleString('pt-BR'); },
-    fmtPercent: function(v) { var n = parseFloat(v); if (isNaN(n)) return '--'; return (n * 100).toFixed(1).replace('.', ',') + '%'; },
 
     abrirDrawer: function(tipo, filtro, titulo) {
       var ops = this.opsComEfetivo;
