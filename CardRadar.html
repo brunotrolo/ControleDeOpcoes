@@ -1170,6 +1170,22 @@ window.CardVencimentos = {
               </div>
             </div>
 
+            <!-- Win rate real (override opcional) -->
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;padding:0.625rem 0.875rem;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:var(--radius-md);margin-bottom:1rem;">
+              <div>
+                <span style="font-size:0.68rem;font-weight:700;color:var(--text-secondary);">Seu win rate real</span>
+                <div style="font-size:0.56rem;color:var(--text-muted);margin-top:1px;">
+                  Deixe vazio para usar 1&minus;|Δ| do book (<b style="font-family:'JetBrains Mono',monospace;">{{ fmtPercent(kellyAnalise.pDelta) }}</b>). Informe se você fecha/rola as posições.
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:0.3rem;flex-shrink:0;">
+                <input v-model="kellyWinRate" type="number" min="1" max="99" step="1" placeholder="auto"
+                       style="width:70px;padding:0.35rem 0.5rem;background:var(--surface-base);border:1px solid var(--border-default);border-radius:var(--radius-sm);color:var(--text-primary);font-size:0.8rem;font-family:'JetBrains Mono',monospace;text-align:right;outline:none;"
+                       onfocus="this.style.borderColor='var(--brand-indigo)'" onblur="this.style.borderColor='var(--border-default)'">
+                <span style="font-size:0.72rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;">%</span>
+              </div>
+            </div>
+
             <!-- Veredito principal -->
             <div v-if="kellyStatus" :style="'border-radius:var(--radius-lg);overflow:hidden;border:2px solid '+kellyStatus.cor+'55;margin-bottom:1.25rem;'">
               <div style="padding:1rem;display:flex;align-items:center;gap:0.875rem;" :style="'background:'+kellyStatus.cor+'18;'">
@@ -1213,12 +1229,16 @@ window.CardVencimentos = {
             <div style="display:flex;justify-content:center;align-items:stretch;gap:1.25rem;padding:0.625rem;background:var(--surface-sunken);border-radius:var(--radius-md);margin-bottom:0.875rem;">
               <div style="text-align:center;"><div style="font-size:0.5rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">Prob. acerto</div><div style="font-size:0.9rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-emerald);">{{ fmtPercent(kellyAnalise.p) }}</div></div>
               <div style="width:1px;background:var(--border-default);"></div>
-              <div style="text-align:center;"><div style="font-size:0.5rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">Kelly ótimo</div><div style="font-size:0.9rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);">{{ fmtPercent(kellyAnalise.fFull) }}</div></div>
+              <div style="text-align:center;"><div style="font-size:0.5rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">Breakeven</div><div style="font-size:0.9rem;font-weight:800;font-family:'JetBrains Mono',monospace;" :style="kellyAnalise.p >= kellyAnalise.breakeven ? 'color:var(--brand-emerald);' : 'color:var(--brand-rose);'">{{ fmtPercent(kellyAnalise.breakeven) }}</div></div>
               <div style="width:1px;background:var(--border-default);"></div>
               <div style="text-align:center;"><div style="font-size:0.5rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">Prêmio ÷ risco</div><div style="font-size:0.9rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-amber);">{{ kellyAnalise.b.toFixed(2).replace('.', ',') }}</div></div>
             </div>
 
-            <p style="font-size:0.58rem;color:var(--text-muted);font-style:italic;line-height:1.5;">Prob. de acerto estimada por 1&minus;|Δ| — média simples entre as PUTs vendidas (cada trade conta igual, sem ponderar por tamanho). Perda por trade perdedor considerada em ~2× o crédito (gestão típica de quem fecha os perdedores). Half Kelly é o padrão recomendado. Indicativo — não é recomendação de investimento.</p>
+            <p style="font-size:0.58rem;color:var(--text-muted);font-style:italic;line-height:1.5;">
+              <template v-if="kellyAnalise.usaOverride">Prob. de acerto = <b>{{ fmtPercent(kellyAnalise.p) }}</b> (win rate informado por você).</template>
+              <template v-else>Prob. de acerto estimada por 1&minus;|Δ| — média simples entre as PUTs vendidas (cada trade conta igual). Informe seu win rate real acima se você gerencia as posições.</template>
+              Prêmio ÷ risco (<b>b = {{ kellyAnalise.b.toFixed(2).replace('.', ',') }}</b>) usa o risco nocional líquido real da estrutura; o breakeven correspondente é <b>{{ fmtPercent(kellyAnalise.breakeven) }}</b>. Half Kelly é o padrão recomendado. Indicativo — não é recomendação de investimento.
+            </p>
           </template>
 
         </div>
@@ -1549,6 +1569,7 @@ window.CardRadar = {
     return {
       abaAtiva: 'ciclo',
       kellyCapital: 130000,
+      kellyWinRate: null,   // % informado pelo usuário; null = usa 1-|Δ| do book
       radarAbas: [
         { key: 'ciclo',      label: 'Ciclo' },
         { key: 'premio',     label: 'Prêmio Capturado' },
@@ -1661,16 +1682,26 @@ window.CardRadar = {
         premioTotal += parseFloat(o.ganhoMaximo) || 0;
       });
       if (n <= 0) return null;
-      var p = somaWin / n;
+
+      // p: win rate. Default = 1-|Δ| médio (neutro). Usuário pode sobrepor com seu histórico real.
+      var pDelta = somaWin / n;
+      var wrIn = parseFloat(this.kellyWinRate);
+      var usaOverride = isFinite(wrIn) && wrIn > 0;
+      var p = usaOverride ? Math.min(0.999, Math.max(0.001, wrIn / 100)) : pDelta;
       var q = 1 - p;
+
+      // b (prêmio ÷ risco): usa o RISCO LÍQUIDO REAL da estrutura (não mais o stop fixo 2× crédito,
+      // que travava b em 0,50). Perda considerada = risco nocional líquido menos o prêmio já recebido.
       var riscoLiq  = this.totalNocionalPut;
-      var maxLoss   = Math.max(riscoLiq - premioTotal, 1);
-      var lossUsada = Math.max(Math.min(2 * premioTotal, maxLoss), 1);   // gestão: fecha perdedores a ~2x o crédito
+      var lossUsada = Math.max(riscoLiq - premioTotal, 1);
       var b = premioTotal / lossUsada;
+
       var fFull = Math.max(0, b > 0 ? (p - q / b) : 0);
+      var breakeven = b > 0 ? 1 / (1 + b) : 1;   // win rate mínimo p/ edge positivo
       var cap = parseFloat(this.kellyCapital) || 0;
       return {
-        p: p, b: b, premio: premioTotal, risco: riscoLiq, lossUsada: lossUsada,
+        p: p, pDelta: pDelta, usaOverride: usaOverride, b: b, breakeven: breakeven,
+        premio: premioTotal, risco: riscoLiq, lossUsada: lossUsada,
         fFull: fFull, half: fFull / 2, quarter: fFull / 4,
         valFull: fFull * cap, valHalf: fFull / 2 * cap, valQuarter: fFull / 4 * cap,
         fracAtual: cap > 0 ? lossUsada / cap : null
@@ -1681,8 +1712,10 @@ window.CardRadar = {
       var k = this.kellyAnalise;
       if (!k) return null;
       if (k.fFull <= 0) {
+        var beTxt = (k.breakeven * 100).toFixed(0);
+        var pTxt = (k.p * 100).toFixed(1).replace('.', ',');
         return { cor: 'var(--text-muted)', icone: '😐', titulo: 'Edge fraco no momento',
-                 sub: 'Com a probabilidade de acerto e o prêmio/risco atuais, o Kelly sugere não aumentar a exposição agora.',
+                 sub: 'Com prêmio ÷ risco de ' + k.b.toFixed(2).replace('.', ',') + ', você precisaria acertar ~' + beTxt + '% dos trades para ter vantagem — mas a estimativa atual é ' + pTxt + '%. O Kelly sugere não aumentar a exposição agora.',
                  ratio: null, marcadorPct: 0 };
       }
       if (k.fracAtual == null) return null;
