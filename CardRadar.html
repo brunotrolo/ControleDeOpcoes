@@ -1072,6 +1072,81 @@ window.CardVencimentos = {
             </div>
         </div>
 
+        <!-- ABA: NOTIONAL — memória de cálculo do risco nocional líquido -->
+        <div v-show="abaAtiva === 'notional'" style="background:var(--surface-base);padding:1.25rem 1.5rem;">
+
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
+            <div style="width:10px;height:10px;border-radius:50%;background:var(--brand-indigo);flex-shrink:0;"></div>
+            <span class="cr-tip" data-tip="Memória de cálculo do risco nocional líquido: por vencimento e ticker, o desembolso bruto das PUTs vendidas menos a proteção das PUTs compradas (travas), reconciliando até o saldo final." style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);cursor:help;">Memória de Cálculo do Notional</span>
+          </div>
+
+          <!-- Demonstrativo geral (Bruto -> -Proteção -> Líquido) -->
+          <div style="border:2px solid var(--brand-indigo-muted);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:1.25rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:0.7rem 1rem;background:var(--surface-overlay);">
+              <span style="font-size:0.72rem;color:var(--text-secondary);">Desembolso bruto <span style="color:var(--text-muted);font-size:0.62rem;">(todas as PUTs vendidas exercidas)</span></span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:0.9rem;font-weight:800;color:var(--text-primary);white-space:nowrap;">{{ fmtMoedaCheia(totalNocionalPutBruto) }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:0.7rem 1rem;border-top:1px solid var(--border-subtle);">
+              <span style="font-size:0.72rem;color:var(--brand-amber);">(&minus;) Proteção das compradas</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:0.9rem;font-weight:800;color:var(--brand-amber);white-space:nowrap;">&minus;{{ fmtMoedaCheia(totalNocionalPutDesmontagem) }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:0.875rem 1rem;background:var(--brand-indigo);">
+              <span style="font-size:0.75rem;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:0.05em;">= Risco nocional líquido</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:900;color:#fff;white-space:nowrap;">{{ fmtMoedaCheia(totalNocionalPut) }}</span>
+            </div>
+          </div>
+
+          <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:0.625rem;">Detalhamento por vencimento &middot; ticker</div>
+
+          <!-- Um bloco por vencimento -->
+          <div v-for="v in notionalMemoria" :key="v.chave" style="margin-bottom:0.875rem;border:1px solid var(--border-subtle);border-radius:var(--radius-md);overflow:hidden;">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0.875rem;background:var(--surface-sunken);border-bottom:1px solid var(--border-subtle);">
+              <span style="font-size:0.75rem;font-weight:800;color:var(--text-primary);font-family:'JetBrains Mono',monospace;letter-spacing:0.02em;">{{ v.label }}</span>
+              <span style="font-size:0.7rem;font-weight:800;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;">líq. {{ fmtMoedaCheia(v.liquido) }}</span>
+            </div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;min-width:340px;">
+                <thead>
+                  <tr>
+                    <th style="text-align:left;padding:0.35rem 0.875rem;font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">Ticker</th>
+                    <th style="text-align:right;padding:0.35rem 0.5rem;font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-emerald);">Vendas</th>
+                    <th style="text-align:right;padding:0.35rem 0.5rem;font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-amber);">Proteção</th>
+                    <th style="text-align:right;padding:0.35rem 0.875rem;font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);">Líquido</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="tk in v.tickers" :key="tk.ticker" style="border-top:1px solid var(--border-subtle);">
+                    <td style="padding:0.4rem 0.875rem;font-size:0.74rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.01em;white-space:nowrap;">{{ tk.ticker }}</td>
+                    <td style="padding:0.4rem 0.5rem;text-align:right;font-size:0.7rem;font-family:'JetBrains Mono',monospace;color:var(--text-secondary);white-space:nowrap;">
+                      {{ fmtMoedaCheia(tk.vendaNoc) }}<span v-if="tk.vendaN" style="color:var(--text-muted);font-size:0.56rem;"> · {{ tk.vendaN }}v</span>
+                    </td>
+                    <td style="padding:0.4rem 0.5rem;text-align:right;font-size:0.7rem;font-family:'JetBrains Mono',monospace;color:var(--brand-amber);white-space:nowrap;">
+                      <template v-if="tk.compraNoc > 0">&minus;{{ fmtMoedaCheia(tk.compraNoc) }}<span style="color:var(--text-muted);font-size:0.56rem;"> · {{ tk.compraN }}c</span></template>
+                      <span v-else style="color:var(--border-strong);">&mdash;</span>
+                    </td>
+                    <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.74rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);white-space:nowrap;">{{ fmtMoedaCheia(tk.liquido) }}</td>
+                  </tr>
+                  <tr style="border-top:2px solid var(--border-default);background:var(--surface-overlay);">
+                    <td style="padding:0.4rem 0.875rem;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);">Subtotal</td>
+                    <td style="padding:0.4rem 0.5rem;text-align:right;font-size:0.7rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-emerald);white-space:nowrap;">{{ fmtMoedaCheia(v.bruto) }}</td>
+                    <td style="padding:0.4rem 0.5rem;text-align:right;font-size:0.7rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-amber);white-space:nowrap;">&minus;{{ fmtMoedaCheia(v.protecao) }}</td>
+                    <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.74rem;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);white-space:nowrap;">{{ fmtMoedaCheia(v.liquido) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Reconciliação final -->
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:0.75rem 1rem;border-radius:var(--radius-md);background:var(--brand-indigo-light);border:1px solid var(--brand-indigo-muted);margin-top:0.5rem;">
+            <span style="font-size:0.68rem;font-weight:800;color:var(--brand-indigo);text-transform:uppercase;letter-spacing:0.05em;">&Sigma; Todos os vencimentos</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:900;color:var(--brand-indigo);white-space:nowrap;">{{ fmtMoedaCheia(totalNocionalPut) }}</span>
+          </div>
+
+          <div v-if="notionalMemoria.length === 0" style="padding:2rem;text-align:center;color:var(--text-muted);font-size:0.75rem;">Nenhuma PUT ativa para compor a memória de cálculo.</div>
+
+        </div>
+
 
         <!-- BLOCO B — CONCENTRACAO POR ATIVO (aba: ativo) -->
         <div v-show="abaAtiva === 'ativo'" style="background:var(--surface-base);padding:1.25rem 1.5rem;">
@@ -1403,7 +1478,8 @@ window.CardRadar = {
         { key: 'ativo',      label: 'Concentração' },
         { key: 'calendario', label: 'Calendário' },
         { key: 'moneyness',  label: 'Moneyness' },
-        { key: 'lucroPrej',  label: 'Lucro / Prejuízo' }
+        { key: 'lucroPrej',  label: 'Lucro / Prejuízo' },
+        { key: 'notional',   label: 'Notional' }
       ],
       drawer: {
         aberto:     false,
@@ -1454,6 +1530,43 @@ window.CardRadar = {
     totalNocionalPut: function() { return this.putNetting.reduce(function(a,g){return a+g.liquidoNoc;},0); },       // risco liquido (vendidas - proteção)
     totalNocionalPutBruto: function() { return this.putNetting.reduce(function(a,g){return a+g.vendaNoc;},0); },    // desembolso bruto (todas vendidas)
     totalNocionalPutDesmontagem: function() { return this.putNetting.reduce(function(a,g){return a+g.compraNoc;},0); }, // proteção (todas compradas)
+
+    // Memoria de calculo do risco nocional: por vencimento -> ticker (vendas x proteção).
+    // Reconcilia exatamente com putNetting (mesmo agrupamento e clamp).
+    notionalMemoria: function() {
+      var meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+      var vmap = {}; var vordem = [];
+      this.operacoes.forEach(function(o) {
+        if (String(o.tipoOpcao || '').toUpperCase().indexOf('PUT') < 0) return;
+        var d = o.dataVencimento instanceof Date ? o.dataVencimento : new Date(o.dataVencimento);
+        if (isNaN(d.getTime())) return;
+        var chave = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        if (!vmap[chave]) {
+          vmap[chave] = { chave: chave, label: String(d.getDate()).padStart(2,'0') + '/' + meses[d.getMonth()] + '/' + String(d.getFullYear()).slice(2), tickers: {}, tOrdem: [] };
+          vordem.push(chave);
+        }
+        var t = o.tickerAtivo || 'N/A';
+        if (!vmap[chave].tickers[t]) { vmap[chave].tickers[t] = { ticker: t, vendaNoc: 0, compraNoc: 0, vendaN: 0, compraN: 0 }; vmap[chave].tOrdem.push(t); }
+        var noc = parseFloat(o.nocional) || 0;
+        var tk = vmap[chave].tickers[t];
+        if (String(o.direcaoTrade || '').toUpperCase().indexOf('VENDA') >= 0) { tk.vendaNoc += noc; tk.vendaN++; }
+        else { tk.compraNoc += noc; tk.compraN++; }
+      });
+      vordem.sort();
+      return vordem.map(function(chave) {
+        var v = vmap[chave];
+        var tickers = v.tOrdem.map(function(t) {
+          var tk = v.tickers[t];
+          return { ticker: tk.ticker, vendaNoc: tk.vendaNoc, compraNoc: tk.compraNoc, liquido: Math.max(0, tk.vendaNoc - tk.compraNoc), vendaN: tk.vendaN, compraN: tk.compraN };
+        }).sort(function(a, b) { return b.liquido - a.liquido; });
+        return {
+          chave: v.chave, label: v.label, tickers: tickers,
+          bruto:    tickers.reduce(function(s, x) { return s + x.vendaNoc; }, 0),
+          protecao: tickers.reduce(function(s, x) { return s + x.compraNoc; }, 0),
+          liquido:  tickers.reduce(function(s, x) { return s + x.liquido; }, 0)
+        };
+      });
+    },
 
     totalNocionalCall: function() {
       return this.operacoes.filter(function(o){ return String(o.tipoOpcao||'').toUpperCase().indexOf('CALL')>=0 && String(o.direcaoTrade||'').toUpperCase().indexOf('VENDA')>=0; }).reduce(function(a,o){return a+(parseFloat(o.nocional)||0);},0);
@@ -1696,6 +1809,7 @@ window.CardRadar = {
   methods: {
     fmt: function(chave, valor) { return window.Formatador.campo(chave, valor); },
     fmtK: function(n) { return window.Formatador.moedaCompacta(n); },
+    fmtMoedaCheia: function(v) { var n = parseFloat(v); if (isNaN(n)) return 'R$ 0'; return 'R$ ' + Math.round(n).toLocaleString('pt-BR'); },
 
     abrirDrawer: function(tipo, filtro, titulo) {
       var ops = this.opsComEfetivo;
