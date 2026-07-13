@@ -97,6 +97,13 @@
                       :style="getTipoBadge(op)">
                       {{ tipoBadgeLabel(op) }}
                     </span>
+                    <span v-if="emEstrutura(op)"
+                      style="font-size:0.62rem;font-weight:800;letter-spacing:0.04em;
+                             padding:3px 8px;border-radius:var(--radius-sm);border:1.5px solid;
+                             color:#fff;background:var(--brand-indigo);border-color:var(--brand-indigo);"
+                      title="Faz parte de uma estrutura de múltiplas pernas">
+                      {{ legsDaEstrutura(op) }}&times;
+                    </span>
                   </div>
                   <div style="display:flex;align-items:center;gap:0.5rem;">
                     <span style="font-size:0.7rem;font-weight:700;color:var(--text-muted);
@@ -237,6 +244,13 @@
                              border:1.5px solid;"
                   :style="getTipoBadge(op)">
                   {{ tipoBadgeLabel(op) }}
+                </span>
+                <span v-if="emEstrutura(op)"
+                  style="font-size:0.58rem;font-weight:800;letter-spacing:0.04em;
+                         padding:2px 6px;border-radius:var(--radius-xs);border:1.5px solid;
+                         color:#fff;background:var(--brand-indigo);border-color:var(--brand-indigo);"
+                  title="Faz parte de uma estrutura de múltiplas pernas">
+                  {{ legsDaEstrutura(op) }}&times;
                 </span>
               </div>
               <span style="font-size:0.58rem;font-weight:700;text-transform:uppercase;
@@ -556,6 +570,18 @@ window.CardCarouselAtivas = {
       var stats = this.statsPreCalculados;
       return (stats && stats.moneynessStats && stats.moneynessStats.itm != null)
         ? stats.moneynessStats.itm : 0;
+    },
+
+    // Conta pernas ativas por ID_STRATEGY (normalizado). Exclui o fallback
+    // 'SEM_ESTRATEGIA' e vazios para não agrupar posições avulsas como estrutura.
+    idsEstruturais: function() {
+      var cont = {};
+      this.activeTrades.forEach(function(op) {
+        var id = String(op.estrategiaId || '').trim().toUpperCase();
+        if (!id || id === 'SEM_ESTRATEGIA') return;
+        cont[id] = (cont[id] || 0) + 1;
+      });
+      return cont;
     }
   },
 
@@ -576,7 +602,19 @@ window.CardCarouselAtivas = {
     getCtx:      caGetCtx,
     getTipoBadge: caGetTipoBadge,
     tipoBadgeLabel: caTipoBadgeLabel,
-    buildMetricas: caBuildMetricas
+    buildMetricas: caBuildMetricas,
+
+    // Marcador de estrutura: true quando a posição divide o ID_STRATEGY
+    // com pelo menos outra perna ativa.
+    emEstrutura: function(op) {
+      var id = String(op.estrategiaId || '').trim().toUpperCase();
+      if (!id || id === 'SEM_ESTRATEGIA') return false;
+      return (this.idsEstruturais[id] || 0) > 1;
+    },
+    legsDaEstrutura: function(op) {
+      var id = String(op.estrategiaId || '').trim().toUpperCase();
+      return this.idsEstruturais[id] || 0;
+    }
   }
 };
 </script>
