@@ -721,16 +721,16 @@ window.CardVencimentos = {
             <div style="display:flex;align-items:center;gap:4px;justify-content:flex-end;margin-bottom:2px;">
               <span style="font-size:0.52rem;font-weight:800;padding:1px 4px;border-radius:3px;
                            background:var(--brand-indigo-light);color:var(--brand-indigo);border:1px solid var(--brand-indigo-muted);">PUT</span>
-              <span class="cr-tip" data-tip="Risco nocional LÍQUIDO das travas: desembolso bruto (todas as PUTs vendidas exercidas) menos a proteção das PUTs compradas. Detalhamento na linha de baixo." style="font-size:0.56rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;cursor:help;">risco líq.</span>
+              <span class="cr-tip" data-tip="Risco nocional LÍQUIDO das travas: desembolso bruto (todas as PUTs vendidas exercidas) menos a proteção das PUTs compradas menos o prêmio líquido recebido nas travas. Detalhamento na linha de baixo." style="font-size:0.56rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;cursor:help;">risco líq.</span>
             </div>
             <div style="font-size:0.9rem;font-weight:800;color:var(--brand-indigo);
                         font-family:'JetBrains Mono',monospace;letter-spacing:-0.02em;">
               {{ fmtK(totalNocionalPut) }}
             </div>
             <div v-if="totalNocionalPutDesmontagem > 0" class="cr-tip"
-              :data-tip="'Desembolso bruto (todas PUTs vendidas exercidas): ' + fmtK(totalNocionalPutBruto) + '     (−) Proteção das compradas: ' + fmtK(totalNocionalPutDesmontagem) + '     =     Risco nocional líquido: ' + fmtK(totalNocionalPut)"
+              :data-tip="'Desembolso bruto (todas PUTs vendidas exercidas): ' + fmtK(totalNocionalPutBruto) + '     (−) Proteção das compradas: ' + fmtK(totalNocionalPutDesmontagem) + '     (−) Prêmio líquido recebido (travas): ' + fmtK(totalNocionalPutCredito) + '     =     Risco nocional líquido: ' + fmtK(totalNocionalPut)"
               style="font-size:0.52rem;font-weight:700;color:var(--text-muted);white-space:nowrap;cursor:help;">
-              bruto {{ fmtK(totalNocionalPutBruto) }} <span style="color:var(--brand-amber);">&minus;{{ fmtK(totalNocionalPutDesmontagem) }} prot.</span>
+              bruto {{ fmtK(totalNocionalPutBruto) }} <span style="color:var(--brand-amber);">&minus;{{ fmtK(totalNocionalPutDesmontagem) }} prot.</span><span v-if="totalNocionalPutCredito > 0" style="color:var(--brand-emerald);"> &minus;{{ fmtK(totalNocionalPutCredito) }} prêm.</span>
             </div>
           </div>
           <div style="text-align:right;">
@@ -1077,7 +1077,7 @@ window.CardVencimentos = {
 
           <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
             <div style="width:10px;height:10px;border-radius:50%;background:var(--brand-indigo);flex-shrink:0;"></div>
-            <span class="cr-tip" data-tip="Memória de cálculo do risco nocional líquido: por vencimento e ticker, o desembolso bruto das PUTs vendidas menos a proteção das PUTs compradas (travas), reconciliando até o saldo final." style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);cursor:help;">Memória de Cálculo do Notional</span>
+            <span class="cr-tip" data-tip="Memória de cálculo do risco nocional líquido: por vencimento e ticker, o desembolso bruto das PUTs vendidas menos a proteção das PUTs compradas menos o prêmio líquido recebido nas travas, reconciliando até o saldo final. PUT vendida a seco mantém o nocional cheio (sem abate de prêmio)." style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:var(--text-secondary);cursor:help;">Memória de Cálculo do Notional</span>
           </div>
 
           <!-- Demonstrativo geral (Bruto -> -Proteção -> Líquido) -->
@@ -1089,6 +1089,10 @@ window.CardVencimentos = {
             <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:0.7rem 1rem;border-top:1px solid var(--border-subtle);">
               <span style="font-size:0.72rem;color:var(--brand-amber);">(&minus;) Proteção das compradas</span>
               <span style="font-family:'JetBrains Mono',monospace;font-size:0.9rem;font-weight:800;color:var(--brand-amber);white-space:nowrap;">&minus;{{ fmtMoedaCheia(totalNocionalPutDesmontagem) }}</span>
+            </div>
+            <div v-if="totalNocionalPutCredito > 0" style="display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:0.7rem 1rem;border-top:1px solid var(--border-subtle);">
+              <span style="font-size:0.72rem;color:var(--brand-emerald);">(&minus;) Prêmio líquido recebido <span style="color:var(--text-muted);font-size:0.62rem;">(travas)</span></span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:0.9rem;font-weight:800;color:var(--brand-emerald);white-space:nowrap;">&minus;{{ fmtMoedaCheia(totalNocionalPutCredito) }}</span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:0.875rem 1rem;background:var(--brand-indigo);">
               <span style="font-size:0.75rem;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:0.05em;">= Risco nocional líquido</span>
@@ -1105,12 +1109,13 @@ window.CardVencimentos = {
               <span style="font-size:0.7rem;font-weight:800;color:var(--brand-indigo);font-family:'JetBrains Mono',monospace;">líq. {{ fmtMoedaCheia(v.liquido) }}</span>
             </div>
             <div style="overflow-x:auto;">
-              <table style="width:100%;border-collapse:collapse;min-width:340px;">
+              <table style="width:100%;border-collapse:collapse;min-width:420px;">
                 <thead>
                   <tr>
                     <th style="text-align:left;padding:0.35rem 0.875rem;font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);">Ticker</th>
                     <th style="text-align:right;padding:0.35rem 0.5rem;font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-emerald);">Vendas</th>
                     <th style="text-align:right;padding:0.35rem 0.5rem;font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-amber);">Proteção</th>
+                    <th style="text-align:right;padding:0.35rem 0.5rem;font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-emerald);">Prêmio</th>
                     <th style="text-align:right;padding:0.35rem 0.875rem;font-size:0.55rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--brand-indigo);">Líquido</th>
                   </tr>
                 </thead>
@@ -1124,12 +1129,17 @@ window.CardVencimentos = {
                       <template v-if="tk.compraNoc > 0">&minus;{{ fmtMoedaCheia(tk.compraNoc) }}<span style="color:var(--text-muted);font-size:0.56rem;"> · {{ tk.compraN }}c</span></template>
                       <span v-else style="color:var(--border-strong);">&mdash;</span>
                     </td>
+                    <td style="padding:0.4rem 0.5rem;text-align:right;font-size:0.7rem;font-family:'JetBrains Mono',monospace;color:var(--brand-emerald);white-space:nowrap;">
+                      <template v-if="tk.credito > 0">&minus;{{ fmtMoedaCheia(tk.credito) }}</template>
+                      <span v-else style="color:var(--border-strong);">&mdash;</span>
+                    </td>
                     <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.74rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);white-space:nowrap;">{{ fmtMoedaCheia(tk.liquido) }}</td>
                   </tr>
                   <tr style="border-top:2px solid var(--border-default);background:var(--surface-overlay);">
                     <td style="padding:0.4rem 0.875rem;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);">Subtotal</td>
                     <td style="padding:0.4rem 0.5rem;text-align:right;font-size:0.7rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-emerald);white-space:nowrap;">{{ fmtMoedaCheia(v.bruto) }}</td>
                     <td style="padding:0.4rem 0.5rem;text-align:right;font-size:0.7rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-amber);white-space:nowrap;">&minus;{{ fmtMoedaCheia(v.protecao) }}</td>
+                    <td style="padding:0.4rem 0.5rem;text-align:right;font-size:0.7rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--brand-emerald);white-space:nowrap;"><template v-if="v.credito > 0">&minus;{{ fmtMoedaCheia(v.credito) }}</template><span v-else style="color:var(--border-strong);">&mdash;</span></td>
                     <td style="padding:0.4rem 0.875rem;text-align:right;font-size:0.74rem;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--brand-indigo);white-space:nowrap;">{{ fmtMoedaCheia(v.liquido) }}</td>
                   </tr>
                 </tbody>
@@ -1519,17 +1529,26 @@ window.CardRadar = {
         var venda = dir.indexOf('VENDA') >= 0;
         var dStr = o.dataVencimento ? String(o.dataVencimento).split('T')[0] : '';
         var key = (o.tickerAtivo||'')+'|'+dStr;  // ticker+venc: netta a protecao da trava (strikes diferentes)
-        if (!grupos[key]) { grupos[key]={ticker:o.tickerAtivo,vendaNoc:0,compraNoc:0,vendaOps:[],compraOps:[]}; ordem.push(key); }
+        if (!grupos[key]) { grupos[key]={ticker:o.tickerAtivo,vendaNoc:0,compraNoc:0,vendaOps:[],compraOps:[],creditoPut:0}; ordem.push(key); }
         var noc = parseFloat(o.nocional)||0;
+        // Crédito líquido da estrutura = Σ ganhoMaximo das pernas PUT (venda entra +, compra entra −)
+        grupos[key].creditoPut += (parseFloat(o.ganhoMaximo)||0);
         if (venda) { grupos[key].vendaNoc+=noc; grupos[key].vendaOps.push(o); }
         else       { grupos[key].compraNoc+=noc; grupos[key].compraOps.push(o); }
       });
-      return ordem.map(function(k){ var g=grupos[k]; return Object.assign({},g,{key:k,liquidoNoc:Math.max(0,g.vendaNoc-g.compraNoc)}); });
+      return ordem.map(function(k){
+        var g=grupos[k];
+        // Só abate o prêmio quando há PUT protetora (trava). PUT vendida a seco mantém o nocional cheio.
+        var credito = g.compraOps.length > 0 ? Math.max(0, g.creditoPut) : 0;
+        var brutoLiq = Math.max(0, g.vendaNoc - g.compraNoc);
+        return Object.assign({},g,{key:k, creditoNoc:credito, liquidoNoc:Math.max(0, brutoLiq - credito)});
+      });
     },
 
-    totalNocionalPut: function() { return this.putNetting.reduce(function(a,g){return a+g.liquidoNoc;},0); },       // risco liquido (vendidas - proteção)
+    totalNocionalPut: function() { return this.putNetting.reduce(function(a,g){return a+g.liquidoNoc;},0); },       // risco liquido (vendidas - proteção - prêmio das travas)
     totalNocionalPutBruto: function() { return this.putNetting.reduce(function(a,g){return a+g.vendaNoc;},0); },    // desembolso bruto (todas vendidas)
     totalNocionalPutDesmontagem: function() { return this.putNetting.reduce(function(a,g){return a+g.compraNoc;},0); }, // proteção (todas compradas)
+    totalNocionalPutCredito: function() { return this.putNetting.reduce(function(a,g){return a+g.creditoNoc;},0); }, // prêmio líquido recebido nas travas
 
     // Memoria de calculo do risco nocional: por vencimento -> ticker (vendas x proteção).
     // Reconcilia exatamente com putNetting (mesmo agrupamento e clamp).
@@ -1546,9 +1565,10 @@ window.CardRadar = {
           vordem.push(chave);
         }
         var t = o.tickerAtivo || 'N/A';
-        if (!vmap[chave].tickers[t]) { vmap[chave].tickers[t] = { ticker: t, vendaNoc: 0, compraNoc: 0, vendaN: 0, compraN: 0 }; vmap[chave].tOrdem.push(t); }
+        if (!vmap[chave].tickers[t]) { vmap[chave].tickers[t] = { ticker: t, vendaNoc: 0, compraNoc: 0, vendaN: 0, compraN: 0, creditoPut: 0 }; vmap[chave].tOrdem.push(t); }
         var noc = parseFloat(o.nocional) || 0;
         var tk = vmap[chave].tickers[t];
+        tk.creditoPut += (parseFloat(o.ganhoMaximo) || 0);   // Σ ganhoMaximo das pernas PUT (venda +, compra −)
         if (String(o.direcaoTrade || '').toUpperCase().indexOf('VENDA') >= 0) { tk.vendaNoc += noc; tk.vendaN++; }
         else { tk.compraNoc += noc; tk.compraN++; }
       });
@@ -1557,12 +1577,15 @@ window.CardRadar = {
         var v = vmap[chave];
         var tickers = v.tOrdem.map(function(t) {
           var tk = v.tickers[t];
-          return { ticker: tk.ticker, vendaNoc: tk.vendaNoc, compraNoc: tk.compraNoc, liquido: Math.max(0, tk.vendaNoc - tk.compraNoc), vendaN: tk.vendaN, compraN: tk.compraN };
+          // Só abate prêmio quando há PUT protetora (trava); PUT a seco fica no nocional cheio.
+          var credito = tk.compraN > 0 ? Math.max(0, tk.creditoPut) : 0;
+          return { ticker: tk.ticker, vendaNoc: tk.vendaNoc, compraNoc: tk.compraNoc, credito: credito, liquido: Math.max(0, tk.vendaNoc - tk.compraNoc - credito), vendaN: tk.vendaN, compraN: tk.compraN };
         }).sort(function(a, b) { return b.liquido - a.liquido; });
         return {
           chave: v.chave, label: v.label, tickers: tickers,
           bruto:    tickers.reduce(function(s, x) { return s + x.vendaNoc; }, 0),
           protecao: tickers.reduce(function(s, x) { return s + x.compraNoc; }, 0),
+          credito:  tickers.reduce(function(s, x) { return s + x.credito; }, 0),
           liquido:  tickers.reduce(function(s, x) { return s + x.liquido; }, 0)
         };
       });
